@@ -3,7 +3,7 @@
 
 Python 3 tools for reading European XFEL's HDF5 files.
 
-[Documentation](https://karabo-data.readthedocs.io/en/latest/)
+[Documentation](https://extra-geom.readthedocs.io/en/latest/)
 
 Installing
 ==========
