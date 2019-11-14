@@ -21,27 +21,19 @@ def find_version(*parts):
     raise RuntimeError("Unable to find version string.")
 
 
-setup(name="karabo_data",
-      version=find_version("karabo_data", "__init__.py"),
+setup(name="EXtra-geom",
+      version=find_version("extra_geom", "__init__.py"),
       author="European XFEL GmbH",
       author_email="da-support@xfel.eu",
       maintainer="Thomas Michelat",
-      url="https://github.com/European-XFEL/karabo_data",
+      url="https://github.com/European-XFEL/EXtra-geom",
       description="Tools to read and analyse data from European XFEL ",
       long_description=read("README.md"),
       long_description_content_type='text/markdown',
       license="BSD-3-Clause",
       packages=find_packages(),
       package_data={
-          'karabo_data.tests': ['dssc_geo_june19.h5', 'lpd_mar_18.h5'],
-      },
-      entry_points={
-          "console_scripts": [
-              "lsxfel = karabo_data.lsxfel:main",
-              "karabo-bridge-serve-files = karabo_data.export:main",
-              "karabo-data-validate = karabo_data.validation:main",
-              "karabo-data-make-virtual-cxi = karabo_data.cli.make_virtual_cxi:main"
-          ],
+          'extra_geom.tests': ['dssc_geo_june19.h5', 'lpd_mar_18.h5'],
       },
       install_requires=[
           'cfelpyutils>=0.92',
