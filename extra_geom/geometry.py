@@ -1,4 +1,4 @@
-"""DEPRECATED: LPD geometry. Use karabo_data.geometry2 instead.
+"""DEPRECATED: LPD geometry. Use extra_geom.LPD_1MGeometry instead.
 """
 from copy import copy
 import h5py

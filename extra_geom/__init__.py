@@ -1,5 +1,5 @@
 # coding: utf-8
-"""The karabo_data package.
+"""The extra_geom package.
 
 Copyright (c) 2017, European X-Ray Free-Electron Laser Facility GmbH
 All rights reserved.

@@ -1,13 +1,12 @@
 AGIPD, LPD & DSSC Geometry
 ==========================
 
-.. module:: karabo_data.geometry2
+.. module:: extra_geom
 
 The AGIPD and LPD detectors are made up of several sensor modules,
 from which separate streams of data are recorded.
 Inspecting or processing data from these detectors therefore depends on
-knowing how the modules are arranged. The module :mod:`karabo_data.geometry2`
-handles this information.
+knowing how the modules are arranged. EXtra-geom handles this information.
 
 All the coordinates used in this module are from the detector centre.
 This should be roughly where the beam passes through the detector.

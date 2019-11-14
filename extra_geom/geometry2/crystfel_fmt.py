@@ -4,7 +4,7 @@ from itertools import product
 import numpy as np
 
 HEADER_TEMPLATE = """\
-; AGIPD-1M geometry file written by karabo_data {version}
+; AGIPD-1M geometry file written by EXtra-geom {version}
 ; You may need to edit this file to add:
 ; - data and mask locations in the file
 ; - mask_good & mask_bad values to interpret the mask
