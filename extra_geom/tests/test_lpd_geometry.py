@@ -6,7 +6,7 @@ import numpy as np
 from os.path import abspath, dirname, join as pjoin
 
 from extra_geom import LPD_1MGeometry
-from extra_geom.geometry2 import invert_xfel_lpd_geom
+from extra_geom.detectors import invert_xfel_lpd_geom
 
 tests_dir = dirname(abspath(__file__))
 

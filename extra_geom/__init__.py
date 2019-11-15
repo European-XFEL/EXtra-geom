@@ -35,6 +35,6 @@ program. If not, see <https://opensource.org/licenses/BSD-3-Clause>
 
 __version__ = "0.8.0"
 
-from .geometry2 import AGIPD_1MGeometry, LPD_1MGeometry, DSSC_1MGeometry
+from .detectors import AGIPD_1MGeometry, LPD_1MGeometry, DSSC_1MGeometry
 
 __all__ = ['AGIPD_1MGeometry', 'LPD_1MGeometry', 'DSSC_1MGeometry']

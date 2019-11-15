@@ -82,7 +82,7 @@ def write_crystfel_geom(self, filename, *,
                         adu_per_ev=None, clen=None, photon_energy=None):
     """Write this geometry to a CrystFEL format (.geom) geometry file.
     """
-    from .. import __version__
+    from . import __version__
 
     if adu_per_ev is None:
         adu_per_ev_str = '; adu_per_eV = SET ME'
