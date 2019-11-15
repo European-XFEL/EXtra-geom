@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 import numpy as np
 from os.path import abspath, dirname, join as pjoin
 
-from extra_geom.geometry import LPDGeometry
+from extra_geom.lpd_old import LPDGeometry
 
 tests_dir = dirname(abspath(__file__))
 
