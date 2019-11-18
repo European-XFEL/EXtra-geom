@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/European-XFEL/EXtra-geom.svg?branch=master)](https://travis-ci.org/European-XFEL/EXtra-geom)
 [![codecov](https://codecov.io/gh/European-XFEL/EXtra-geom/branch/master/graph/badge.svg)](https://codecov.io/gh/European-XFEL/EXtra-geom)
 
-Python 3 tools for reading European XFEL's HDF5 files.
+Python tools to work with EuXFEL detector geometry and assemble detector images.
 
 [Documentation](https://extra-geom.readthedocs.io/en/latest/)
 
