@@ -35,6 +35,7 @@ Documentation contents
    examine_geometry
    agipd_geometry
    dssc_geometry
+   masks
 
 .. toctree::
    :caption: Development
