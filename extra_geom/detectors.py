@@ -664,59 +664,47 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
           Scale the arrows showing the difference in positions.
           This is useful to show small differences clearly.
         """
-        import matplotlib.pyplot as plt
         from matplotlib.collections import PatchCollection
-        from matplotlib.patches import Polygon, FancyArrow
+        from matplotlib.patches import FancyArrow
+        
+        coord_scale = 1 / self.pixel_size
+        arrow_scale = scale * coord_scale
 
-        fig = plt.figure(figsize=(10, 10))
-        ax = fig.add_subplot(1, 1, 1)
+        # Draw this geometry first, using pixel units
+        ax = self.inspect()
+        
+        if len(self.modules) != len(other.modules):
+            print("Geometry objects have different numbers of modules!")
+        if any(len(mod_a) != len(mod_b) for (mod_a, mod_b) in zip(self.modules, other.modules)):
+            print("Geometry objects have different numbers of fragments in a module!")
 
-        rects = []
         arrows = []
-        for p, module in enumerate(self.modules):
-            for a, fragment in enumerate(module):
-                corners = fragment.corners()[:, :2]  # Drop the Z dimension
-                corner1, corner1_opp = corners[0], corners[2]
+        for mod_a, mod_b in zip(self.modules, other.modules):
+            for frag_a, frag_b in zip(mod_a, mod_b):
+                corners_a = frag_a.corners()[:, :2]  # Drop the Z dimension
+                corner_a, corner_a_opp = corners_a[0], corners_a[2]
 
-                rects.append(Polygon(corners))
-                if a in {0, 7}:
-                    cx, cy, _ = fragment.centre()
-                    ax.text(cx, cy, str(a),
-                            verticalalignment='center',
-                            horizontalalignment='center')
-                elif a == 4:
-                    cx, cy, _ = fragment.centre()
-                    ax.text(cx, cy, 'p{}'.format(p),
-                            verticalalignment='center',
-                            horizontalalignment='center')
+                corners_b = frag_b.corners()[:, :2]
+                corner_b, corner_b_opp = corners_b[0], corners_b[2]
 
-                panel2 = other.modules[p][a]
-                corners2 = panel2.corners()[:, :2]
-                corner2, corner2_opp = corners2[0], corners2[2]
-                dx, dy = corner2 - corner1
+                # Arrow for first corner
+                dx, dy = (corner_b - corner_a) * arrow_scale
                 if not (dx == dy == 0):
-                    sx, sy = corner1
+                    sx, sy = corner_a * coord_scale
                     arrows.append(FancyArrow(
-                        sx, sy, scale * dx, scale * dy, width=5, head_length=4
+                        sx, sy, dx, dy, width=5, head_length=4
                     ))
 
-                dx, dy = corner2_opp - corner1_opp
+                # Arrow for third corner
+                dx, dy = (corner_b_opp - corner_a_opp) * arrow_scale
                 if not (dx == dy == 0):
-                    sx, sy = corner1_opp
+                    sx, sy = corner_a_opp * coord_scale
                     arrows.append(FancyArrow(
-                        sx, sy, scale * dx, scale * dy, width=5, head_length=5
+                        sx, sy, dx, dy, width=5, head_length=4
                     ))
 
-        pc = PatchCollection(rects, facecolor=(0.75, 1.0, 0.75), edgecolor=None)
-        ax.add_collection(pc)
         ac = PatchCollection(arrows)
         ax.add_collection(ac)
-
-        # Set axis limits to fit all shapes, with some margin
-        all_x = np.concatenate([s.xy[:, 0] for s in arrows + rects])
-        all_y = np.concatenate([s.xy[:, 1] for s in arrows + rects])
-        ax.set_xlim(all_x.min() - 20, all_x.max() + 20)
-        ax.set_ylim(all_y.min() - 40, all_y.max() + 20)
 
         ax.set_title('Geometry comparison: {} → {}'
                      .format(self.filename, other.filename))
