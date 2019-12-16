@@ -92,6 +92,8 @@ which this geometry code can position independently.
 
    .. automethod:: inspect
 
+   .. automethod:: compare
+
    .. automethod:: data_coords_to_positions
 
 DSSC-1M
@@ -130,3 +132,5 @@ approximately half a pixel width from their true position.
    .. automethod:: output_array_for_position_fast
 
    .. automethod:: inspect
+
+   .. automethod:: compare

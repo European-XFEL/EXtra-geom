@@ -163,6 +163,71 @@ class DetectorGeometryBase:
 
         return ax
 
+    def compare(self, other, scale=1.0):
+        """Show a comparison of this geometry with another in a 2D plot.
+
+        This shows the current geometry like :meth:`inspect`, with the addition
+        of arrows showing how each panel is shifted in the other geometry.
+
+        Parameters
+        ----------
+
+        other : DetectorGeometryBase
+          A second geometry object to compare with this one.
+          It should be for the same kind of detector.
+        scale : float
+          Scale the arrows showing the difference in positions.
+          This is useful to show small differences clearly.
+        """
+        from matplotlib.collections import PatchCollection
+        from matplotlib.patches import FancyArrow
+        
+        coord_scale = 1 / self.pixel_size
+        arrow_scale = scale * coord_scale
+
+        # Draw this geometry first, using pixel units
+        ax = self.inspect()
+        
+        if len(self.modules) != len(other.modules):
+            print("Geometry objects have different numbers of modules!")
+        if any(len(mod_a) != len(mod_b) for (mod_a, mod_b) in zip(self.modules, other.modules)):
+            print("Geometry objects have different numbers of fragments in a module!")
+
+        arrows = []
+        for mod_a, mod_b in zip(self.modules, other.modules):
+            for frag_a, frag_b in zip(mod_a, mod_b):
+                corners_a = frag_a.corners()[:, :2]  # Drop the Z dimension
+                corner_a, corner_a_opp = corners_a[0], corners_a[2]
+
+                corners_b = frag_b.corners()[:, :2]
+                corner_b, corner_b_opp = corners_b[0], corners_b[2]
+
+                # Arrow for first corner
+                dx, dy = (corner_b - corner_a) * arrow_scale
+                if not (dx == dy == 0):
+                    sx, sy = corner_a * coord_scale
+                    arrows.append(FancyArrow(
+                        sx, sy, dx, dy, width=5, head_length=4
+                    ))
+
+                # Arrow for third corner
+                dx, dy = (corner_b_opp - corner_a_opp) * arrow_scale
+                if not (dx == dy == 0):
+                    sx, sy = corner_a_opp * coord_scale
+                    arrows.append(FancyArrow(
+                        sx, sy, dx, dy, width=5, head_length=4
+                    ))
+
+        ac = PatchCollection(arrows)
+        ax.add_collection(ac)
+
+        ax.set_title('Geometry comparison: {} → {}'
+                     .format(self.filename, other.filename))
+        ax.text(1, 0, 'Arrows scaled: {}×'.format(scale),
+                horizontalalignment="right", verticalalignment="bottom",
+                transform=ax.transAxes)
+        return ax
+
     @classmethod
     def from_crystfel_geom(cls, filename):
         """Read a CrystFEL format (.geom) geometry file.
@@ -647,82 +712,6 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
                         horizontalalignment='center')
 
         ax.set_title('AGIPD-1M detector geometry ({})'.format(self.filename))
-        return ax
-
-    def compare(self, other, scale=1.0):
-        """Show a comparison of this geometry with another in a 2D plot.
-
-        This shows the current geometry like :meth:`inspect`, with the addition
-        of arrows showing how each panel is shifted in the other geometry.
-
-        Parameters
-        ----------
-
-        other : AGIPD_1MGeometry
-          A second geometry object to compare with this one.
-        scale : float
-          Scale the arrows showing the difference in positions.
-          This is useful to show small differences clearly.
-        """
-        import matplotlib.pyplot as plt
-        from matplotlib.collections import PatchCollection
-        from matplotlib.patches import Polygon, FancyArrow
-
-        fig = plt.figure(figsize=(10, 10))
-        ax = fig.add_subplot(1, 1, 1)
-
-        rects = []
-        arrows = []
-        for p, module in enumerate(self.modules):
-            for a, fragment in enumerate(module):
-                corners = fragment.corners()[:, :2]  # Drop the Z dimension
-                corner1, corner1_opp = corners[0], corners[2]
-
-                rects.append(Polygon(corners))
-                if a in {0, 7}:
-                    cx, cy, _ = fragment.centre()
-                    ax.text(cx, cy, str(a),
-                            verticalalignment='center',
-                            horizontalalignment='center')
-                elif a == 4:
-                    cx, cy, _ = fragment.centre()
-                    ax.text(cx, cy, 'p{}'.format(p),
-                            verticalalignment='center',
-                            horizontalalignment='center')
-
-                panel2 = other.modules[p][a]
-                corners2 = panel2.corners()[:, :2]
-                corner2, corner2_opp = corners2[0], corners2[2]
-                dx, dy = corner2 - corner1
-                if not (dx == dy == 0):
-                    sx, sy = corner1
-                    arrows.append(FancyArrow(
-                        sx, sy, scale * dx, scale * dy, width=5, head_length=4
-                    ))
-
-                dx, dy = corner2_opp - corner1_opp
-                if not (dx == dy == 0):
-                    sx, sy = corner1_opp
-                    arrows.append(FancyArrow(
-                        sx, sy, scale * dx, scale * dy, width=5, head_length=5
-                    ))
-
-        pc = PatchCollection(rects, facecolor=(0.75, 1.0, 0.75), edgecolor=None)
-        ax.add_collection(pc)
-        ac = PatchCollection(arrows)
-        ax.add_collection(ac)
-
-        # Set axis limits to fit all shapes, with some margin
-        all_x = np.concatenate([s.xy[:, 0] for s in arrows + rects])
-        all_y = np.concatenate([s.xy[:, 1] for s in arrows + rects])
-        ax.set_xlim(all_x.min() - 20, all_x.max() + 20)
-        ax.set_ylim(all_y.min() - 40, all_y.max() + 20)
-
-        ax.set_title('Geometry comparison: {} → {}'
-                     .format(self.filename, other.filename))
-        ax.text(1, 0, 'Arrows scaled: {}×'.format(scale),
-                horizontalalignment="right", verticalalignment="bottom",
-                transform=ax.transAxes)
         return ax
 
     def position_modules_interpolate(self, data):
