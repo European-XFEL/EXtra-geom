@@ -163,6 +163,71 @@ class DetectorGeometryBase:
 
         return ax
 
+    def compare(self, other, scale=1.0):
+        """Show a comparison of this geometry with another in a 2D plot.
+
+        This shows the current geometry like :meth:`inspect`, with the addition
+        of arrows showing how each panel is shifted in the other geometry.
+
+        Parameters
+        ----------
+
+        other : DetectorGeometryBase
+          A second geometry object to compare with this one.
+          It should be for the same kind of detector.
+        scale : float
+          Scale the arrows showing the difference in positions.
+          This is useful to show small differences clearly.
+        """
+        from matplotlib.collections import PatchCollection
+        from matplotlib.patches import FancyArrow
+        
+        coord_scale = 1 / self.pixel_size
+        arrow_scale = scale * coord_scale
+
+        # Draw this geometry first, using pixel units
+        ax = self.inspect()
+        
+        if len(self.modules) != len(other.modules):
+            print("Geometry objects have different numbers of modules!")
+        if any(len(mod_a) != len(mod_b) for (mod_a, mod_b) in zip(self.modules, other.modules)):
+            print("Geometry objects have different numbers of fragments in a module!")
+
+        arrows = []
+        for mod_a, mod_b in zip(self.modules, other.modules):
+            for frag_a, frag_b in zip(mod_a, mod_b):
+                corners_a = frag_a.corners()[:, :2]  # Drop the Z dimension
+                corner_a, corner_a_opp = corners_a[0], corners_a[2]
+
+                corners_b = frag_b.corners()[:, :2]
+                corner_b, corner_b_opp = corners_b[0], corners_b[2]
+
+                # Arrow for first corner
+                dx, dy = (corner_b - corner_a) * arrow_scale
+                if not (dx == dy == 0):
+                    sx, sy = corner_a * coord_scale
+                    arrows.append(FancyArrow(
+                        sx, sy, dx, dy, width=5, head_length=4
+                    ))
+
+                # Arrow for third corner
+                dx, dy = (corner_b_opp - corner_a_opp) * arrow_scale
+                if not (dx == dy == 0):
+                    sx, sy = corner_a_opp * coord_scale
+                    arrows.append(FancyArrow(
+                        sx, sy, dx, dy, width=5, head_length=4
+                    ))
+
+        ac = PatchCollection(arrows)
+        ax.add_collection(ac)
+
+        ax.set_title('Geometry comparison: {} → {}'
+                     .format(self.filename, other.filename))
+        ax.text(1, 0, 'Arrows scaled: {}×'.format(scale),
+                horizontalalignment="right", verticalalignment="bottom",
+                transform=ax.transAxes)
+        return ax
+
     @classmethod
     def from_crystfel_geom(cls, filename):
         """Read a CrystFEL format (.geom) geometry file.
@@ -647,70 +712,6 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
                         horizontalalignment='center')
 
         ax.set_title('AGIPD-1M detector geometry ({})'.format(self.filename))
-        return ax
-
-    def compare(self, other, scale=1.0):
-        """Show a comparison of this geometry with another in a 2D plot.
-
-        This shows the current geometry like :meth:`inspect`, with the addition
-        of arrows showing how each panel is shifted in the other geometry.
-
-        Parameters
-        ----------
-
-        other : AGIPD_1MGeometry
-          A second geometry object to compare with this one.
-        scale : float
-          Scale the arrows showing the difference in positions.
-          This is useful to show small differences clearly.
-        """
-        from matplotlib.collections import PatchCollection
-        from matplotlib.patches import FancyArrow
-        
-        coord_scale = 1 / self.pixel_size
-        arrow_scale = scale * coord_scale
-
-        # Draw this geometry first, using pixel units
-        ax = self.inspect()
-        
-        if len(self.modules) != len(other.modules):
-            print("Geometry objects have different numbers of modules!")
-        if any(len(mod_a) != len(mod_b) for (mod_a, mod_b) in zip(self.modules, other.modules)):
-            print("Geometry objects have different numbers of fragments in a module!")
-
-        arrows = []
-        for mod_a, mod_b in zip(self.modules, other.modules):
-            for frag_a, frag_b in zip(mod_a, mod_b):
-                corners_a = frag_a.corners()[:, :2]  # Drop the Z dimension
-                corner_a, corner_a_opp = corners_a[0], corners_a[2]
-
-                corners_b = frag_b.corners()[:, :2]
-                corner_b, corner_b_opp = corners_b[0], corners_b[2]
-
-                # Arrow for first corner
-                dx, dy = (corner_b - corner_a) * arrow_scale
-                if not (dx == dy == 0):
-                    sx, sy = corner_a * coord_scale
-                    arrows.append(FancyArrow(
-                        sx, sy, dx, dy, width=5, head_length=4
-                    ))
-
-                # Arrow for third corner
-                dx, dy = (corner_b_opp - corner_a_opp) * arrow_scale
-                if not (dx == dy == 0):
-                    sx, sy = corner_a_opp * coord_scale
-                    arrows.append(FancyArrow(
-                        sx, sy, dx, dy, width=5, head_length=4
-                    ))
-
-        ac = PatchCollection(arrows)
-        ax.add_collection(ac)
-
-        ax.set_title('Geometry comparison: {} → {}'
-                     .format(self.filename, other.filename))
-        ax.text(1, 0, 'Arrows scaled: {}×'.format(scale),
-                horizontalalignment="right", verticalalignment="bottom",
-                transform=ax.transAxes)
         return ax
 
     def position_modules_interpolate(self, data):
