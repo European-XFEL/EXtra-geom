@@ -1362,23 +1362,38 @@ class Jungfrau_Geometry(DetectorGeometryBase):
                               asic_gap=2, unit=pixel_size):
 
         px_conversion = unit / cls.pixel_size
-        # convenience 'method': fill orientations with defaults to match number
+        # convenience 'method': fill orientations with defaults to match  number
         if len(origin_pos) != len(orientations):
             orientations = [(1,1) for _ in range(len(origin_pos))]
         cls.expected_data_shape = (len(origin_pos), 512, 1024)
         asic_gap *= px_conversion
+        module_width = 4 * (cls.frag_fs_pixels + asic_gap)
+        module_height = 2 * (cls.frag_ss_pixels + asic_gap)
         modules = []
         for m in range(len(origin_pos)):
             x_orient = orientations[m][0]
             y_orient = orientations[m][1]
+            '''
+            we assume that externally defined origins ('offsets') as per input
+            are always bottom-left, irrespective of flipping: we correct here
+            '''
+            if x_orient == 1:
+                x_origin = origin_pos[m][0]
+            else:
+                x_origin = origin_pos[m][0] + module_width
+            if y_orient == 1:
+                y_origin = origin_pos[m][1]
+            else:
+                y_origin = origin_pos[m][1] + module_height
             tiles = []
             for a in range(8):
                 row = a // 4     # 0, 1
                 column = a % 4   # 0, 1, 2, 3
-                corner_y = (origin_pos[m][1] * px_conversion)\
-                           + (cls.frag_fs_pixels + asic_gap) * row
-                corner_x = (origin_pos[m][0] * px_conversion)\
-                           + (cls.frag_ss_pixels + asic_gap) * column
+                corner_y = (y_origin * px_conversion)\
+                           + y_orient * (cls.frag_fs_pixels + asic_gap) * row
+                corner_x = (x_origin * px_conversion)\
+                           + x_orient * (cls.frag_ss_pixels + asic_gap) * column
+                print(corner_x)
                 tiles.append(GeometryFragment(
                     corner_pos=np.array([corner_x, corner_y, 0.]) * cls.pixel_size,
                     fs_vec=np.array([x_orient, 0, 0]) * cls.pixel_size,
