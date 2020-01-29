@@ -1344,9 +1344,9 @@ class DSSC_Geometry(DSSC_1MGeometry):
         )
 
 
-class JF_500KGeometry(DetectorGeometryBase):
-    """Detector layout for Jungfrau-500K,
-       which is a single panel of 2 x 4 ASIC tiles.
+class Jungfrau_Geometry(DetectorGeometryBase):
+    """Detector layout for flexible Jungfrau arrangements based on the JF-500K
+       module, which is an independent detector unit of 2 x 4 ASIC tiles.
        The ss/fs assignment is the other way around as for AGIPD:
        y = ss
        x = fs
@@ -1355,49 +1355,58 @@ class JF_500KGeometry(DetectorGeometryBase):
     pixel_size = 7.5e-5   # 7.5e-5 metres = 75 micrometer = 0.075 mm
     frag_ss_pixels = 256  # pixels along slow scan axis within tile
     frag_fs_pixels = 256  # pixels along fast scan axis within tile
-    expected_data_shape = (1, 512, 1024)
+    expected_data_shape = (1, 512, 1024)         # for a single unit
 
     @classmethod
-    def from_origin(cls, origin_pos=(0,0), asic_gap=2, unit=pixel_size):
+    def from_origin_positions(cls, origin_pos=[(0,0)], orientations=[(1,1)],
+                              asic_gap=2, unit=pixel_size):
 
         px_conversion = unit / cls.pixel_size
+        # convenience 'method': fill orientations with defaults to match number
+        if len(origin_pos) != len(orientations):
+            orientations = [(1,1) for _ in range(len(origin_pos))]
+        cls.expected_data_shape = (len(origin_pos), 512, 1024)
         asic_gap *= px_conversion
-        x_orient = 1
-        y_orient = 1
         modules = []
-        tiles = []
-        for a in range(8):
-            row = a // 4     # 0, 1
-            column = a % 4   # 0, 1, 2, 3
-            corner_y = (origin_pos[1] * px_conversion)\
-                       + (cls.frag_fs_pixels + asic_gap) * row
-            corner_x = (origin_pos[0] * px_conversion)\
-                       + (cls.frag_ss_pixels + asic_gap) * column
-            tiles.append(GeometryFragment(
-                corner_pos=np.array([corner_x, corner_y, 0.]),
-                fs_vec=np.array([x_orient, 0, 0]),
-                ss_vec=np.array([0, y_orient, 0]),
-                ss_pixels=cls.frag_ss_pixels,
-                fs_pixels=cls.frag_fs_pixels,
-            ))
-        modules.append(tiles)
+        for m in range(len(origin_pos)):
+            x_orient = orientations[m][0]
+            y_orient = orientations[m][1]
+            tiles = []
+            for a in range(8):
+                row = a // 4     # 0, 1
+                column = a % 4   # 0, 1, 2, 3
+                corner_y = (origin_pos[m][1] * px_conversion)\
+                           + (cls.frag_fs_pixels + asic_gap) * row
+                corner_x = (origin_pos[m][0] * px_conversion)\
+                           + (cls.frag_ss_pixels + asic_gap) * column
+                tiles.append(GeometryFragment(
+                    corner_pos=np.array([corner_x, corner_y, 0.]) * cls.pixel_size,
+                    fs_vec=np.array([x_orient, 0, 0]) * cls.pixel_size,
+                    ss_vec=np.array([0, y_orient, 0]) * cls.pixel_size,
+                    ss_pixels=cls.frag_ss_pixels,
+                    fs_pixels=cls.frag_fs_pixels,
+                ))
+            modules.append(tiles)
         return cls(modules)
 
-    def inspect(self, axis_units='px', frontview=True, ):
+    def inspect(self, axis_units='px', frontview=True):
 
         ax = super().inspect(axis_units=axis_units, frontview=frontview)
         scale = self._get_plot_scale_factor(axis_units)
-        tiles = self.modules[0]
 
-        # Label tiles in the module: A0 to A8
-        for t, tile in enumerate(tiles):
-            s = 'A{T}'.format(T=t)
-            cx, cy, _ = tile.centre() * scale
-            ax.text(cx, cy, s, fontweight='bold',
-                    verticalalignment='center',
-                    horizontalalignment='center')
+        for m in range(len(self.modules)):
+            tiles = self.modules[m]
 
-        ax.set_title('Jungfrau-500K detector geometry ({})'.format(self.filename))
+            # Label tiles in the module: A0 to A8
+            for t, tile in enumerate(tiles):
+                s = 'M{M}A{T}'.format(T=t, M=m)
+                cx, cy, _ = tile.centre() * scale
+                ax.text(cx, cy, s, fontweight='bold',
+                        verticalalignment='center',
+                        horizontalalignment='center')
+
+        ax.set_title('Jungfrau detector geometry ({})'.format(self.filename))
+        print(' Expected data shape:', self.expected_data_shape)
         return ax
 
     @staticmethod
