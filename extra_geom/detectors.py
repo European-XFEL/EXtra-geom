@@ -1347,6 +1347,7 @@ class DSSC_Geometry(DSSC_1MGeometry):
 class Jungfrau_Geometry(DetectorGeometryBase):
     """Detector layout for flexible Jungfrau arrangements based on the JF-500K
        module, which is an independent detector unit of 2 x 4 ASIC tiles.
+
        The ss/fs assignment is the other way around as for AGIPD:
        y = ss
        x = fs
@@ -1355,22 +1356,41 @@ class Jungfrau_Geometry(DetectorGeometryBase):
     pixel_size = 7.5e-5   # 7.5e-5 metres = 75 micrometer = 0.075 mm
     frag_ss_pixels = 256  # pixels along slow scan axis within tile
     frag_fs_pixels = 256  # pixels along fast scan axis within tile
-    expected_data_shape = (1, 512, 1024)         # for a single unit
+
+    def __init__(self, modules, filename='No file'):
+        super().__init__(modules, filename)
+        self.expected_data_shape = (len(modules), 512, 1024)
 
     @classmethod
-    def from_origin_positions(cls, origin_pos=[(0,0)], orientations=[(1,1)],
+    def from_module_positions(cls,offsets=((0,0),), orientations=None,
                               asic_gap=2, unit=pixel_size):
+        """Generate a Jungfrau geometry object from module positions
 
+           Parameters
+           ----------
+
+           offsets - iterable of length n_modules containing a pixel coordinate
+                     tuple (x,y) for each offset to the global origin
+
+           orientations - iterable of length n_modules containing a unit-vector
+                     tuple (x,y) for each orientation wrt. the axes
+
+           Orientations default to (1,1) for each module if this optional
+           keyword argument is lacking; if not, the number of elements must
+           match the number of modules as per offsets
+        """
         px_conversion = unit / cls.pixel_size
-        # convenience 'method': fill orientations with defaults to match  number
-        if len(origin_pos) != len(orientations):
-            orientations = [(1,1) for _ in range(len(origin_pos))]
-        cls.expected_data_shape = (len(origin_pos), 512, 1024)
+        # fill orientations with defaults to match number of offsets
+        if orientations is None:
+            orientations = [(1,1) for _ in range(len(offsets))]
+        else:
+            if len(offsets) != len(orientations):
+                print("Offsets and orientations have different number!")
         asic_gap *= px_conversion
         module_width = 4 * (cls.frag_fs_pixels + asic_gap)
         module_height = 2 * (cls.frag_ss_pixels + asic_gap)
         modules = []
-        for m in range(len(origin_pos)):
+        for m in range(len(offsets)):
             x_orient = orientations[m][0]
             y_orient = orientations[m][1]
             '''
@@ -1378,13 +1398,13 @@ class Jungfrau_Geometry(DetectorGeometryBase):
             are always bottom-left, irrespective of flipping: we correct here
             '''
             if x_orient == 1:
-                x_origin = origin_pos[m][0]
+                x_origin = offsets[m][0]
             else:
-                x_origin = origin_pos[m][0] + module_width
+                x_origin = offsets[m][0] + module_width
             if y_orient == 1:
-                y_origin = origin_pos[m][1]
+                y_origin = offsets[m][1]
             else:
-                y_origin = origin_pos[m][1] + module_height
+                y_origin = offsets[m][1] + module_height
             tiles = []
             for a in range(8):
                 row = a // 4     # 0, 1
@@ -1393,7 +1413,6 @@ class Jungfrau_Geometry(DetectorGeometryBase):
                            + y_orient * (cls.frag_fs_pixels + asic_gap) * row
                 corner_x = (x_origin * px_conversion)\
                            + x_orient * (cls.frag_ss_pixels + asic_gap) * column
-                print(corner_x)
                 tiles.append(GeometryFragment(
                     corner_pos=np.array([corner_x, corner_y, 0.]) * cls.pixel_size,
                     fs_vec=np.array([x_orient, 0, 0]) * cls.pixel_size,
@@ -1405,7 +1424,19 @@ class Jungfrau_Geometry(DetectorGeometryBase):
         return cls(modules)
 
     def inspect(self, axis_units='px', frontview=True):
+        """Plot the 2D layout of this detector geometry.
 
+        Returns a matplotlib Axes object.
+
+        Parameters
+        ----------
+
+        axis_units : str
+          Show the detector scale in pixels ('px') or metres ('m').
+        frontview : bool
+          If True (the default), x increases to the left, as if you were looking
+          along the beam. False gives a 'looking into the beam' view.
+        """
         ax = super().inspect(axis_units=axis_units, frontview=frontview)
         scale = self._get_plot_scale_factor(axis_units)
 
