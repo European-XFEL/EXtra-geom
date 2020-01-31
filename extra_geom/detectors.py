@@ -1390,28 +1390,27 @@ class Jungfrau_Geometry(DetectorGeometryBase):
         module_width = 4 * (cls.frag_fs_pixels + asic_gap)
         module_height = 2 * (cls.frag_ss_pixels + asic_gap)
         modules = []
-        for m in range(len(offsets)):
-            x_orient = orientations[m][0]
-            y_orient = orientations[m][1]
+        for orientation, offset in zip(orientations, offsets):
+            x_orient, y_orient = orientation
             '''
             we assume that externally defined origins ('offsets') as per input
-            are always bottom-left, irrespective of flipping: we correct here
+            are always "bottom-left", irrespective of flipping: we correct here
             '''
             if x_orient == 1:
-                x_origin = offsets[m][0]
+                x_offset = offset[0]
             else:
-                x_origin = offsets[m][0] + module_width
+                x_offset = offset[0] + module_width
             if y_orient == 1:
-                y_origin = offsets[m][1]
+                y_offset = offset[1]
             else:
-                y_origin = offsets[m][1] + module_height
+                y_offset = offset[1] + module_height
             tiles = []
             for a in range(8):
                 row = a // 4     # 0, 1
                 column = a % 4   # 0, 1, 2, 3
-                corner_y = (y_origin * px_conversion)\
+                corner_y = (y_offset * px_conversion)\
                            + y_orient * (cls.frag_fs_pixels + asic_gap) * row
-                corner_x = (x_origin * px_conversion)\
+                corner_x = (x_offset * px_conversion)\
                            + x_orient * (cls.frag_ss_pixels + asic_gap) * column
                 tiles.append(GeometryFragment(
                     corner_pos=np.array([corner_x, corner_y, 0.]) * cls.pixel_size,
