@@ -981,7 +981,7 @@ class LPD_1MGeometry(DetectorGeometryBase):
                 mod_offset = mod_grp['Position'][:2]
 
                 tiles = []
-                for T in range(1, cls.n_modules+1):
+                for T in range(1, cls.n_tiles_per_module+1):
                     corner_pos = np.zeros(3)
                     tile_offset = mod_grp['T{:02}/Position'.format(T)][:2]
                     corner_pos[:2] = quad_pos + mod_offset + tile_offset
