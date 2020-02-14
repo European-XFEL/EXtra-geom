@@ -4,7 +4,7 @@ from itertools import product
 import numpy as np
 
 HEADER_TEMPLATE = """\
-; AGIPD-1M geometry file written by EXtra-geom {version}
+; {detector} geometry file written by EXtra-geom {version}
 ; You may need to edit this file to add:
 ; - data and mask locations in the file
 ; - mask_good & mask_bad values to interpret the mask
@@ -139,6 +139,7 @@ def write_crystfel_geom(self, filename, *,
 
     with open(filename, 'w') as f:
         f.write(HEADER_TEMPLATE.format(
+            detector=self.detector_type_name,
             version=__version__,
             paths=path_str,
             frame_dim=frame_dim,

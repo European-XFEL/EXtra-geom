@@ -74,6 +74,7 @@ class GeometryFragment:
 class DetectorGeometryBase:
     """Base class for detector geometry. Subclassed for specific detectors."""
     # Define in subclasses:
+    detector_type_name = ''
     pixel_size = 0.0
     frag_ss_pixels = 0
     frag_fs_pixels = 0
@@ -617,6 +618,7 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
     You won't normally instantiate this class directly:
     use one of the constructor class methods to create or load a geometry.
     """
+    detector_type_name = 'AGIPD-1M'
     pixel_size = 2e-4  # 2e-4 metres == 0.2 mm
     frag_ss_pixels = 64
     frag_fs_pixels = 128
@@ -847,6 +849,7 @@ class LPD_1MGeometry(DetectorGeometryBase):
     You won't normally instantiate this class directly:
     use one of the constructor class methods to create or load a geometry.
     """
+    detector_type_name = 'LPD-1M'
     pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
     frag_ss_pixels = 32
     frag_fs_pixels = 128
@@ -1134,6 +1137,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
     use one of the constructor class methods to create or load a geometry.
     """
     # Hexagonal pixels, 236 μm step in fast-scan axis, 204 μm in slow-scan
+    detector_type_name = 'DSSC-1M'
     pixel_size = 236e-6
     frag_ss_pixels = 128
     frag_fs_pixels = 256
@@ -1344,7 +1348,7 @@ class DSSC_Geometry(DSSC_1MGeometry):
         )
 
 
-class Jungfrau_Geometry(DetectorGeometryBase):
+class JUNGFRAUGeometry(DetectorGeometryBase):
     """Detector layout for flexible Jungfrau arrangements based on the JF-500K
        module, which is an independent detector unit of 2 x 4 ASIC tiles.
 
@@ -1353,6 +1357,7 @@ class Jungfrau_Geometry(DetectorGeometryBase):
        x = fs
        shape = (ss, fs) = (y, x)
     """
+    detector_type_name = 'JUNGFRAU'
     pixel_size = 7.5e-5   # 7.5e-5 metres = 75 micrometer = 0.075 mm
     frag_ss_pixels = 256  # pixels along slow scan axis within tile
     frag_fs_pixels = 256  # pixels along fast scan axis within tile
@@ -1360,6 +1365,7 @@ class Jungfrau_Geometry(DetectorGeometryBase):
     def __init__(self, modules, filename='No file'):
         super().__init__(modules, filename)
         self.expected_data_shape = (len(modules), 512, 1024)
+        self.n_modules = len(modules)
 
     @classmethod
     def from_module_positions(cls,offsets=((0,0),), orientations=None,
@@ -1378,6 +1384,12 @@ class Jungfrau_Geometry(DetectorGeometryBase):
            Orientations default to (1,1) for each module if this optional
            keyword argument is lacking; if not, the number of elements must
            match the number of modules as per offsets
+
+           We assume that externally defined offsets as per input relate the
+           bottom, beam-left pixel of the module to the global origin, which is
+           bottom, beam-left of the overall assembly.
+           This is a definition *before* flipping: if flipping is present, we
+           will adjust for that.
         """
         px_conversion = unit / cls.pixel_size
         # fill orientations with defaults to match number of offsets
@@ -1392,10 +1404,7 @@ class Jungfrau_Geometry(DetectorGeometryBase):
         modules = []
         for orientation, offset in zip(orientations, offsets):
             x_orient, y_orient = orientation
-            '''
-            we assume that externally defined origins ('offsets') as per input
-            are always "bottom-left", irrespective of flipping: we correct here
-            '''
+            # Correct corner-offsets in case of flipped modules
             if x_orient == 1:
                 x_offset = offset[0]
             else:
@@ -1458,3 +1467,13 @@ class Jungfrau_Geometry(DetectorGeometryBase):
     def split_tiles(module_data):
         row1, row2 = np.split(module_data, 2, axis=-2)
         return np.split(row1, 4, axis=-1) + np.split(row2, 4, axis=-1)
+
+    @classmethod
+    def _tile_slice(cls, tileno):
+        # Which part of the array is this tile?
+        # tileno = 0 to 7
+        tile_ss_offset = (tileno // 4) * cls.frag_ss_pixels
+        tile_fs_offset = (tileno % 4) * cls.frag_fs_pixels
+        ss_slice = slice(tile_ss_offset, tile_ss_offset + cls.frag_ss_pixels)
+        fs_slice = slice(tile_fs_offset, tile_fs_offset + cls.frag_fs_pixels)
+        return ss_slice, fs_slice
