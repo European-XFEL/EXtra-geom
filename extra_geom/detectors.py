@@ -1349,13 +1349,15 @@ class DSSC_Geometry(DSSC_1MGeometry):
 
 
 class JUNGFRAUGeometry(DetectorGeometryBase):
-    """Detector layout for flexible Jungfrau arrangements based on the JF-500K
-       module, which is an independent detector unit of 2 x 4 ASIC tiles.
+    """Detector layout for flexible Jungfrau arrangements
 
-       The ss/fs assignment is the other way around as for AGIPD:
-       y = ss
-       x = fs
-       shape = (ss, fs) = (y, x)
+     The base JUNGFRAU unit (and rigid group) in combined arrangements is the
+     JF-500K module, which is an independent detector unit of 2 x 4 ASIC tiles.
+
+     The slow-scan/fast-scan assignment is:
+     y = ss
+     x = fs
+     shape = (ss, fs) = (y, x)
     """
     detector_type_name = 'JUNGFRAU'
     pixel_size = 7.5e-5   # 7.5e-5 metres = 75 micrometer = 0.075 mm
@@ -1372,24 +1374,24 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
                               asic_gap=2, unit=pixel_size):
         """Generate a Jungfrau geometry object from module positions
 
-           Parameters
-           ----------
+        Parameters
+        ----------
 
-           offsets - iterable of length n_modules containing a pixel coordinate
-                     tuple (x,y) for each offset to the global origin
+        offsets - iterable of length n_modules containing a pixel coordinate
+                  tuple (x,y) for each offset to the global origin
 
-           orientations - iterable of length n_modules containing a unit-vector
-                     tuple (x,y) for each orientation wrt. the axes
+        orientations - iterable of length n_modules containing a unit-vector
+                  tuple (x,y) for each orientation wrt. the axes
 
-           Orientations default to (1,1) for each module if this optional
-           keyword argument is lacking; if not, the number of elements must
-           match the number of modules as per offsets
+        Orientations default to (1,1) for each module if this optional
+        keyword argument is lacking; if not, the number of elements must
+        match the number of modules as per offsets
 
-           We assume that externally defined offsets as per input relate the
-           bottom, beam-left pixel of the module to the global origin, which is
-           bottom, beam-left of the overall assembly.
-           This is a definition *before* flipping: if flipping is present, we
-           will adjust for that.
+        We assume that externally defined offsets as per input relate the
+        bottom, beam-left pixel of the module to the global origin, which is
+        bottom, beam-left of the overall assembly.
+        This is a definition *before* flipping: if flipping is present, we
+        will adjust for that.
         """
         px_conversion = unit / cls.pixel_size
         # fill orientations with defaults to match number of offsets
@@ -1477,3 +1479,12 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         ss_slice = slice(tile_ss_offset, tile_ss_offset + cls.frag_ss_pixels)
         fs_slice = slice(tile_fs_offset, tile_fs_offset + cls.frag_fs_pixels)
         return ss_slice, fs_slice
+
+    @classmethod
+    def from_crystfel_geom(cls, filename):
+
+        raise NotImplementedError
+
+    def write_crystfel_geom(self, file_name):
+
+        raise NotImplementedError
