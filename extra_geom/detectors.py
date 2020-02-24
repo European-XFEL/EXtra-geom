@@ -74,6 +74,7 @@ class GeometryFragment:
 class DetectorGeometryBase:
     """Base class for detector geometry. Subclassed for specific detectors."""
     # Define in subclasses:
+    detector_type_name = ''
     pixel_size = 0.0
     frag_ss_pixels = 0
     frag_fs_pixels = 0
@@ -617,6 +618,7 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
     You won't normally instantiate this class directly:
     use one of the constructor class methods to create or load a geometry.
     """
+    detector_type_name = 'AGIPD-1M'
     pixel_size = 2e-4  # 2e-4 metres == 0.2 mm
     frag_ss_pixels = 64
     frag_fs_pixels = 128
@@ -847,6 +849,7 @@ class LPD_1MGeometry(DetectorGeometryBase):
     You won't normally instantiate this class directly:
     use one of the constructor class methods to create or load a geometry.
     """
+    detector_type_name = 'LPD-1M'
     pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
     frag_ss_pixels = 32
     frag_fs_pixels = 128
@@ -1134,6 +1137,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
     use one of the constructor class methods to create or load a geometry.
     """
     # Hexagonal pixels, 236 μm step in fast-scan axis, 204 μm in slow-scan
+    detector_type_name = 'DSSC-1M'
     pixel_size = 236e-6
     frag_ss_pixels = 128
     frag_fs_pixels = 256
@@ -1342,3 +1346,145 @@ class DSSC_Geometry(DSSC_1MGeometry):
         warnings.warn(
             "DSSC_Geometry has been renamed to DSSC_1MGeometry.", stacklevel=2
         )
+
+
+class JUNGFRAUGeometry(DetectorGeometryBase):
+    """Detector layout for flexible Jungfrau arrangements
+
+     The base JUNGFRAU unit (and rigid group) in combined arrangements is the
+     JF-500K module, which is an independent detector unit of 2 x 4 ASIC tiles.
+
+     The slow-scan/fast-scan assignment is:
+     y = ss
+     x = fs
+     shape = (ss, fs) = (y, x)
+    """
+    detector_type_name = 'JUNGFRAU'
+    pixel_size = 7.5e-5   # 7.5e-5 metres = 75 micrometer = 0.075 mm
+    frag_ss_pixels = 256  # pixels along slow scan axis within tile
+    frag_fs_pixels = 256  # pixels along fast scan axis within tile
+
+    def __init__(self, modules, filename='No file'):
+        super().__init__(modules, filename)
+        self.expected_data_shape = (len(modules), 512, 1024)
+        self.n_modules = len(modules)
+
+    @classmethod
+    def from_module_positions(cls,offsets=((0,0),), orientations=None,
+                              asic_gap=2, unit=pixel_size):
+        """Generate a Jungfrau geometry object from module positions
+
+        Parameters
+        ----------
+
+        offsets - iterable of length n_modules containing a pixel coordinate
+                  tuple (x,y) for each offset to the global origin
+
+        orientations - iterable of length n_modules containing a unit-vector
+                  tuple (x,y) for each orientation wrt. the axes
+
+        Orientations default to (1,1) for each module if this optional
+        keyword argument is lacking; if not, the number of elements must
+        match the number of modules as per offsets
+
+        We assume that externally defined offsets as per input relate the
+        bottom, beam-left pixel of the module to the global origin, which is
+        bottom, beam-left of the overall assembly.
+        This is a definition *before* flipping: if flipping is present, we
+        will adjust for that.
+        """
+        px_conversion = unit / cls.pixel_size
+        # fill orientations with defaults to match number of offsets
+        if orientations is None:
+            orientations = [(1,1) for _ in range(len(offsets))]
+        else:
+            if len(offsets) != len(orientations):
+                print("Offsets and orientations have different number!")
+        asic_gap *= px_conversion
+        module_width = 4 * (cls.frag_fs_pixels + asic_gap)
+        module_height = 2 * (cls.frag_ss_pixels + asic_gap)
+        modules = []
+        for orientation, offset in zip(orientations, offsets):
+            x_orient, y_orient = orientation
+            # Correct corner-offsets in case of flipped modules
+            if x_orient == 1:
+                x_offset = offset[0]
+            else:
+                x_offset = offset[0] + module_width
+            if y_orient == 1:
+                y_offset = offset[1]
+            else:
+                y_offset = offset[1] + module_height
+            tiles = []
+            for a in range(8):
+                row = a // 4     # 0, 1
+                column = a % 4   # 0, 1, 2, 3
+                corner_y = (y_offset * px_conversion)\
+                           + y_orient * (cls.frag_fs_pixels + asic_gap) * row
+                corner_x = (x_offset * px_conversion)\
+                           + x_orient * (cls.frag_ss_pixels + asic_gap) * column
+                tiles.append(GeometryFragment(
+                    corner_pos=np.array([corner_x, corner_y, 0.]) * cls.pixel_size,
+                    fs_vec=np.array([x_orient, 0, 0]) * cls.pixel_size,
+                    ss_vec=np.array([0, y_orient, 0]) * cls.pixel_size,
+                    ss_pixels=cls.frag_ss_pixels,
+                    fs_pixels=cls.frag_fs_pixels,
+                ))
+            modules.append(tiles)
+        return cls(modules)
+
+    def inspect(self, axis_units='px', frontview=True):
+        """Plot the 2D layout of this detector geometry.
+
+        Returns a matplotlib Axes object.
+
+        Parameters
+        ----------
+
+        axis_units : str
+          Show the detector scale in pixels ('px') or metres ('m').
+        frontview : bool
+          If True (the default), x increases to the left, as if you were looking
+          along the beam. False gives a 'looking into the beam' view.
+        """
+        ax = super().inspect(axis_units=axis_units, frontview=frontview)
+        scale = self._get_plot_scale_factor(axis_units)
+
+        for m in range(len(self.modules)):
+            tiles = self.modules[m]
+
+            # Label tiles in the module: A0 to A8
+            for t, tile in enumerate(tiles):
+                s = 'M{M}A{T}'.format(T=t, M=m)
+                cx, cy, _ = tile.centre() * scale
+                ax.text(cx, cy, s, fontweight='bold',
+                        verticalalignment='center',
+                        horizontalalignment='center')
+
+        ax.set_title('Jungfrau detector geometry ({})'.format(self.filename))
+        print(' Expected data shape:', self.expected_data_shape)
+        return ax
+
+    @staticmethod
+    def split_tiles(module_data):
+        row1, row2 = np.split(module_data, 2, axis=-2)
+        return np.split(row1, 4, axis=-1) + np.split(row2, 4, axis=-1)
+
+    @classmethod
+    def _tile_slice(cls, tileno):
+        # Which part of the array is this tile?
+        # tileno = 0 to 7
+        tile_ss_offset = (tileno // 4) * cls.frag_ss_pixels
+        tile_fs_offset = (tileno % 4) * cls.frag_fs_pixels
+        ss_slice = slice(tile_ss_offset, tile_ss_offset + cls.frag_ss_pixels)
+        fs_slice = slice(tile_fs_offset, tile_fs_offset + cls.frag_fs_pixels)
+        return ss_slice, fs_slice
+
+    @classmethod
+    def from_crystfel_geom(cls, filename):
+
+        raise NotImplementedError
+
+    def write_crystfel_geom(self, file_name):
+
+        raise NotImplementedError
