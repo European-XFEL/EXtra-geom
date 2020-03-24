@@ -108,8 +108,9 @@ which this geometry code can position independently.
    The approximate layout of DSSC-1M, in a front view (looking along the beam).
 
 The pixels in each DSSC module are tesselating hexagons.
-This geometry code does not yet handle this: it treats the pixels as
-rectangles to simplify processing.
+This is handled in :meth:`~.DSSC_1MGeometry.get_pixel_positions` and
+:meth:`~.DSSC_1MGeometry.to_distortion_array`, but assembling an image treats
+the pixels as rectangles to simplify processing.
 This is adequate for previewing detector images, but some pixels will be
 approximately half a pixel width from their true position.
 
