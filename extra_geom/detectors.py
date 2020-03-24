@@ -1354,10 +1354,8 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
      The base JUNGFRAU unit (and rigid group) in combined arrangements is the
      JF-500K module, which is an independent detector unit of 2 x 4 ASIC tiles.
 
-     The slow-scan/fast-scan assignment is:
-     y = ss
-     x = fs
-     shape = (ss, fs) = (y, x)
+     In the default orientation, the slow-scan dimension is y and the fast-scan
+     dimension is x, so the data shape for one module is (y, x).
     """
     detector_type_name = 'JUNGFRAU'
     pixel_size = 7.5e-5   # 7.5e-5 metres = 75 micrometer = 0.075 mm
@@ -1377,21 +1375,29 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         Parameters
         ----------
 
-        offsets - iterable of length n_modules containing a pixel coordinate
-                  tuple (x,y) for each offset to the global origin
+        offsets: iterable of tuples
+          iterable of length n_modules containing a coordinate tuple (x,y)
+          for each offset to the global origin. Coordinates are in pixel units
+          by default.
 
-        orientations - iterable of length n_modules containing a unit-vector
-                  tuple (x,y) for each orientation wrt. the axes
+          These offsets are positions for the bottom, beam-left corner of each
+          module, regardless of its orientation.
 
-        Orientations default to (1,1) for each module if this optional
-        keyword argument is lacking; if not, the number of elements must
-        match the number of modules as per offsets
+        orientations: iterable of tuples
+          list of length n_modules containing a unit-vector tuple (x,y) for
+          each orientation wrt. the axes
 
-        We assume that externally defined offsets as per input relate the
-        bottom, beam-left pixel of the module to the global origin, which is
-        bottom, beam-left of the overall assembly.
-        This is a definition *before* flipping: if flipping is present, we
-        will adjust for that.
+          Orientations default to (1,1) for each module if this optional
+          keyword argument is lacking; if not, the number of elements must
+          match the number of modules as per offsets
+
+        asic_gap: float
+          The gap between the 8 ASICs within each module. This is in pixel units
+          by default.
+
+        unit: float
+          The unit for *offsets* and *asic_gap*, in metres. Defaults to the
+          pixel size (75 um).
         """
         px_conversion = unit / cls.pixel_size
         # fill orientations with defaults to match number of offsets

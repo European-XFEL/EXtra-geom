@@ -1,5 +1,5 @@
-AGIPD, LPD & DSSC Geometry
-==========================
+Detector geometry reference
+===========================
 
 .. module:: extra_geom
 
@@ -20,6 +20,8 @@ the left (looking along the beam), and y increasing upwards.
    detector pixels may not line up with the grid imposed by a single array.
    For accurate analysis, it's best to use a tool that can process
    geometry internally with sub-pixel precision.
+
+.. _det-AGIPD-1M:
 
 AGIPD-1M
 --------
@@ -59,6 +61,8 @@ but this geometry code works with a position for each tile.
 
    .. automethod:: data_coords_to_positions
 
+.. _det-LPD-1M:
+
 LPD-1M
 ------
 
@@ -96,6 +100,8 @@ which this geometry code can position independently.
 
    .. automethod:: data_coords_to_positions
 
+.. _det-DSSC-1M:
+
 DSSC-1M
 -------
 
@@ -108,8 +114,9 @@ which this geometry code can position independently.
    The approximate layout of DSSC-1M, in a front view (looking along the beam).
 
 The pixels in each DSSC module are tesselating hexagons.
-This geometry code does not yet handle this: it treats the pixels as
-rectangles to simplify processing.
+This is handled in :meth:`~.DSSC_1MGeometry.get_pixel_positions` and
+:meth:`~.DSSC_1MGeometry.to_distortion_array`, but assembling an image treats
+the pixels as rectangles to simplify processing.
 This is adequate for previewing detector images, but some pixels will be
 approximately half a pixel width from their true position.
 
@@ -120,6 +127,34 @@ approximately half a pixel width from their true position.
 .. autoclass:: DSSC_1MGeometry
 
    .. automethod:: from_h5_file_and_quad_positions
+
+   .. automethod:: get_pixel_positions
+
+   .. automethod:: to_distortion_array
+
+   .. automethod:: plot_data_fast
+
+   .. automethod:: position_modules_fast
+
+   .. automethod:: output_array_for_position_fast
+
+   .. automethod:: inspect
+
+   .. automethod:: compare
+
+.. _det-JUNGFRAU:
+
+JUNGFRAU
+--------
+
+JUNGFRAU detectors can be made with varying numbers of 512×1024 pixel modules.
+Each module is further subdivided into 8 sensor tiles.
+
+.. note:: Reading & writing geometry files for JUNGFRAU is not yet implemented.
+
+.. autoclass:: JUNGFRAUGeometry
+
+   .. automethod:: from_module_positions
 
    .. automethod:: get_pixel_positions
 
