@@ -1,5 +1,5 @@
-European XFEL Python data tools
-===============================
+EXtra-geom: X-ray detector geometry for European XFEL
+=====================================================
 
 **EXtra-geom** is a Python library to describe the physical layout of
 multi-module detectors at `European XFEL <https://www.xfel.eu/>`_, and to
