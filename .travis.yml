@@ -10,6 +10,7 @@ env:
 
 install:
   - make dev-install
+  - pip install --upgrade pytest
   - pip install codecov
 
 script:

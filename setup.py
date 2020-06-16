@@ -52,7 +52,7 @@ setup(name="EXtra-geom",
           'test': [
               'pytest',
               'pytest-cov',
-              'coverage <5',  # Until nbval issue #129 is fixed
+              'coverage',
               'nbval',
           ]
       },
