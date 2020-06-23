@@ -182,13 +182,13 @@ class DetectorGeometryBase:
         """
         from matplotlib.collections import PatchCollection
         from matplotlib.patches import FancyArrow
-        
+
         coord_scale = 1 / self.pixel_size
         arrow_scale = scale * coord_scale
 
         # Draw this geometry first, using pixel units
         ax = self.inspect()
-        
+
         if len(self.modules) != len(other.modules):
             print("Geometry objects have different numbers of modules!")
         if any(len(mod_a) != len(mod_b) for (mod_a, mod_b) in zip(self.modules, other.modules)):
@@ -1494,3 +1494,148 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
     def write_crystfel_geom(self, file_name):
 
         raise NotImplementedError
+
+
+class PNCCDGeometry(DetectorGeometryBase):
+    """Detector layout for pnCCD
+
+    The large-area, pn-junction Charge Coupled Device detector consists
+    of one module with two movable tiles each.
+
+    In its default configuration, the complete detector frame is read
+    out and written to file as a single image, with the tile split along
+    the slow-scan dimension y. The public methods of this type can
+    automatically expand the dimensions, if necessary.
+    """
+
+    detector_type_name = 'PNCCD1MP'
+    pixel_size = 75e-6
+    frag_ss_pixels = 512
+    frag_fs_pixels = 1024
+    n_modules = 1
+    n_tiles_per_module = 2
+    expected_data_shape = (1, 1024, 1024)
+
+    # Each tile has a rectangular cutout around the intended beam
+    # position, i.e. at the bottom center of the top tile (towards
+    # negative y) and the top center of the bottom tile (towards
+    # positive y).
+    cutout_width = 60 * pixel_size
+    cutout_height = 22 * pixel_size
+
+    @staticmethod
+    def split_tiles(module_data):
+        return np.split(module_data, 2, axis=-2)
+
+    @classmethod
+    def _tile_slice(cls, tileno):
+        tile_offset = tileno * cls.frag_ss_pixels
+        return np.s_[tile_offset:tile_offset + cls.frag_ss_pixels], \
+            np.s_[0:cls.frag_fs_pixels]
+
+    @classmethod
+    def _module_coords_to_tile(cls, slow_scan, fast_scan):
+        tileno, tile_ss = np.divmod(slow_scan, cls.frag_ss_pixels)
+        return tileno.astype(np.int16), tile_ss, fast_scan
+
+    @classmethod
+    def from_relative_positions(cls, gap=4e-3, top_offset=(0.0, 0.0, 0.0),
+                                bottom_offset=(0.0, 0.0, 0.0)):
+        """Generate a pnCCD geometry from relative tile positions.
+
+        The tiles are assumed to be separated by the supplied gap
+        centered around the beam (at the origin) in x, y and z = 0, with
+        an optional offset applied to each tile.
+
+        Parameters
+        ----------
+
+        gap: float
+          The gap between the detector tiles centered around the beam,
+          4mm (~50 px) by default.
+
+        top_offset, bottom_offset: array_like of length 3
+          Optional offset (x, y, z) for each tile relative to the
+          centered position.
+        """
+
+        top = np.array(top_offset) + np.array([
+            -cls.frag_fs_pixels // 2 * cls.pixel_size,
+            gap / 2 + cls.frag_ss_pixels * cls.pixel_size,
+            0.0
+        ])
+
+        bottom = np.array(bottom_offset) + np.array([
+            -cls.frag_fs_pixels // 2 * cls.pixel_size,
+            -gap / 2,
+            0.0
+        ])
+
+        return cls.from_absolute_positions(top, bottom)
+
+    @classmethod
+    def from_absolute_positions(cls, top, bottom):
+        """Generate a pnCCD geometry from absolute tile positions.
+
+        Parameters
+        ----------
+
+        top, bottom: array_like of length 3
+          Absolute position (x, y, z) for the first pixel of each tile.
+        """
+
+        args = (np.array([0, -cls.pixel_size, 0]),
+                np.array([cls.pixel_size, 0, 0]),
+                cls.frag_ss_pixels, cls.frag_fs_pixels)
+
+        return cls([[GeometryFragment(np.array(top), *args),
+                     GeometryFragment(np.array(bottom), *args)]])
+
+    @classmethod
+    def _ensure_shape(cls, data):
+        """Ensure image data has the proper shape.
+
+        As a pnCCD frame is read out and saved as a single array, the
+        public interface of this geometry implementation supports
+        automatic expansion.
+        """
+
+        if data.shape[-3:] != cls.expected_data_shape:
+            data = data.reshape(*data.shape[:-2], *cls.expected_data_shape)
+
+        return data
+
+    def inspect(self, axis_units='px', frontview=True):
+        from matplotlib.patches import Rectangle
+
+        ax = super().inspect(axis_units=axis_units, frontview=frontview)
+        scale = self._get_plot_scale_factor(axis_units)
+
+        # Add patches for each rectangular cutout.
+        cutout_width = self.cutout_width * scale
+        cutout_height = self.cutout_height * scale
+
+        patch_dims = (cutout_width, cutout_height)
+        patch_kwargs = dict(hatch='///', ec='red', fc='none')
+
+        top, bottom = self.modules[0][0], self.modules[0][1]
+
+        ax.add_patch(Rectangle(
+            (top.centre()[0] * scale - cutout_width/2,
+             top.corners()[2][1] * scale),
+            *patch_dims, **patch_kwargs))
+
+        ax.add_patch(Rectangle(
+            (bottom.centre()[0] * scale - cutout_width/2,
+             bottom.corners()[0][1] * scale - cutout_height),
+            *patch_dims, **patch_kwargs))
+
+        return ax
+
+    def position_modules_fast(self, data, *args, **kwargs):
+        return super().position_modules_fast(self._ensure_shape(data),
+                                             *args, **kwargs)
+
+    def plot_data_fast(self, data, *args, **kwargs):
+        return super().plot_data_fast(self._ensure_shape(data),
+                                      *args, **kwargs)
