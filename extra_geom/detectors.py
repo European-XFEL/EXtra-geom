@@ -800,7 +800,8 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
     @staticmethod
     def split_tiles(module_data):
         # Split into 8 tiles along the slow-scan axis
-        return np.split(module_data, 8, axis=-2)
+        # This simple slicing is faster than np.split().
+        return [module_data[..., s:s+64, :] for s in range(0, 512, 64)]
 
     @classmethod
     def _tile_slice(cls, tileno):
