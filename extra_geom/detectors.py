@@ -1,7 +1,7 @@
 """AGIPD & LPD geometry handling."""
 from cfelpyutils.crystfel_utils import load_crystfel_geometry
 import h5py
-from itertools import product
+from itertools import chain, product
 import numpy as np
 from scipy.ndimage import affine_transform
 import warnings
@@ -291,11 +291,18 @@ class DetectorGeometryBase:
         because it doesn't do any interpolation.
         """
         if self._snapped_cache is None:
-            new_modules = []
+            modules = []
             for module in self.modules:
-                new_tiles = [t.snap(px_shape=self._pixel_shape) for t in module]
-                new_modules.append(new_tiles)
-            self._snapped_cache = SnappedGeometry(new_modules, self)
+                tiles = [t.snap(px_shape=self._pixel_shape) for t in module]
+                modules.append(tiles)
+            centre = -np.min([t.corner_idx for t in chain(*modules)], axis=0)
+
+            # Offset by centre to make all coordinates >= 0
+            modules = [
+                [t.offset(centre) for t in module]
+                for module in modules
+            ]
+            self._snapped_cache = SnappedGeometry(modules, self, centre)
         return self._snapped_cache
 
     @staticmethod
