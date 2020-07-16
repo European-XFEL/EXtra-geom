@@ -1055,10 +1055,15 @@ class LPD_1MGeometry(DetectorGeometryBase):
 
     @staticmethod
     def split_tiles(module_data):
-        half1, half2 = np.split(module_data, 2, axis=-1)
-        # Tiles 1-8 (half1) are numbered top to bottom, whereas the array
-        # starts at the bottom. So we reverse their order after splitting.
-        return np.split(half1, 8, axis=-2)[::-1] + np.split(half2, 8, axis=-2)
+        # This slicing is faster than using np.split()
+        return [
+            # Tiles 1-8 numbered top to bottom. Data starts at bottom, so
+            # count backwards through them.
+            module_data[..., y-32:y, :128] for y in range(256, 0, -32)
+        ] + [
+            # Tiles 9-16 numbered bottom to top.
+            module_data[..., y:y+32, 128:] for y in range(0, 256, 32)
+        ]
 
     @classmethod
     def _tile_slice(cls, tileno):
@@ -1282,7 +1287,8 @@ class DSSC_1MGeometry(DetectorGeometryBase):
     @staticmethod
     def split_tiles(module_data):
         # Split into 2 tiles along the fast-scan axis
-        return np.split(module_data, 2, axis=-1)
+        # This simple slicing is faster than np.split().
+        return [module_data[..., :256], module_data[..., 256:]]
 
     def plot_data_fast(self,
                        data, *,
@@ -1481,8 +1487,12 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
 
     @staticmethod
     def split_tiles(module_data):
-        row1, row2 = np.split(module_data, 2, axis=-2)
-        return np.split(row1, 4, axis=-1) + np.split(row2, 4, axis=-1)
+        # 2 rows of 4 ASICs each. This slicing is faster than np.split().
+        return [
+            module_data[..., :256, x:x+256] for x in range(0, 1024, 256)
+        ] + [
+            module_data[..., 256:, x:x+256] for x in range(0, 1024, 256)
+        ]
 
     @classmethod
     def _tile_slice(cls, tileno):
@@ -1534,7 +1544,7 @@ class PNCCDGeometry(DetectorGeometryBase):
 
     @staticmethod
     def split_tiles(module_data):
-        return np.split(module_data, 1, axis=-2)
+        return [module_data]
 
     @classmethod
     def _tile_slice(cls, tileno):
