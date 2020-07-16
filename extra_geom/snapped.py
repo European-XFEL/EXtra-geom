@@ -100,8 +100,7 @@ class SnappedGeometry:
         for i, module in enumerate(self.modules):
             mod_data = data[..., i, :, :]
             tiles_data = self.geom.split_tiles(mod_data)
-            for j, tile in enumerate(module):
-                tile_data = tiles_data[j]
+            for tile, tile_data in zip(module, tiles_data):
                 y, x = tile.corner_idx
                 h, w = tile.pixel_dims
                 out[..., y : y + h, x : x + w] = tile.transform(tile_data)
