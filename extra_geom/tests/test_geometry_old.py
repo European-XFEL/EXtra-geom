@@ -16,7 +16,7 @@ quadpos = [(-11.4, -299), (11.5, -8), (-254.5, 16), (-278.5, -275)]
 
 
 def test_inspect():
-    with h5py.File(pjoin(tests_dir, 'lpd_mar_18.h5')) as f:
+    with h5py.File(pjoin(tests_dir, 'lpd_mar_18.h5'), 'r') as f:
         geom = LPDGeometry.from_h5_file_and_quad_positions(f, quadpos)
 
     # Smoketest
@@ -25,7 +25,7 @@ def test_inspect():
 
 
 def test_position_all_modules():
-    with h5py.File(pjoin(tests_dir, 'lpd_mar_18.h5')) as f:
+    with h5py.File(pjoin(tests_dir, 'lpd_mar_18.h5'), 'r') as f:
         geom = LPDGeometry.from_h5_file_and_quad_positions(f, quadpos)
 
     stacked_data = np.zeros((16, 256, 256))

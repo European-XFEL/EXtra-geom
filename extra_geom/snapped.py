@@ -6,6 +6,7 @@ extra_geom.detectors.
 """
 
 from copy import copy
+from itertools import chain
 import numpy as np
 
 
@@ -40,7 +41,7 @@ class GridGeometryFragment:
                 min(ss_order, 0) * self.ss_pixels,
                 min(fs_order, 0) * self.fs_pixels
             ])
-            self.pixel_dims = np.array([self.ss_pixels, self.fs_pixels])
+            self.pixel_dims = (self.ss_pixels, self.fs_pixels)
         else:
             # Fast scan is y : Transpose so fast scan -> x and then flip
             fs_order = fs_vec[0]
@@ -50,9 +51,13 @@ class GridGeometryFragment:
                 min(fs_order, 0) * self.fs_pixels,
                 min(ss_order, 0) * self.ss_pixels
             ])
-            self.pixel_dims = np.array([self.fs_pixels, self.ss_pixels])
-        self.corner_idx = corner_pos + corner_shift
-        self.opp_corner_idx = self.corner_idx + self.pixel_dims
+            self.pixel_dims = (self.fs_pixels, self.ss_pixels)
+        self.corner_idx = tuple(corner_pos + corner_shift)
+
+    def offset(self, y_x) -> 'GridGeometryFragment':
+        new = copy(self)
+        new.corner_idx = tuple(np.array(self.corner_idx) + y_x)
+        return new
 
 
 class SnappedGeometry:
@@ -62,10 +67,17 @@ class SnappedGeometry:
     Numpy array; this does not match the (x, y, z) coordinates in the more
     precise geometry above.
     """
-    def __init__(self, modules, geom):
+    def __init__(self, modules, geom, centre):
         self.modules = modules
         self.geom = geom
-        self.size_yx, self.centre = self._get_dimensions()
+        self.centre = centre
+
+        # The fragments here are already shifted so corner_idx starts from 0 in
+        # each dim, so the max outer edges define the output image size.
+        self.size_yx = tuple(np.max([
+            np.array(frag.corner_idx) + np.array(frag.pixel_dims)
+            for frag in chain(*modules)
+        ], axis=0))
 
     def make_output_array(self, extra_shape=(), dtype=np.float32):
         """Make an output array for self.position_modules()
@@ -88,34 +100,12 @@ class SnappedGeometry:
         for i, module in enumerate(self.modules):
             mod_data = data[..., i, :, :]
             tiles_data = self.geom.split_tiles(mod_data)
-            for j, tile in enumerate(module):
-                tile_data = tiles_data[j]
-                # Offset by centre to make all coordinates positive
-                y, x = tile.corner_idx + self.centre
+            for tile, tile_data in zip(module, tiles_data):
+                y, x = tile.corner_idx
                 h, w = tile.pixel_dims
                 out[..., y : y + h, x : x + w] = tile.transform(tile_data)
 
         return out, self.centre
-
-    def _get_dimensions(self):
-        """Calculate appropriate array dimensions for assembling data.
-
-        Returns (size_y, size_x), (centre_y, centre_x)
-        """
-        corners = []
-        for module in self.modules:
-            for tile in module:
-                corners.append(tile.corner_idx)
-                corners.append(tile.opp_corner_idx)
-        corners = np.stack(corners)
-
-        # Find extremes
-        min_yx = corners.min(axis=0)
-        max_yx = corners.max(axis=0)
-
-        size = max_yx - min_yx
-        centre = -min_yx
-        return tuple(size), centre
 
     def plot_data(self,
                   modules_data, *,
