@@ -1,5 +1,5 @@
-
 from cfelpyutils.crystfel_utils import load_crystfel_geometry
+from concurrent.futures import ThreadPoolExecutor
 from itertools import product
 from matplotlib.axes import Axes
 import numpy as np
@@ -38,6 +38,11 @@ def test_snap_assemble_data():
     check_result(out, centre)
     assert img.dtype == out.dtype == np.float32
 
+    # Assemble in parallel
+    stacked_data = np.zeros((16, 512, 128))
+    with ThreadPoolExecutor(max_workers=2) as tpool:
+        img, centre = geom.position_modules_fast(stacked_data, threadpool=tpool)
+        check_result(img, centre)
 
 def test_write_read_crystfel_file(tmpdir):
     geom = AGIPD_1MGeometry.from_quad_positions(
