@@ -333,7 +333,7 @@ class DetectorGeometryBase:
         return self._snapped().make_output_array(extra_shape=extra_shape,
                                                  dtype=dtype)
 
-    def position_modules_fast(self, data, out=None):
+    def position_modules_fast(self, data, out=None, threadpool=None):
         """Assemble data from this detector according to where the pixels are.
 
         This approximates the geometry to align all pixels to a 2D grid.
@@ -353,6 +353,11 @@ class DetectorGeometryBase:
           Parts of the array not covered by detector tiles are not overwritten.
           In general, you can reuse an output array if you are assembling
           similar pulses or pulse trains with the same geometry.
+        threadpool : concurrent.futures.ThreadPoolExecutor, optional
+          If passed, parallelise copying data into the output image.
+          By default, data for different tiles are copied serially.
+          For a single 1 MPx image, the default appears to be faster, but for
+          assembling a stack of several images at once, multithreading can help.
 
         Returns
         -------

@@ -85,7 +85,7 @@ class SnappedGeometry:
         shape = extra_shape + self.size_yx
         return np.full(shape, np.nan, dtype=dtype)
 
-    def position_modules(self, data, out=None):
+    def position_modules(self, data, out=None, threadpool=None):
         """Implementation for position_modules_fast
         """
         assert data.shape[-3:] == self.geom.expected_data_shape
@@ -97,13 +97,26 @@ class SnappedGeometry:
                 raise TypeError("{} cannot be safely cast to {}".
                                 format(data.dtype, out.dtype))
 
+        copy_pairs = []
         for i, module in enumerate(self.modules):
             mod_data = data[..., i, :, :]
             tiles_data = self.geom.split_tiles(mod_data)
             for tile, tile_data in zip(module, tiles_data):
                 y, x = tile.corner_idx
                 h, w = tile.pixel_dims
-                out[..., y : y + h, x : x + w] = tile.transform(tile_data)
+                copy_pairs.append((
+                    out[..., y : y + h, x : x + w], tile.transform(tile_data)
+                ))
+
+        if threadpool is not None:
+            def copy_data(pair):
+                dst, src = pair
+                dst[:] = src
+            # concurrent.futures map() is async, so call list() to wait for it
+            list(threadpool.map(copy_data, copy_pairs))
+        else:
+            for dst, src in copy_pairs:
+                dst[:] = src
 
         return out, self.centre
 
