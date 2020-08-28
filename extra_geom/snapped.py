@@ -169,7 +169,7 @@ class SnappedGeometry:
         ax.set_ylabel('metres' if axis_units == 'm' else 'pixels')
 
         if frontview:
-            ax.invert_xaxis()
+            ax.xaxis.set_inverted(True)
 
         # Draw a cross at the centre
         ax.hlines(0, -cross_size, +cross_size, colors='w', linewidths=1)
