@@ -144,7 +144,8 @@ class SnappedGeometry:
         _extent = np.array((min_x - 0.5, max_x + 0.5, min_y - 0.5, max_y + 0.5))
         cross_size = 20
         if axis_units == 'm':
-            _extent *= self.geom.pixel_size
+            _extent[:2] *= self.geom._pixel_shape[0]  # x
+            _extent[2:] *= self.geom._pixel_shape[1]  # y
             cross_size *= self.geom.pixel_size
 
         # Use a dark grey for missing data
