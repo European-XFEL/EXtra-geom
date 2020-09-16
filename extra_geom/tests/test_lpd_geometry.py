@@ -4,9 +4,11 @@ import h5py
 from matplotlib.axes import Axes
 import numpy as np
 from os.path import abspath, dirname, join as pjoin
+from testpath import assert_isfile
 
 from extra_geom import LPD_1MGeometry
 from extra_geom.detectors import invert_xfel_lpd_geom
+from .utils import assert_geom_close
 
 tests_dir = dirname(abspath(__file__))
 
@@ -46,6 +48,35 @@ def test_write_read_crystfel_file(tmpdir):
     assert geom_dict['rigid_groups']['p0'] == quad_gr0[:16]
     assert geom_dict['rigid_groups']['p3'] == quad_gr0[-16:]
     assert geom_dict['rigid_groups']['q0'] == quad_gr0
+
+
+def test_read_write_xfel_file(tmpdir):
+    quad_pos = [(11.4, 299), (-11.5, 8), (254.5, -16), (278.5, 275)]
+    geom = LPD_1MGeometry.from_quad_positions(quad_pos)
+    path = str(tmpdir / 'lpd_geom.h5')
+    quad_pos_out = geom.to_h5_file_and_quad_positions(path)
+
+    np.testing.assert_allclose(quad_pos_out, quad_pos)
+    assert_isfile(path)
+
+    loaded = LPD_1MGeometry.from_h5_file_and_quad_positions(path, quad_pos_out)
+    assert_geom_close(loaded, geom)
+
+
+def test_quad_positions_with_file():
+    path = pjoin(tests_dir, 'lpd_mar_18.h5')
+    quad_pos = [(11.4, 299), (-11.5, 8), (254.5, -16), (278.5, 275)]
+    geom = LPD_1MGeometry.from_h5_file_and_quad_positions(path, quad_pos)
+
+    np.testing.assert_allclose(geom.quad_positions(path), quad_pos)
+
+
+def test_quad_positions_no_file():
+    quad_pos = [(11.4, 299), (-11.5, 8), (254.5, -16), (278.5, 275)]
+    geom = LPD_1MGeometry.from_quad_positions(quad_pos)
+
+    np.testing.assert_allclose(geom.quad_positions(), quad_pos)
+
 
 def test_inspect():
     geom = LPD_1MGeometry.from_quad_positions(
