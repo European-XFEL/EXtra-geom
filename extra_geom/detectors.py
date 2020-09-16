@@ -1311,9 +1311,10 @@ class DSSC_1MGeometry(DetectorGeometryBase):
                                     figsize=figsize,
                                     colorbar=colorbar,
                                     **kwargs)
-        # Squash image to physically equal aspect ratio, so a circle projected
-        # on the detector looks like a circle on screen.
-        ax.set_aspect(204/236.)
+        if axis_units == 'px':
+            # Squash image to physically equal aspect ratio, so a circle projected
+            # on the detector looks like a circle on screen.
+            ax.set_aspect(204/236.)
         return ax
 
     @classmethod
