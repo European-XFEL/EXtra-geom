@@ -54,6 +54,7 @@ setup(name="EXtra-geom",
               'pytest-cov',
               'coverage',
               'nbval',
+              'testpath',
           ]
       },
       python_requires='>=3.5',

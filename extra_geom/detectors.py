@@ -1255,6 +1255,49 @@ class DSSC_1MGeometry(DetectorGeometryBase):
 
         return cls(modules, filename=path)
 
+    def to_h5_file_and_quad_positions(self, path):
+        """Write this geometry to an XFEL HDF5 format geometry file
+
+        The quadrant positions are not stored in the file, so they are returned
+        separately. These and the numbers in the file are in millimetres.
+
+        The file and quadrant positions produced by this method are compatible
+        with :meth:`from_h5_file_and_quad_positions`.
+        """
+
+        quad_pos = []
+
+        for q in range(4):
+            quad_fragmts_corners = []
+            for mod in self.modules[q * 4: (q + 1) * 4]:
+                quad_fragmts_corners.extend(f.corners() for f in mod)
+
+            quad_points_xy = np.concatenate(quad_fragmts_corners)[:, :2]
+            quad_pos.append(quad_points_xy.min(axis=0))
+
+        quad_pos = np.stack(quad_pos)
+
+        module_offsets = []
+        tile_offsets = []
+
+        for m, module in enumerate(self.modules):
+            tile_positions = np.stack([f.corners().min(axis=0)[:2] for f in module])
+            module_position = tile_positions.min(axis=0)
+            tile_offsets.append(tile_positions - module_position)
+            module_offsets.append(module_position - quad_pos[m // 4])
+
+        with h5py.File(path, 'w') as hf:
+            for m in range(16):
+                Q, M = (m // 4) + 1, (m % 4) + 1
+                mod_grp = hf.create_group(f'Q{Q}/M{M}')
+                mod_grp['Position'] = module_offsets[m] * 1000  # m -> mm
+
+                for t in range(self.n_tiles_per_module):
+                    T = t + 1
+                    mod_grp[f'T{T:02}/Position'] = tile_offsets[m][t] * 1000  # m -> mm
+
+        return quad_pos * 1000  # m -> mm
+
     def inspect(self, axis_units='px', frontview=True):
         """Plot the 2D layout of this detector geometry.
 
