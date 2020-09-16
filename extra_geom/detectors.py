@@ -1298,6 +1298,47 @@ class DSSC_1MGeometry(DetectorGeometryBase):
 
         return quad_pos * 1000  # m -> mm
 
+    def quad_positions(self, h5_file=None):
+        """Get the positions of the 4 quadrants
+
+        Quadrant positions are returned as (x, y) coordinates in millimetres.
+        Their meaning is as in :meth:`from_h5_file_and_quad_positions`.
+
+        To use the returned positions with an existing XFEL HDF5 geometry file,
+        the path to that file should be passed in. In that case, the offsets of
+        M1 T1 in each quadrant are read from the file to calculate a suitable
+        quadrant position. The geometry in the file is not checked against this
+        geometry object at all.
+        """
+        positions = np.zeros((4, 2), dtype=np.float64)
+
+        if h5_file is None:
+            for q in range(4):
+                quad_fragmts_corners = []
+                for mod in self.modules[q * 4: (q + 1) * 4]:
+                    quad_fragmts_corners.extend(f.corners() for f in mod)
+
+                quad_points_xy = np.concatenate(quad_fragmts_corners)[:, :2]
+                positions[q] = quad_points_xy.min(axis=0) * 1000  # m -> mm
+        else:
+            with h5py.File(h5_file, 'r') as f:
+                for q in range(4):
+                    # XFEL HDF5 geometry files record the position of the low-x,
+                    # low-y corner of each tile. Instead of identifying which
+                    # corner this is, we'll just take a minimum over all 4 corners.
+                    # This assumes the tile is axis-aligned - for now, the XFEL
+                    # geometry format has no way to express rotation anyway.
+                    m1t1_min_corner = self.modules[q * 4][0].corners().min(axis=0)
+
+                    mod_grp = f[f'Q{q + 1}/M1']
+                    mod_offset = mod_grp['Position'][:2]
+                    tile_offset = mod_grp['T01/Position'][:2]
+
+                    tile_pos = m1t1_min_corner[:2] * 1000  # m (xyz) -> mm (xy)
+                    positions[q] = tile_pos - tile_offset - mod_offset
+
+        return positions
+
     def inspect(self, axis_units='px', frontview=True):
         """Plot the 2D layout of this detector geometry.
 
