@@ -1199,8 +1199,8 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         path : str
           Path of an EuXFEL format (HDF5) geometry file for DSSC.
         positions : list of 2-tuples
-          (x, y) coordinates of the last corner (the one by module 4) of each
-          quadrant.
+          (x, y) coordinates of the corner of each quadrant (the one with lowest
+          x and y coordinates).
         unit : float, optional
           The conversion factor to put the coordinates into metres.
           The default 1e-3 means the numbers are in millimetres.
