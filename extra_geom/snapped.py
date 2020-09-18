@@ -53,6 +53,8 @@ class GridGeometryFragment:
             ])
             self.pixel_dims = (self.fs_pixels, self.ss_pixels)
         self.corner_idx = tuple(corner_pos + corner_shift)
+        print('corner idx', self.corner_idx)
+        print('pixel dims', self.pixel_dims)
 
     def offset(self, y_x) -> 'GridGeometryFragment':
         new = copy(self)
@@ -88,6 +90,7 @@ class SnappedGeometry:
     def position_modules(self, data, out=None, threadpool=None):
         """Implementation for position_modules_fast
         """
+        # print('*****')
         assert data.shape[-3:] == self.geom.expected_data_shape
         if out is None:
             out = self.make_output_array(data.shape[:-3], data.dtype)
@@ -104,6 +107,8 @@ class SnappedGeometry:
             for tile, tile_data in zip(module, tiles_data):
                 y, x = tile.corner_idx
                 h, w = tile.pixel_dims
+                # print('module', i)
+                # print('  ', y, x, h, w)
                 copy_pairs.append((
                     out[..., y : y + h, x : x + w], tile.transform(tile_data)
                 ))
@@ -116,6 +121,7 @@ class SnappedGeometry:
             list(threadpool.map(copy_data, copy_pairs))
         else:
             for dst, src in copy_pairs:
+                # print(src.shape)
                 dst[:] = src
 
         return out, self.centre

@@ -891,8 +891,8 @@ class AGIPD_500KGeometry(DetectorGeometryBase):
         asic_gap_px = asic_gap * unit / cls.pixel_size
         panel_gap_x = panel_gap[0] * cls.pixel_size
         panel_gap_y = panel_gap[1] * cls.pixel_size
-        print(f'mod gap: ({panel_gap_x}, {panel_gap_y})')
-        print(f'asic gap: {asic_gap_px}')
+        # print(f'mod gap: ({panel_gap_x}, {panel_gap_y})')
+        # print(f'asic gap: {asic_gap_px}')
 
         # How much space one tile takes up, including the gaps
         # separating it from its neighbour.
@@ -902,15 +902,15 @@ class AGIPD_500KGeometry(DetectorGeometryBase):
         tile_width = (cls.frag_ss_pixels + asic_gap_px) * cls.pixel_size
         module_width = 8 * tile_width
 
-        print(f'module height: {module_height}')
-        print(f'tile width: {tile_width}')
-        print(f'module width: {module_width}')
+        # print(f'module height: {module_height}')
+        # print(f'tile width: {tile_width}')
+        # print(f'module width: {module_width}')
 
         modules = []
         for p in range(8):
             panel_corner_y = (center[1] * unit) - ((p // 2) * (module_height + panel_gap_y))
             panel_corner_x = (center[0] * unit) + ((p % 2) * (module_width + panel_gap_x))
-            print(f'panel{p} ({1000 * panel_corner_x:.2f}, {1000 * panel_corner_y:.2f})')
+            # print(f'panel{p} ({1000 * panel_corner_x:.2f}, {1000 * panel_corner_y:.2f})')
 
             tiles = []
             modules.append(tiles)
@@ -929,7 +929,7 @@ class AGIPD_500KGeometry(DetectorGeometryBase):
                 corner_x = panel_corner_x + x_offset + tile_width * (a // 2)
                 corner_y = panel_corner_y + y_offset
                 
-                print(f'  asic{a}: ({corner_x/ cls.pixel_size}, {corner_y/ cls.pixel_size})')
+                # print(f'  asic{a}: ({corner_x/ cls.pixel_size}, {corner_y/ cls.pixel_size})')
                 tiles.append(GeometryFragment(
                     corner_pos=np.array([corner_x, corner_y, 0.]),
                     ss_vec=np.array([x_orient, 0, 0]) * unit,
@@ -937,12 +937,12 @@ class AGIPD_500KGeometry(DetectorGeometryBase):
                     ss_pixels=cls.frag_ss_pixels,
                     fs_pixels=cls.frag_fs_pixels,
                 ))
-                print('corner pos:', tiles[-1].corner_pos)
-                print('corners', tiles[-1].corners())
-                print('ss vec', tiles[-1].ss_vec)
-                print('fs vec', tiles[-1].fs_vec)
-                print('ss pix', tiles[-1].ss_pixels)
-                print('fs pix', tiles[-1].fs_pixels)
+                # print('corner pos:', tiles[-1].corner_pos)
+                # print('corners', tiles[-1].corners())
+                # print('ss vec', tiles[-1].ss_vec)
+                # print('fs vec', tiles[-1].fs_vec)
+                # print('ss pix', tiles[-1].ss_pixels)
+                # print('fs pix', tiles[-1].fs_pixels)
         return cls(modules)
 
     def inspect(self, axis_units='px', frontview=True):
@@ -1062,11 +1062,15 @@ class AGIPD_500KGeometry(DetectorGeometryBase):
     @staticmethod
     def split_tiles(module_data):
         # 2 rows of 8 ASICs each. This slicing is faster than np.split().
-        return [
-            module_data[..., :64, x:x+64] for x in range(0, 1024, 64)
-        ] + [
-            module_data[..., 64:, x:x+64] for x in range(0, 1024, 64)
-        ]
+        # tiles on top row are rotated by 180 degre
+        tiles = []
+        for t in range(16):
+            col, row = divmod(t, 2)
+            if row == 0:
+                tiles.append(module_data[..., (col+1):col:-1, :64])
+            else:
+                tiles.append(module_data[..., col*64:(col+1)*64, 64:])
+        return tiles
 
     @classmethod
     def _tile_slice(cls, tileno):
