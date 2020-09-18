@@ -104,6 +104,7 @@ class SnappedGeometry:
             for tile, tile_data in zip(module, tiles_data):
                 y, x = tile.corner_idx
                 h, w = tile.pixel_dims
+
                 copy_pairs.append((
                     out[..., y : y + h, x : x + w], tile.transform(tile_data)
                 ))

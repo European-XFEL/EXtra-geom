@@ -854,6 +854,170 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
         return super().to_distortion_array(allow_negative_xy)
 
 
+class AGIPD_500KGeometry(DetectorGeometryBase):
+    """Detector layout for AGIPD-500k
+
+    The coordinates used in this class are 3D (x, y, z), and represent metres.
+
+    You won't normally instantiate this class directly:
+    use one of the constructor class methods to create or load a geometry.
+    """
+    detector_type_name = 'AGIPD-500K2G'
+    pixel_size = 2e-4  # 2e-4 metres == 0.2 mm
+    frag_ss_pixels = 64
+    frag_fs_pixels = 128
+    expected_data_shape = (8, 512, 128)
+    n_modules = 8
+    n_tiles_per_module = 8
+
+    @classmethod
+    def from_center(cls, center, asic_gap=2, panel_gap=(16, 30), unit=pixel_size):
+        """Generate an AGIPD-500K2G geometry from center position.
+
+        This produces an idealised geometry, assuming all modules are perfectly
+        flat, aligned and equally spaced within their quadrant.
+
+        The center position is given in pixel units, referring to the first
+        pixel of the first module, corresponding to data channels 0.
+
+        The origin of the coordinates is the bottom-right corner of the
+        detector. Coordinates increase upwards and to the left (looking along
+        the beam).
+
+        To give positions in units other than pixels, pass the *unit* parameter
+        as the length of the unit in metres. E.g. ``unit=1e-3`` means the
+        coordinates are in millimetres.
+        """
+        asic_gap_px = asic_gap * unit / cls.pixel_size
+        panel_gap_x = panel_gap[0] * cls.pixel_size
+        panel_gap_y = panel_gap[1] * cls.pixel_size
+
+        # How much space one tile takes up, including the gaps
+        # separating it from its neighbour.
+        # In the y dimension, 128 px
+        module_height = cls.frag_fs_pixels * cls.pixel_size
+        # In x, 64 px + gap between tiles (asics)
+        tile_width = (cls.frag_ss_pixels + asic_gap_px) * cls.pixel_size
+        module_width = 8 * tile_width
+
+        modules = []
+        for p in range(cls.n_modules):
+            panel_corner_y = (center[1] * unit) - ((p // 2) * (module_height + panel_gap_y))
+            panel_corner_x = (center[0] * unit) + ((p % 2) * (module_width + panel_gap_x))
+
+            tiles = []
+            modules.append(tiles)
+
+            for a in range(cls.n_tiles_per_module):
+                corner_x = panel_corner_x + a * tile_width
+
+                tiles.append(GeometryFragment(
+                    corner_pos=np.array([corner_x, panel_corner_y, 0.]),
+                    ss_vec=np.array([1, 0, 0]) * unit,
+                    fs_vec=np.array([0, 1, 0]) * unit,
+                    ss_pixels=cls.frag_ss_pixels,
+                    fs_pixels=cls.frag_fs_pixels,
+                ))
+        return cls(modules)
+
+    def inspect(self, axis_units='px', frontview=True):
+        """Plot the 2D layout of this detector geometry.
+
+        Returns a matplotlib Axes object.
+
+        Parameters
+        ----------
+
+        axis_units : str
+          Show the detector scale in pixels ('px') or metres ('m').
+        frontview : bool
+          If True (the default), x increases to the left, as if you were looking
+          along the beam. False gives a 'looking into the beam' view.
+        """
+        ax = super().inspect(axis_units=axis_units, frontview=frontview)
+        scale = self._get_plot_scale_factor(axis_units)
+
+        # Label modules and tiles
+        for ch, module in enumerate(self.modules):
+            cx, cy, _ = module[4].centre() * scale
+            ax.text(cx, cy, f'Mod{ch}', fontweight='bold',
+                    verticalalignment='center',
+                    horizontalalignment='center')
+
+            for t in [0, 7]:
+                cx, cy, _ = module[t].centre() * scale
+                ax.text(cx, cy, 'T{}'.format(t + 1),
+                        verticalalignment='center',
+                        horizontalalignment='center')
+
+        ax.set_title(f'AGIPD-500K2G detector geometry ({self.filename})')
+        return ax
+
+    def _get_dimensions(self):
+        """Calculate appropriate array dimensions for assembling data.
+
+        Returns (size_y, size_x), (centre_y, centre_x)
+        """
+        corners = []
+        for module in self.modules:
+            for tile in module:
+                corners.append(tile.corners())
+        corners = np.concatenate(corners)[:, :2] / self._pixel_shape
+
+        # Find extremes, add 1 px margin to allow for rounding errors
+        min_xy = corners.min(axis=0).astype(int) - 1
+        max_xy = corners.max(axis=0).astype(int) + 1
+
+        size = max_xy - min_xy
+        centre = -min_xy
+        # Switch xy -> yx
+        return tuple(size[::-1]), centre[::-1]
+
+    @staticmethod
+    def split_tiles(module_data):
+        # Split into 8 tiles along the slow-scan axis
+        # This simple slicing is faster than np.split().
+        return [module_data[..., s:s+64, :] for s in range(0, 512, 64)]
+
+    @classmethod
+    def _tile_slice(cls, tileno):
+        # Which part of the array is this tile?
+        # tileno = 0 to 7
+        tile_offset = tileno * cls.frag_ss_pixels
+        ss_slice = slice(tile_offset, tile_offset + cls.frag_ss_pixels)
+        fs_slice = slice(0, cls.frag_fs_pixels)  # Every tile covers the full 128 pixels
+        return ss_slice, fs_slice
+
+    @classmethod
+    def _module_coords_to_tile(cls, slow_scan, fast_scan):
+        tileno, tile_ss = np.divmod(slow_scan, cls.frag_ss_pixels)
+        return tileno.astype(np.int16), tile_ss, fast_scan
+
+    def to_distortion_array(self, allow_negative_xy=False):
+        """Return distortion matrix for AGIPD500K detector, suitable for pyFAI.
+
+        Parameters
+        ----------
+
+        allow_negative_xy: bool
+          If False (default), shift the origin so no x or y coordinates are
+          negative. If True, the origin is the detector centre.
+
+        Returns
+        -------
+        out: ndarray
+            Array of float 32 with shape (4096, 128, 4, 3).
+            The dimensions mean:
+
+            - 8192 = 8 modules * 512 pixels (slow scan axis)
+            - 128 pixels (fast scan axis)
+            - 4 corners of each pixel
+            - 3 numbers for z, y, x
+        """
+        # Overridden only for docstring
+        return super().to_distortion_array(allow_negative_xy)
+
+
 class LPD_1MGeometry(DetectorGeometryBase):
     """Detector layout for LPD-1M
 
