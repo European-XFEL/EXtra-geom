@@ -1066,10 +1066,21 @@ class AGIPD_500KGeometry(DetectorGeometryBase):
         tiles = []
         for t in range(16):
             col, row = divmod(t, 2)
+            # if row == 0:
+            #     tiles.append(module_data[..., (col+1)*64:col*64:-1, :64])
+            #     print(col, row, tiles[-1].shape)
+            # else:
+            #     tiles.append(module_data[..., col*64:(col+1)*64, 64:])
+
+            print(t)
+            d = module_data[..., col*64:(col+1)*64, 64:]
             if row == 0:
-                tiles.append(module_data[..., (col+1):col:-1, :64])
+                d = module_data[..., col*64:(col+1)*64, :64]
+                d = np.rot90(d, 2, axes=(-1, -2))
             else:
-                tiles.append(module_data[..., col*64:(col+1)*64, 64:])
+                d = module_data[..., col*64:(col+1)*64, 64:]
+            tiles.append(d)
+
         return tiles
 
     @classmethod
