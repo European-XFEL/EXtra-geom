@@ -694,6 +694,16 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
                 ))
         return cls(modules)
 
+    def quad_positions(self):
+        """Retrieve the coordinates of the first pixel in each quadrant
+
+        The coordinates returned are 2D and in pixel units, compatible with
+        :meth:`from_quad_positions`.
+        """
+        return np.array([
+            self.modules[q * 4][0].corner_pos[:2] for q in range(4)
+        ]) / self.pixel_size
+
     def inspect(self, axis_units='px', frontview=True):
         """Plot the 2D layout of this detector geometry.
 

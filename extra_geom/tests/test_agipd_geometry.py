@@ -99,6 +99,13 @@ def test_write_read_crystfel_file_2d(tmpdir):
     assert p3a7['max_fs'] == 127
 
 
+def test_quad_positions():
+    quad_pos = [(-525, 625), (-550, -10), (520, -160), (542.5, 475)]
+    geom = AGIPD_1MGeometry.from_quad_positions(quad_pos)
+
+    np.testing.assert_allclose(geom.quad_positions(), quad_pos)
+
+
 def test_inspect():
     geom = AGIPD_1MGeometry.from_quad_positions(
         quad_pos=[(-525, 625), (-550, -10), (520, -160), (542.5, 475)]
