@@ -854,7 +854,7 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
         return super().to_distortion_array(allow_negative_xy)
 
 
-class AGIPD_500KGeometry(DetectorGeometryBase):
+class AGIPD_500K2GGeometry(DetectorGeometryBase):
     """Detector layout for AGIPD-500k
 
     The coordinates used in this class are 3D (x, y, z), and represent metres.
@@ -881,8 +881,8 @@ class AGIPD_500KGeometry(DetectorGeometryBase):
         pixel of the first module, corresponding to data channels 0.
 
         The origin of the coordinates is the bottom-right corner of the
-        detector. Coordinates increase upwards and to the left (looking along
-        the beam).
+        first module of the detector (channel 0). Coordinates increase upwards
+        and to the left (looking along the beam).
 
         To give positions in units other than pixels, pass the *unit* parameter
         as the length of the unit in metres. E.g. ``unit=1e-3`` means the
@@ -951,6 +951,7 @@ class AGIPD_500KGeometry(DetectorGeometryBase):
                         horizontalalignment='center')
 
         ax.set_title(f'AGIPD-500K2G detector geometry ({self.filename})')
+        ax.set_aspect(1)
         return ax
 
     def _get_dimensions(self):
@@ -1016,6 +1017,67 @@ class AGIPD_500KGeometry(DetectorGeometryBase):
         """
         # Overridden only for docstring
         return super().to_distortion_array(allow_negative_xy)
+
+    def position_modules_interpolate(self, data):
+        """Assemble data from this detector according to where the pixels are.
+
+        This performs interpolation, which is very slow.
+        Use :meth:`position_modules_fast` to get a pixel-aligned approximation
+        of the geometry.
+
+        Parameters
+        ----------
+
+        data : ndarray
+          The three dimensions should be channelno, pixel_ss, pixel_fs
+          (lengths 8, 512, 128). ss/fs are slow-scan and fast-scan.
+
+        Returns
+        -------
+        out : ndarray
+          Array with the one dimension fewer than the input.
+          The last two dimensions represent pixel y and x in the detector space.
+        centre : ndarray
+          (y, x) pixel location of the detector centre in this geometry.
+        """
+        assert data.shape == (8, 512, 128)
+        size_yx, centre = self._get_dimensions()
+        tmp = np.empty((8 * 8,) + size_yx, dtype=data.dtype)
+
+        for i, (module, mod_data) in enumerate(zip(self.modules, data)):
+            tiles_data = np.split(mod_data, 8)
+            for j, (tile, tile_data) in enumerate(zip(module, tiles_data)):
+                # We store (x, y, z), but numpy indexing, and hence affine_transform,
+                # work like [y, x]. Rearrange the numbers:
+                fs_vec_yx = tile.fs_vec[:2][::-1]
+                ss_vec_yx = tile.ss_vec[:2][::-1]
+
+                # Offset by centre to make all coordinates positive
+                corner_pos_yx = tile.corner_pos[:2][::-1] + centre
+
+                # Make the rotation matrix
+                rotn = np.stack((ss_vec_yx, fs_vec_yx), axis=-1)
+
+                # affine_transform takes a mapping from *output* to *input*.
+                # So we reverse the forward transformation.
+                transform = np.linalg.inv(rotn)
+                offset = np.dot(rotn, corner_pos_yx)  # this seems to work, but is it right?
+
+                affine_transform(
+                    tile_data,
+                    transform,
+                    offset=offset,
+                    cval=np.nan,
+                    output_shape=size_yx,
+                    output=tmp[i * 8 + j],
+                )
+
+        # Silence warnings about nans - we expect gaps in the result
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            out = np.nanmax(tmp, axis=0)
+
+        return out, centre
 
 
 class LPD_1MGeometry(DetectorGeometryBase):
