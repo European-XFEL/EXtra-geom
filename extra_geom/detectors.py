@@ -248,7 +248,8 @@ class DetectorGeometryBase:
     def write_crystfel_geom(self, filename, *,
                             data_path='/entry_1/instrument_1/detector_1/data',
                             mask_path=None, dims=('frame', 'modno', 'ss', 'fs'),
-                            adu_per_ev=None, clen=None, photon_energy=None):
+                            nquads=4, adu_per_ev=None, clen=None,
+                            photon_energy=None):
         """Write this geometry to a CrystFEL format (.geom) geometry file.
 
         Parameters
@@ -277,7 +278,8 @@ class DetectorGeometryBase:
         """
         write_crystfel_geom(
             self, filename, data_path=data_path, mask_path=mask_path, dims=dims,
-            adu_per_ev=adu_per_ev, clen=clen, photon_energy=photon_energy,
+            nquads=nquads, adu_per_ev=adu_per_ev, clen=clen,
+            photon_energy=photon_energy,
         )
 
         if self.filename == 'No file':
@@ -1079,6 +1081,9 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
 
         return out, centre
 
+    def write_crystfel_geom(self, *args, **kwargs):
+        super().write_crystfel_geom(*args, nquads=1, **kwargs)
+
 
 class LPD_1MGeometry(DetectorGeometryBase):
     """Detector layout for LPD-1M
@@ -1583,6 +1588,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
             # beyond the start of the next row.
             ss_coords += 2/3
             fs_coords += 0.5
+
 
 class DSSC_Geometry(DSSC_1MGeometry):
     """DEPRECATED: Use DSSC_1MGeometry instead"""
