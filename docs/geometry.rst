@@ -41,6 +41,8 @@ but this geometry code works with a position for each tile.
 
    .. automethod:: from_crystfel_geom
 
+   .. automethod:: quad_positions
+
    .. automethod:: write_crystfel_geom
 
    .. automethod:: get_pixel_positions
@@ -81,6 +83,10 @@ which this geometry code can position independently.
    .. automethod:: from_h5_file_and_quad_positions
 
    .. automethod:: from_crystfel_geom
+
+   .. automethod:: quad_positions
+
+   .. automethod:: to_h5_file_and_quad_positions
 
    .. automethod:: write_crystfel_geom
 
@@ -127,6 +133,10 @@ approximately half a pixel width from their true position.
 .. autoclass:: DSSC_1MGeometry
 
    .. automethod:: from_h5_file_and_quad_positions
+
+   .. automethod:: quad_positions
+
+   .. automethod:: to_h5_file_and_quad_positions
 
    .. automethod:: get_pixel_positions
 
