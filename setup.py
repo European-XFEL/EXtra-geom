@@ -54,9 +54,10 @@ setup(name="EXtra-geom",
               'pytest-cov',
               'coverage',
               'nbval',
+              'testpath',
           ]
       },
-      python_requires='>=3.5',
+      python_requires='>=3.6',
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Environment :: Console',

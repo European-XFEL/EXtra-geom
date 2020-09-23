@@ -2,8 +2,10 @@ import h5py
 from matplotlib.axes import Axes
 import numpy as np
 from os.path import abspath, dirname, join as pjoin
+from testpath import assert_isfile
 
 from extra_geom import DSSC_1MGeometry
+from .utils import assert_geom_close
 
 tests_dir = dirname(abspath(__file__))
 sample_xfel_geom = pjoin(tests_dir, 'dssc_geo_june19.h5')
@@ -71,3 +73,35 @@ def test_get_pixel_positions():
 
     # Odd-numbered rows in Q1 & Q2 should have 0.5 pixel higher x than the even.
     np.testing.assert_allclose(px[0, 1::2, 0] - px[0, 0::2, 0], 236e-6/2)
+
+
+def test_read_write_xfel_file(tmpdir):
+    geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
+        sample_xfel_geom, QUAD_POS
+    )
+    path = str(tmpdir / 'dssc_geom.h5')
+    quad_pos_out = geom.to_h5_file_and_quad_positions(path)
+
+    assert_isfile(path)
+
+    loaded = DSSC_1MGeometry.from_h5_file_and_quad_positions(path, quad_pos_out)
+    assert_geom_close(loaded, geom)
+
+
+def test_quad_positions_with_file():
+    geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
+        sample_xfel_geom, QUAD_POS
+    )
+    quad_pos_out = geom.quad_positions(sample_xfel_geom)
+
+    np.testing.assert_allclose(quad_pos_out, QUAD_POS)
+
+
+def test_quad_positions_no_file():
+    geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
+        sample_xfel_geom, QUAD_POS
+    )
+    # Smoketest - the results without passing a file in aren't usable yet
+    quad_pos_out = geom.quad_positions()
+
+    assert quad_pos_out.shape == (4, 2)

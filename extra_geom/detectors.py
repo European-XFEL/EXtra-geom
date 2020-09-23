@@ -694,6 +694,16 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
                 ))
         return cls(modules)
 
+    def quad_positions(self):
+        """Retrieve the coordinates of the first pixel in each quadrant
+
+        The coordinates returned are 2D and in pixel units, compatible with
+        :meth:`from_quad_positions`.
+        """
+        return np.array([
+            self.modules[q * 4][0].corner_pos[:2] for q in range(4)
+        ]) / self.pixel_size
+
     def inspect(self, axis_units='px', frontview=True):
         """Plot the 2D layout of this detector geometry.
 
@@ -1024,6 +1034,92 @@ class LPD_1MGeometry(DetectorGeometryBase):
 
         return cls(modules, filename=path)
 
+    def to_h5_file_and_quad_positions(self, path):
+        """Write this geometry to an XFEL HDF5 format geometry file
+
+        The quadrant positions are not stored in the file, so they are returned
+        separately. These and the numbers in the file are in millimetres.
+
+        The file and quadrant positions produced by this method are compatible
+        with :meth:`from_h5_file_and_quad_positions`.
+        """
+
+        quad_pos = []
+
+        for q in range(4):
+            quad_fragmts_corners = []
+            for mod in self.modules[q * 4: (q + 1) * 4]:
+                quad_fragmts_corners.extend(f.corners() for f in mod)
+
+            quad_points_xy = np.concatenate(quad_fragmts_corners)[:, :2]
+            quad_pos.append(quad_points_xy.max(axis=0))
+
+        quad_pos = np.stack(quad_pos)
+
+        module_offsets = []
+        tile_offsets = []
+
+        for m, module in enumerate(self.modules):
+            tile_positions = np.stack([f.corners().max(axis=0)[:2] for f in module])
+            module_position = tile_positions.max(axis=0)
+            tile_offsets.append(tile_positions - module_position)
+            module_offsets.append(module_position - quad_pos[m // 4])
+
+        with h5py.File(path, 'w') as hf:
+            for m in range(16):
+                Q, M = (m // 4) + 1, (m % 4) + 1
+                mod_grp = hf.create_group(f'Q{Q}/M{M}')
+                mod_grp['Position'] = module_offsets[m] * 1000  # m -> mm
+
+                for t in range(self.n_tiles_per_module):
+                    T = t + 1
+                    mod_grp[f'T{T:02}/Position'] = tile_offsets[m][t] * 1000  # m -> mm
+
+        return quad_pos * 1000  # m -> mm
+
+    def quad_positions(self, h5_file=None):
+        """Get the positions of the 4 quadrants
+
+        Quadrant positions are returned as (x, y) coordinates in millimetres.
+        Their meaning is as in :meth:`from_h5_file_and_quad_positions`.
+
+        To use the returned positions with an existing XFEL HDF5 geometry file,
+        the path to that file should be passed in. In that case, the offsets of
+        M4 T16 in each quadrant are read from the file to calculate a suitable
+        quadrant position. The geometry in the file is not checked against this
+        geometry object at all.
+        """
+        positions = np.zeros((4, 2), dtype=np.float64)
+
+        if h5_file is None:
+            for q in range(4):
+                quad_fragmts_corners = []
+                for mod in self.modules[q * 4: (q + 1) * 4]:
+                    quad_fragmts_corners.extend(f.corners() for f in mod)
+
+                quad_points_xy = np.concatenate(quad_fragmts_corners)[:, :2]
+                positions[q] = quad_points_xy.max(axis=0) * 1000  # m -> mm
+        else:
+            with h5py.File(h5_file, 'r') as f:
+                for q in range(4):
+                    # XFEL HDF5 geometry files for LPD record the position of
+                    # the high-x, high-y corner of each tile. Instead of
+                    # identifying which corner this is, we'll just take a
+                    # maximum over all 4 corners.
+                    # This assumes the tile is axis-aligned - for now, the XFEL
+                    # geometry format has no way to express rotation anyway.
+                    m4t16 = self.modules[(q * 4) + 3][15]
+                    m4t16_max_corner = m4t16.corners().max(axis=0)
+
+                    mod_grp = f[f'Q{q + 1}/M4']
+                    mod_offset = mod_grp['Position'][:2]
+                    tile_offset = mod_grp['T16/Position'][:2]
+
+                    tile_pos = m4t16_max_corner[:2] * 1000  # m (xyz) -> mm (xy)
+                    positions[q] = tile_pos - tile_offset - mod_offset
+
+        return positions
+
     def inspect(self, axis_units='px', frontview=True):
         """Plot the 2D layout of this detector geometry.
 
@@ -1199,8 +1295,8 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         path : str
           Path of an EuXFEL format (HDF5) geometry file for DSSC.
         positions : list of 2-tuples
-          (x, y) coordinates of the last corner (the one by module 4) of each
-          quadrant.
+          (x, y) coordinates of the corner of each quadrant (the one with lowest
+          x and y coordinates).
         unit : float, optional
           The conversion factor to put the coordinates into metres.
           The default 1e-3 means the numbers are in millimetres.
@@ -1254,6 +1350,90 @@ class DSSC_1MGeometry(DetectorGeometryBase):
                 modules.append(tiles)
 
         return cls(modules, filename=path)
+
+    def to_h5_file_and_quad_positions(self, path):
+        """Write this geometry to an XFEL HDF5 format geometry file
+
+        The quadrant positions are not stored in the file, so they are returned
+        separately. These and the numbers in the file are in millimetres.
+
+        The file and quadrant positions produced by this method are compatible
+        with :meth:`from_h5_file_and_quad_positions`.
+        """
+
+        quad_pos = []
+
+        for q in range(4):
+            quad_fragmts_corners = []
+            for mod in self.modules[q * 4: (q + 1) * 4]:
+                quad_fragmts_corners.extend(f.corners() for f in mod)
+
+            quad_points_xy = np.concatenate(quad_fragmts_corners)[:, :2]
+            quad_pos.append(quad_points_xy.min(axis=0))
+
+        quad_pos = np.stack(quad_pos)
+
+        module_offsets = []
+        tile_offsets = []
+
+        for m, module in enumerate(self.modules):
+            tile_positions = np.stack([f.corners().min(axis=0)[:2] for f in module])
+            module_position = tile_positions.min(axis=0)
+            tile_offsets.append(tile_positions - module_position)
+            module_offsets.append(module_position - quad_pos[m // 4])
+
+        with h5py.File(path, 'w') as hf:
+            for m in range(16):
+                Q, M = (m // 4) + 1, (m % 4) + 1
+                mod_grp = hf.create_group(f'Q{Q}/M{M}')
+                mod_grp['Position'] = module_offsets[m] * 1000  # m -> mm
+
+                for t in range(self.n_tiles_per_module):
+                    T = t + 1
+                    mod_grp[f'T{T:02}/Position'] = tile_offsets[m][t] * 1000  # m -> mm
+
+        return quad_pos * 1000  # m -> mm
+
+    def quad_positions(self, h5_file=None):
+        """Get the positions of the 4 quadrants
+
+        Quadrant positions are returned as (x, y) coordinates in millimetres.
+        Their meaning is as in :meth:`from_h5_file_and_quad_positions`.
+
+        To use the returned positions with an existing XFEL HDF5 geometry file,
+        the path to that file should be passed in. In that case, the offsets of
+        M1 T1 in each quadrant are read from the file to calculate a suitable
+        quadrant position. The geometry in the file is not checked against this
+        geometry object at all.
+        """
+        positions = np.zeros((4, 2), dtype=np.float64)
+
+        if h5_file is None:
+            for q in range(4):
+                quad_fragmts_corners = []
+                for mod in self.modules[q * 4: (q + 1) * 4]:
+                    quad_fragmts_corners.extend(f.corners() for f in mod)
+
+                quad_points_xy = np.concatenate(quad_fragmts_corners)[:, :2]
+                positions[q] = quad_points_xy.min(axis=0) * 1000  # m -> mm
+        else:
+            with h5py.File(h5_file, 'r') as f:
+                for q in range(4):
+                    # XFEL HDF5 geometry files record the position of the low-x,
+                    # low-y corner of each tile. Instead of identifying which
+                    # corner this is, we'll just take a minimum over all 4 corners.
+                    # This assumes the tile is axis-aligned - for now, the XFEL
+                    # geometry format has no way to express rotation anyway.
+                    m1t1_min_corner = self.modules[q * 4][0].corners().min(axis=0)
+
+                    mod_grp = f[f'Q{q + 1}/M1']
+                    mod_offset = mod_grp['Position'][:2]
+                    tile_offset = mod_grp['T01/Position'][:2]
+
+                    tile_pos = m1t1_min_corner[:2] * 1000  # m (xyz) -> mm (xy)
+                    positions[q] = tile_pos - tile_offset - mod_offset
+
+        return positions
 
     def inspect(self, axis_units='px', frontview=True):
         """Plot the 2D layout of this detector geometry.
