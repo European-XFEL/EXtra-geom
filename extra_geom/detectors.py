@@ -1004,6 +1004,10 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
     def write_crystfel_geom(self, *args, **kwargs):
         super().write_crystfel_geom(*args, nquads=1, **kwargs)
 
+    def position_modules_fast(self, *args, **kwargs):
+        data, _ = super().position_modules_fast(*args, **kwargs)
+        return data, (0, 0)  # center is the origin
+
 
 class LPD_1MGeometry(DetectorGeometryBase):
     """Detector layout for LPD-1M

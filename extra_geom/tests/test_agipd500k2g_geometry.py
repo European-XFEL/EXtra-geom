@@ -12,7 +12,7 @@ def test_snap_assemble_data():
 
     def check_result(img, centre):
         assert img.shape == (602, 1070)
-        assert tuple(centre) == (602, 0)  # TODO what is correct?
+        assert tuple(centre) == (0, 0)
         assert np.isnan(img[0, 535])
         assert img[50, 50] == 0
 
@@ -87,7 +87,7 @@ def test_write_read_crystfel_file_2d(tmpdir):
 
     p3a7 = geom_dict['panels']['p3a7']
     assert p3a7['dim_structure'] == ['%', 'ss', 'fs']
-    assert p3a7['min_ss'] == (3 * 512) + 448  # TODO this will break
+    assert p3a7['min_ss'] == (3 * 512) + 448
     assert p3a7['max_ss'] == (3 * 512) + 511
     assert p3a7['min_fs'] == 0
     assert p3a7['max_fs'] == 127
