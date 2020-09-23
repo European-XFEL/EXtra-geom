@@ -41,4 +41,4 @@ from .detectors import (
 )
 
 __all__ = ['AGIPD_1MGeometry', 'AGIPD_500K2GGeometry', 'DSSC_1MGeometry',
-           'JUNGFRAUGeometry', 'LPD_1MGeometry', 'PNCCDGeometry'] 
+           'JUNGFRAUGeometry', 'LPD_1MGeometry', 'PNCCDGeometry']
