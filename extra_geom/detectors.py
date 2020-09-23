@@ -941,8 +941,9 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
 
         # Label modules and tiles
         for ch, module in enumerate(self.modules):
+            quad, mod = (1 + v for v in divmod(ch, 4))
             cx, cy, _ = module[4].centre() * scale
-            ax.text(cx, cy, f'Mod{ch}', fontweight='bold',
+            ax.text(cx, cy, f'Q{quad}M{mod}', fontweight='bold',
                     verticalalignment='center',
                     horizontalalignment='center')
 

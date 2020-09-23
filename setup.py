@@ -56,7 +56,7 @@ setup(name="EXtra-geom",
               'nbval',
           ]
       },
-      python_requires='>=3.5',
+      python_requires='>=3.6',
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Environment :: Console',
