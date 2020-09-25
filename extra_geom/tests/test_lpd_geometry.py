@@ -78,6 +78,27 @@ def test_quad_positions_no_file():
     np.testing.assert_allclose(geom.quad_positions(), quad_pos)
 
 
+def test_offset():
+    quad_pos = [(11.4, 299), (-11.5, 8), (254.5, -16), (278.5, 275)]
+    geom = LPD_1MGeometry.from_quad_positions(quad_pos)
+    y_orig = np.array([m[0].corner_pos[1] for m in geom.modules])
+
+    all_shifted = geom.offset((0, 1e-3))
+    y1 = np.array([m[0].corner_pos[1] for m in all_shifted.modules])
+    np.testing.assert_allclose(y1, y_orig + 1e-3)
+
+    q4_shifted = geom.offset((0, 2e-3), modules=np.s_[12:])
+    y2 = np.array([m[0].corner_pos[1] for m in q4_shifted.modules])
+    np.testing.assert_allclose(y2[:12], y_orig[:12])
+    np.testing.assert_allclose(y2[12:], y_orig[12:] + 2e-3)
+
+    quad_pos_modified = q4_shifted.quad_positions()
+    np.testing.assert_allclose(quad_pos_modified[:3], quad_pos[:3])
+    np.testing.assert_allclose(
+        quad_pos_modified[3], np.array(quad_pos[3]) + [0, 2]  # quad positions in mm
+    )
+
+
 def test_inspect():
     geom = LPD_1MGeometry.from_quad_positions(
         [(11.4, 299), (-11.5, 8), (254.5, -16), (278.5, 275)]

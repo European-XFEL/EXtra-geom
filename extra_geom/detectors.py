@@ -55,6 +55,10 @@ class GeometryFragment:
             + (0.5 * self.fs_vec * self.fs_pixels)
         )
 
+    def offset(self, shift):
+        pos = self.corner_pos + shift
+        return type(self)(pos, self.ss_vec, self.fs_vec, self.ss_pixels, self.fs_pixels)
+
     def snap(self, px_shape):
         # Round positions and vectors to integers, drop z dimension
         corner_pos = np.around(self.corner_pos[:2] / px_shape).astype(np.int32)
@@ -620,6 +624,46 @@ class DetectorGeometryBase:
         return coords_tile_corner \
             + (np.expand_dims(tile_ss, -1) * coords_ss_vec) \
             + (np.expand_dims(tile_fs, -1) * coords_fs_vec)
+
+    def offset(self, shift, *, modules=np.s_[:], tiles=np.s_[:]):
+        """Move part or all of the detector, making a new geometry.
+
+        By default, this moves all modules & tiles. To move the centre down in
+        the image, move the whole detector *up* relative to it. To move only
+        part of the detector, pass a slice, e.g. ``modules=np.s_[4:8]``.
+
+        Returns a new geometry object of the same type.
+
+        Parameters
+        ----------
+
+        shift: numpy.ndarray or tuple
+          (x, y) or (x, y, z) shift to apply in metres.
+        modules: slice
+          Select modules to move; defaults to all modules.
+          Like all Python slicing, the end number is excluded, so ``np.s_[:4]``
+          moves modules 0, 1, 2, 3.
+        tiles: slice
+          Select tiles to move within each module; defaults to all tiles.
+        """
+        shift = np.asarray(shift)
+        if len(shift) == 2:
+            shift3d = np.zeros(3, shift.dtype)
+            shift3d[:2] = shift
+            shift = shift3d
+
+        sel_modules = range(len(self.modules))[modules]
+        ntiles = max([len(m) for m in self.modules])
+        sel_tiles = range(ntiles)[tiles]
+
+        cls = type(self)
+        return cls([
+            ([
+                tile.offset(shift) if t in sel_tiles else tile
+                for t, tile in enumerate(module)
+            ] if m in sel_modules else module)
+            for m, module in enumerate(self.modules)
+        ])
 
 
 class AGIPD_1MGeometry(DetectorGeometryBase):
