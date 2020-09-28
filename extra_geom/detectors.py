@@ -925,8 +925,6 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
 
         modules = []
         for p in range(cls.n_modules):
-            # panel_corner_y = - (origin[1] * unit) - det_origin[1] - ((p // 2) * (module_height + panel_gap_y))
-            # panel_corner_x = - (origin[0] * unit) - det_origin[0] + ((p % 2) * (module_width + panel_gap_x))
             panel_corner_y = origin[1] - ((p // 2) * (module_height + panel_gap_y))
             panel_corner_x = origin[0] + ((p % 2) * (module_width + panel_gap_x))
 
