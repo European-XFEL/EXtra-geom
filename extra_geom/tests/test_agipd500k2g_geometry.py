@@ -12,7 +12,7 @@ def test_snap_assemble_data():
 
     def check_result(img, centre):
         assert img.shape == (602, 1070)
-        assert tuple(centre) == (301, 535)
+        assert tuple(centre) == (-100, -100)
         assert np.isnan(img[0, 535])
         assert img[50, 50] == 0
 
@@ -43,7 +43,7 @@ def test_snap_assemble_data():
         check_result(img, centre)
 
 def test_write_read_crystfel_file(tmpdir):
-    geom = AGIPD_500K2GGeometry.default()
+    geom = AGIPD_500K2GGeometry.from_origin()
     path = str(tmpdir / 'test.geom')
     geom.write_crystfel_geom(filename=path, photon_energy=9000,
                              adu_per_ev=0.0075, clen=0.2)
@@ -71,7 +71,7 @@ def test_write_read_crystfel_file(tmpdir):
 
 
 def test_write_read_crystfel_file_2d(tmpdir):
-    geom = AGIPD_500K2GGeometry.default()
+    geom = AGIPD_500K2GGeometry.from_origin()
     path = str(tmpdir / 'test.geom')
     geom.write_crystfel_geom(filename=path, dims=('frame', 'ss', 'fs'),
                              adu_per_ev=0.0075, clen=0.2)
@@ -94,7 +94,7 @@ def test_write_read_crystfel_file_2d(tmpdir):
 
 
 def test_inspect():
-    geom = AGIPD_500K2GGeometry.default(0)
+    geom = AGIPD_500K2GGeometry.from_origin()
     # Smoketest
     ax = geom.inspect()
     assert isinstance(ax, Axes)
@@ -109,7 +109,7 @@ def test_compare():
 
 
 def test_to_distortion_array():
-    geom = AGIPD_500K2GGeometry.default()
+    geom = AGIPD_500K2GGeometry.from_origin()
     # Smoketest
     distortion = geom.to_distortion_array()
     assert isinstance(distortion, np.ndarray)
@@ -123,7 +123,7 @@ def test_to_distortion_array():
 
 
 def test_get_pixel_positions():
-    geom = AGIPD_500K2GGeometry.default()
+    geom = AGIPD_500K2GGeometry.from_origin()
 
     pixelpos = geom.get_pixel_positions()
     assert pixelpos.shape == (8, 512, 128, 3)
