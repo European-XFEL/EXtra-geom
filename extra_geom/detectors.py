@@ -878,7 +878,7 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
         """Generate an AGIPD-500K2G geometry from origin position.
 
         This produces an idealised geometry, assuming all modules are perfectly
-        flat, aligned and equally spaced within their quadrant.
+        flat, aligned and equally spaced within the detector.
 
         The default origin (0, 0) of the coordinates is the bottom-right corner
         of the detector. If an other coordinate is given as the origin, it is
