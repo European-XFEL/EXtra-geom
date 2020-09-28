@@ -12,11 +12,11 @@ def test_snap_assemble_data():
 
     def check_result(img, centre):
         assert img.shape == (602, 1070)
-        assert tuple(centre) == (0, 0)
+        assert tuple(centre) == (301, 535)
         assert np.isnan(img[0, 535])
         assert img[50, 50] == 0
 
-    geom = AGIPD_500K2GGeometry.from_center((0, -128))  # detector's top right corner
+    geom = AGIPD_500K2GGeometry.from_origin((-100, -100))
 
     stacked_data = np.zeros((8, 512, 128))
     img, centre = geom.position_modules_fast(stacked_data)
@@ -43,7 +43,7 @@ def test_snap_assemble_data():
         check_result(img, centre)
 
 def test_write_read_crystfel_file(tmpdir):
-    geom = AGIPD_500K2GGeometry.from_center((0, 0))
+    geom = AGIPD_500K2GGeometry.default()
     path = str(tmpdir / 'test.geom')
     geom.write_crystfel_geom(filename=path, photon_energy=9000,
                              adu_per_ev=0.0075, clen=0.2)
@@ -71,7 +71,7 @@ def test_write_read_crystfel_file(tmpdir):
 
 
 def test_write_read_crystfel_file_2d(tmpdir):
-    geom = AGIPD_500K2GGeometry.from_center((0, 0))
+    geom = AGIPD_500K2GGeometry.default()
     path = str(tmpdir / 'test.geom')
     geom.write_crystfel_geom(filename=path, dims=('frame', 'ss', 'fs'),
                              adu_per_ev=0.0075, clen=0.2)
@@ -94,22 +94,22 @@ def test_write_read_crystfel_file_2d(tmpdir):
 
 
 def test_inspect():
-    geom = AGIPD_500K2GGeometry.from_center((0, 0))
+    geom = AGIPD_500K2GGeometry.default(0)
     # Smoketest
     ax = geom.inspect()
     assert isinstance(ax, Axes)
 
 
 def test_compare():
-    geom1 = AGIPD_500K2GGeometry.from_center((5, 10))
-    geom2 = AGIPD_500K2GGeometry.from_center((7, -5))
+    geom1 = AGIPD_500K2GGeometry.from_origin((5, 10))
+    geom2 = AGIPD_500K2GGeometry.from_origin((7, -5))
     # Smoketest
     ax = geom1.compare(geom2)
     assert isinstance(ax, Axes)
 
 
 def test_to_distortion_array():
-    geom = AGIPD_500K2GGeometry.from_center((0, 0))
+    geom = AGIPD_500K2GGeometry.default()
     # Smoketest
     distortion = geom.to_distortion_array()
     assert isinstance(distortion, np.ndarray)
@@ -123,7 +123,7 @@ def test_to_distortion_array():
 
 
 def test_get_pixel_positions():
-    geom = AGIPD_500K2GGeometry.from_center((0, -128))
+    geom = AGIPD_500K2GGeometry.default()
 
     pixelpos = geom.get_pixel_positions()
     assert pixelpos.shape == (8, 512, 128, 3)
@@ -132,14 +132,14 @@ def test_get_pixel_positions():
 
     assert 0. < px.min() < .0002
     assert 0.218 > px.max() > 0.21
-    assert -0.13 < py.min() < -0.
-    assert  -0. > py.max() > -0.0002
+    assert 0.13 > py.max() > 0.
+    assert  0. < py.min() < 0.0002
 
 def test_data_coords_to_positions():
-    geom = AGIPD_500K2GGeometry.from_center((-500, 150))
+    geom = AGIPD_500K2GGeometry.from_origin((512, -100))
 
-    module_no = np.zeros(8, dtype=np.int16)
-    slow_scan = np.linspace(0, 500, num=8, dtype=np.float32)
+    module_no = np.full(8, fill_value=6, dtype=np.int16)
+    slow_scan = np.linspace(0, 512, num=8, dtype=np.float32)
     fast_scan = np.zeros(8, dtype=np.float32)
 
     res = geom.data_coords_to_positions(module_no, slow_scan, fast_scan)
@@ -150,8 +150,8 @@ def test_data_coords_to_positions():
     resx, resy, resz = res.T
 
     np.testing.assert_allclose(resz, 0)
-    np.testing.assert_allclose(resy, 150 * geom.pixel_size)
+    np.testing.assert_allclose(resy, 100 * geom.pixel_size)
 
     assert (np.diff(resx) > 0).all()   # Monotonically increasing
-    np.testing.assert_allclose(resx[0], -500 * geom.pixel_size)
+    np.testing.assert_allclose(resx[0], -512 * geom.pixel_size)
     assert -0.01 < resx[-1] < 0.01

@@ -873,18 +873,35 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
     n_tiles_per_module = 8
 
     @classmethod
-    def from_center(cls, center, asic_gap=2, panel_gap=(16, 30), unit=pixel_size):
-        """Generate an AGIPD-500K2G geometry from center position.
+    def default(cls, asic_gap=2, panel_gap=(16, 30), unit=pixel_size):
+        """Generate an AGIPD-500K2G geometry.
 
         This produces an idealised geometry, assuming all modules are perfectly
         flat, aligned and equally spaced within their quadrant.
 
-        The center position is given in pixel units, referring to the first
-        pixel of the first module, corresponding to data channels 0.
-
         The origin of the coordinates is the bottom-right corner of the
-        first module of the detector (channel 0). Coordinates increase upwards
-        and to the left (looking along the beam).
+        detector. Coordinates increase upwards and to the left (looking along
+        the beam).
+
+        To give positions in units other than pixels, pass the *unit* parameter
+        as the length of the unit in metres. E.g. ``unit=1e-3`` means the
+        coordinates are in millimetres.
+        """
+        return cls.from_origin(
+            (0, 0), asic_gap=asic_gap, panel_gap=panel_gap, unit=unit
+        )
+
+
+    @classmethod
+    def from_origin(cls, origin, asic_gap=2, panel_gap=(16, 30), unit=pixel_size):
+        """Generate an AGIPD-500K2G geometry from origin position.
+
+        This produces an idealised geometry, assuming all modules are perfectly
+        flat, aligned and equally spaced within their quadrant.
+
+        The origin of the coordinates is relative to the bottom-right corner of
+        the detector. Coordinates increase upwards and to the left (looking
+        along the beam).
 
         To give positions in units other than pixels, pass the *unit* parameter
         as the length of the unit in metres. E.g. ``unit=1e-3`` means the
@@ -902,10 +919,16 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
         tile_width = (cls.frag_ss_pixels + asic_gap_px) * cls.pixel_size
         module_width = 8 * tile_width
 
+        # bottom-right corner relative to the first pixel of the first module
+        ref = (0, - (3 * (cls.frag_fs_pixels + panel_gap[1]) * unit))
+        origin = (- (origin[0] * unit + ref[0]), - (origin[1] * unit + ref[1]))
+
         modules = []
         for p in range(cls.n_modules):
-            panel_corner_y = (center[1] * unit) - ((p // 2) * (module_height + panel_gap_y))
-            panel_corner_x = (center[0] * unit) + ((p % 2) * (module_width + panel_gap_x))
+            # panel_corner_y = - (origin[1] * unit) - det_origin[1] - ((p // 2) * (module_height + panel_gap_y))
+            # panel_corner_x = - (origin[0] * unit) - det_origin[0] + ((p % 2) * (module_width + panel_gap_x))
+            panel_corner_y = origin[1] - ((p // 2) * (module_height + panel_gap_y))
+            panel_corner_x = origin[0] + ((p % 2) * (module_width + panel_gap_x))
 
             tiles = []
             modules.append(tiles)
@@ -1005,8 +1028,19 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
         super().write_crystfel_geom(*args, nquads=1, **kwargs)
 
     def position_modules_fast(self, *args, **kwargs):
-        data, _ = super().position_modules_fast(*args, **kwargs)
-        return data, (0, 0)  # center is the origin
+        return super().position_modules_fast(*args, **kwargs)
+
+    def _snapped(self):
+        """Snap geometry to a 2D pixel grid
+
+        This returns a new geometry object. The 'snapped' geometry is
+        less accurate, but can assemble data into a 2D array more efficiently,
+        because it doesn't do any interpolation.
+        """
+        if self._snapped_cache is None:
+            snapped = super()._snapped()
+            snapped.centre = np.array(snapped.size_yx) // 2
+        return self._snapped_cache
 
 
 class LPD_1MGeometry(DetectorGeometryBase):
