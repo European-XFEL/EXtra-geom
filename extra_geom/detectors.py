@@ -1017,7 +1017,8 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
 
     def position_modules_fast(self, *args, **kwargs):
         data, _ = super().position_modules_fast(*args, **kwargs)
-        return data, self.origin
+        origin = data.shape - self.origin[::-1]
+        return data, origin
 
 
 class LPD_1MGeometry(DetectorGeometryBase):
