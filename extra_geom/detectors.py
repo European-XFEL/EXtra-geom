@@ -885,10 +885,6 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
         relative to the bottom-right corner. Coordinates increase upwards and
         to the left (looking along the beam).
 
-        The origin of the coordinates is relative to the bottom-right corner of
-        the detector. Coordinates increase upwards and to the left (looking
-        along the beam).
-
         To give positions in units other than pixels, pass the *unit* parameter
         as the length of the unit in metres. E.g. ``unit=1e-3`` means the
         coordinates are in millimetres.
