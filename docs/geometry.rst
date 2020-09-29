@@ -61,6 +61,44 @@ but this geometry code works with a position for each tile.
 
    .. automethod:: data_coords_to_positions
 
+.. _det-AGIPD-500K2G:
+
+AGIPD-500K2G
+------------
+
+AGIPD-500K2G consists of 8 modules of 512×128 pixels each.
+Each module is further subdivided into 8 tiles.
+The layout of tiles within a module is fixed by the manufacturing process,
+but this geometry code works with a position for each tile.
+
+.. figure:: _static/agipd_500k2g_layout.png
+
+   The approximate layout of AGIPD-500K2G, in a front view (looking along the beam).
+
+.. autoclass:: AGIPD_500K2GGeometry
+
+   .. automethod:: from_quad_positions
+
+   .. automethod:: from_crystfel_geom
+
+   .. automethod:: write_crystfel_geom
+
+   .. automethod:: get_pixel_positions
+
+   .. automethod:: to_distortion_array
+
+   .. automethod:: plot_data_fast
+
+   .. automethod:: position_modules_fast
+
+   .. automethod:: output_array_for_position_fast
+
+   .. automethod:: inspect
+
+   .. automethod:: compare
+
+   .. automethod:: data_coords_to_positions
+
 .. _det-LPD-1M:
 
 LPD-1M
