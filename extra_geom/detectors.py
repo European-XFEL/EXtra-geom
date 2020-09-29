@@ -881,7 +881,7 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
         flat, aligned and equally spaced within the detector.
 
         The default origin (0, 0) of the coordinates is the bottom-right corner
-        of the detector. If an other coordinate is given as the origin, it is
+        of the detector. If another coordinate is given as the origin, it is
         relative to the bottom-right corner. Coordinates increase upwards and
         to the left (looking along the beam).
 
