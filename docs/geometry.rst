@@ -77,7 +77,7 @@ but this geometry code works with a position for each tile.
 
 .. autoclass:: AGIPD_500K2GGeometry
 
-   .. automethod:: from_quad_positions
+   .. automethod:: from_origin
 
    .. automethod:: from_crystfel_geom
 
