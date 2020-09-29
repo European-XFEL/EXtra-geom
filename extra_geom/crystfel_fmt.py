@@ -79,7 +79,8 @@ def frag_to_crystfel(fragment, p, a, ss_slice, fs_slice, dims, pixel_size):
 def write_crystfel_geom(self, filename, *,
                         data_path='/entry_1/instrument_1/detector_1/data',
                         mask_path=None, dims=('frame', 'modno', 'ss', 'fs'),
-                        adu_per_ev=None, clen=None, photon_energy=None):
+                        nquads=4, adu_per_ev=None, clen=None,
+                        photon_energy=None):
     """Write this geometry to a CrystFEL format (.geom) geometry file.
     """
     from . import __version__
@@ -148,7 +149,7 @@ def write_crystfel_geom(self, filename, *,
             clen=clen_str,
             photon_energy=photon_energy_str
         ))
-        rigid_groups = get_rigid_groups(self)
+        rigid_groups = get_rigid_groups(self, nquads=nquads)
         f.write(rigid_groups)
         for chunk in panel_chunks:
             f.write(chunk)
