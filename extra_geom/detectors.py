@@ -925,9 +925,7 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
                     fs_pixels=cls.frag_fs_pixels,
                 ))
 
-        det = cls(modules)
-        det.origin = np.array(origin)
-        return det
+        return cls(modules)
 
     def inspect(self, axis_units='px', frontview=True):
         """Plot the 2D layout of this detector geometry.
