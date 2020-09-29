@@ -12,7 +12,7 @@ def test_snap_assemble_data():
 
     def check_result(img, centre):
         assert img.shape == (602, 1070)
-        assert tuple(centre) == (702, 1170)
+        assert tuple(centre) == (-100, -100)
         assert np.isnan(img[0, 535])
         assert img[50, 50] == 0
 
