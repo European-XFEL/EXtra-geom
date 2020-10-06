@@ -55,6 +55,8 @@ but this geometry code works with a position for each tile.
 
    .. automethod:: output_array_for_position_fast
 
+   .. automethod:: position_modules_symmetric
+
    .. automethod:: position_modules_interpolate
 
    .. automethod:: inspect
@@ -94,6 +96,8 @@ but this geometry code works with a position for each tile.
    .. automethod:: position_modules_fast
 
    .. automethod:: output_array_for_position_fast
+
+   .. automethod:: position_modules_symmetric
 
    .. automethod:: inspect
 
@@ -137,6 +141,8 @@ which this geometry code can position independently.
    .. automethod:: position_modules_fast
 
    .. automethod:: output_array_for_position_fast
+
+   .. automethod:: position_modules_symmetric
 
    .. automethod:: inspect
 
