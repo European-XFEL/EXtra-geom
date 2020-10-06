@@ -369,11 +369,43 @@ class DetectorGeometryBase:
         centre : ndarray
           (y, x) pixel location of the detector centre in this geometry.
         """
-        return self._snapped().position_modules(data, out=out)
+        return self._snapped().position_modules(data, out=out, threadpool=threadpool)
 
     def position_all_modules(self, data, out=None):
         """Deprecated alias for :meth:`position_modules_fast`"""
         return self.position_modules_fast(data, out=out)
+
+    def position_modules_symmetric(self, data, out=None, threadpool=None):
+        """Assemble data with the centre in the middle of the output array.
+
+        The assembly process is the same as :meth:`position_modules_fast`,
+        aligning each module to a single pixel grid. But this makes the output
+        array symmetric, with the centre at (height // 2, width // 2).
+
+        Parameters
+        ----------
+
+        data : ndarray
+          The last three dimensions should match the modules, then the
+          slow scan and fast scan pixel dimensions.
+        out : ndarray, optional
+          An output array to assemble the image into. By default, a new
+          array is created at the minimum size to allow symmetric assembly.
+          If an array is passed in, its last two dimensions must be at least
+          this size.
+        threadpool : concurrent.futures.ThreadPoolExecutor, optional
+          If passed, parallelise copying data into the output image.
+          See :meth:`position_modules_fast` for details.
+
+        Returns
+        -------
+        out : ndarray
+          Array with one dimension fewer than the input.
+          The last two dimensions represent pixel y and x in the detector space.
+        """
+        return self._snapped().position_modules_symmetric(
+            data, out=out, threadpool=threadpool
+        )
 
     def plot_data_fast(self,
                        data, *,
