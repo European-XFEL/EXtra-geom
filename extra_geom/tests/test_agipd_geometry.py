@@ -59,6 +59,9 @@ def test_assemble_symmetric():
     assert np.isnan(img[img.shape[0] // 2, img.shape[1] // 2])
     assert img[50, 50] == 0
 
+    # Smoketest assembling into suitable output array
+    geom.position_modules_symmetric(stacked_data, out=img)
+
 
 def test_write_read_crystfel_file(tmpdir):
     geom = AGIPD_1MGeometry.from_quad_positions(
