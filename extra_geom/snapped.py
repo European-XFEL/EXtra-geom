@@ -121,6 +121,28 @@ class SnappedGeometry:
 
         return out, self.centre
 
+    def position_modules_symmetric(self, data, out=None, threadpool=None):
+        """Assemble data so the centre is in the middle of the output array"""
+        assert data.shape[-3:] == self.geom.expected_data_shape
+        min_shape = np.stack([self.centre * 2, self.size_yx]).max(axis=0)
+        if out is None:
+            img_shape = min_shape
+            out = np.full(data.shape[:-3] + tuple(img_shape), np.nan, dtype=data.dtype)
+        else:
+            assert out.shape[:-2] == data.shape[:-3]
+            img_shape = np.array(out.shape[-2:])
+            if (img_shape < np.array(min_shape)).any():
+                raise ValueError(
+                    f"Output shape {img_shape} less than required {min_shape}"
+                )
+
+        y, x = (img_shape // 2) - self.centre  # Find offset
+        h, w = self.size_yx
+        self.position_modules(
+            data, out[..., y:y+h, x:x+w], threadpool=threadpool
+        )
+        return out
+
     def plot_data(self,
                   modules_data, *,
                   axis_units='px',

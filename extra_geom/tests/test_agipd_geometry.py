@@ -44,6 +44,29 @@ def test_snap_assemble_data():
         img, centre = geom.position_modules_fast(stacked_data, threadpool=tpool)
         check_result(img, centre)
 
+
+def test_assemble_symmetric():
+    geom = AGIPD_1MGeometry.from_quad_positions(
+        quad_pos=[(-525, 625), (-550, -10), (520, -160), (542.5, 475)]
+    )
+    print("2 centre", geom._snapped().centre * 2)
+
+    stacked_data = np.zeros((16, 512, 128))
+    img = geom.position_modules_symmetric(stacked_data)
+
+    assert img.shape == (1262, 1100)
+    assert np.isnan(img[0, 0])
+    assert np.isnan(img[img.shape[0] // 2, img.shape[1] // 2])
+    assert img[50, 50] == 0
+
+    # Smoketest assembling into suitable output array
+    geom.position_modules_symmetric(stacked_data, out=img)
+
+    with pytest.raises(ValueError):
+        # Output array not big enough
+        geom.position_modules_symmetric(stacked_data, out=img[:-1, :-1])
+
+
 def test_write_read_crystfel_file(tmpdir):
     geom = AGIPD_1MGeometry.from_quad_positions(
         quad_pos=[(-525, 625), (-550, -10), (520, -160), (542.5, 475)]
