@@ -62,6 +62,10 @@ def test_assemble_symmetric():
     # Smoketest assembling into suitable output array
     geom.position_modules_symmetric(stacked_data, out=img)
 
+    with pytest.raises(ValueError):
+        # Output array not big enough
+        geom.position_modules_symmetric(stacked_data, out=img[:-1, :-1])
+
 
 def test_write_read_crystfel_file(tmpdir):
     geom = AGIPD_1MGeometry.from_quad_positions(
