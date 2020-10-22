@@ -5,7 +5,7 @@ from matplotlib.axes import Axes
 import numpy as np
 import pytest
 
-from extra_geom import AGIPD_1MGeometry
+from extra_geom import AGIPD_1MGeometry, agipd_asic_seams
 
 
 def test_snap_assemble_data():
@@ -201,3 +201,10 @@ def test_data_coords_to_positions():
     assert (np.diff(resx) > 0).all()   # Monotonically increasing
     np.testing.assert_allclose(resx[0], -525 * geom.pixel_size)
     assert -0.01 < resx[-1] < 0.01
+
+
+def test_asic_seams():
+    arr = agipd_asic_seams()
+    assert arr.shape == (512, 128)
+    assert not arr[30, 0]
+    assert arr[63, 0]
