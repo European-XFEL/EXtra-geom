@@ -1,9 +1,9 @@
-import os
 from cfelpyutils.crystfel_utils import load_crystfel_geometry
 import h5py
 from matplotlib.axes import Axes
 import numpy as np
 from os.path import abspath, dirname, join as pjoin
+import pytest
 from testpath import assert_isfile
 
 from extra_geom import LPD_1MGeometry
@@ -83,10 +83,12 @@ def test_offset():
     geom = LPD_1MGeometry.from_quad_positions(quad_pos)
     y_orig = np.array([m[0].corner_pos[1] for m in geom.modules])
 
+    # Uniform shift for all modules, all tiles
     all_shifted = geom.offset((0, 1e-3))
     y1 = np.array([m[0].corner_pos[1] for m in all_shifted.modules])
     np.testing.assert_allclose(y1, y_orig + 1e-3)
 
+    # Select some modules
     q4_shifted = geom.offset((0, 2e-3), modules=np.s_[12:])
     y2 = np.array([m[0].corner_pos[1] for m in q4_shifted.modules])
     np.testing.assert_allclose(y2[:12], y_orig[:12])
@@ -97,6 +99,39 @@ def test_offset():
     np.testing.assert_allclose(
         quad_pos_modified[3], np.array(quad_pos[3]) + [0, 2]  # quad positions in mm
     )
+
+    # Per-module shift
+    q3_shifted = geom.offset(np.repeat([
+        (0, 0), (0, 0), (0, 2e-3), (0, 0),
+    ], repeats=4, axis=0))
+    y3 = np.array([m[0].corner_pos[1] for m in q3_shifted.modules])
+    np.testing.assert_allclose(y3[:8], y_orig[:8])
+    np.testing.assert_allclose(y3[8:12], y_orig[8:12] + 2e-3)
+    np.testing.assert_allclose(y3[12:], y_orig[12:])
+
+    # Per-tile shift
+    shift = np.zeros((4, 16, 3), dtype=np.float64)
+    shift[:, 5, 1] = 3e-3  # Shift T6 of each module in y dimension
+    q2_t2_shifted = geom.offset(shift, modules=np.s_[4:8])
+    y_t1 = np.array([m[0].corner_pos[1] for m in q2_t2_shifted.modules])
+    np.testing.assert_allclose(y_t1, y_orig)
+    y_t6 = np.array([m[5].corner_pos[1] for m in q2_t2_shifted.modules])
+    y_t6_orig = np.array([m[5].corner_pos[1] for m in geom.modules])
+    np.testing.assert_allclose(y_t6[:4], y_t6_orig[:4])
+    np.testing.assert_allclose(y_t6[4:8], y_t6_orig[4:8] + 3e-3)
+    np.testing.assert_allclose(y_t6[8:], y_t6_orig[8:])
+
+    # Wrong number of modules
+    with pytest.raises(ValueError):
+        geom.offset(np.zeros((15, 2)))
+
+    # Offsets for 16 modules, but only 4 selected
+    with pytest.raises(ValueError):
+        geom.offset(np.zeros((16, 16, 3)), modules=np.s_[:4])
+
+    # Coordinates must be 2D or 3D
+    with pytest.raises(ValueError):
+        geom.offset(np.zeros(4))
 
 
 def test_inspect():

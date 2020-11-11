@@ -647,22 +647,38 @@ class DetectorGeometryBase:
           Select tiles to move within each module; defaults to all tiles.
         """
         shift = np.asarray(shift)
-        if len(shift) == 2:
-            shift3d = np.zeros(3, shift.dtype)
-            shift3d[:2] = shift
-            shift = shift3d
+        if not shift.shape[-1] in (2, 3):
+            raise ValueError(
+                "Shift must be 2D or 3D coordinate(s). Last dimension "
+                f"was {shift.shape[-1]}"
+            )
 
-        sel_modules = range(len(self.modules))[modules]
         ntiles = max([len(m) for m in self.modules])
-        sel_tiles = range(ntiles)[tiles]
+        all_shifts = np.zeros((len(self.modules), ntiles, 3), dtype=shift.dtype)
+        sel_shifts = all_shifts[modules, tiles, :shift.shape[-1]]
+
+        if shift.shape[:-1] == sel_shifts.shape[:2]:
+            # Per-tile offsets
+            sel_shifts[:] = shift
+        elif shift.shape[:-1] == sel_shifts.shape[:1]:
+            # Per-module offsets - broadcast across tiles
+            sel_shifts[:] = shift[:, np.newaxis]
+        elif shift.shape[:-1] == ():
+            # Single shift - broadcast across modules and tiles
+            sel_shifts[:] = shift
+        else:
+            raise ValueError(
+                f"Got {shift.shape[:-1]} coordinates. Expected either a single "
+                f"coordinate (), a coordinate per module {sel_shifts.shape[:1]} "
+                f"or a coordinate per tile {sel_shifts.shape[:2]}"
+            )
 
         cls = type(self)
         return cls([
-            ([
-                tile.offset(shift) if t in sel_tiles else tile
+            [
+                tile.offset(all_shifts[m, t])
                 for t, tile in enumerate(module)
-            ] if m in sel_modules else module)
-            for m, module in enumerate(self.modules)
+            ] for m, module in enumerate(self.modules)
         ])
 
 
