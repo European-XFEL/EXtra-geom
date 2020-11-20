@@ -629,16 +629,31 @@ class DetectorGeometryBase:
         """Move part or all of the detector, making a new geometry.
 
         By default, this moves all modules & tiles. To move the centre down in
-        the image, move the whole detector *up* relative to it. To move only
-        part of the detector, pass a slice, e.g. ``modules=np.s_[4:8]``.
+        the image, move the whole geometry *up* relative to it.
 
         Returns a new geometry object of the same type.
+
+        ::
+
+            # Move the whole geometry up 2 mm (relative to the beam)
+            geom2 = geom.shift((0, 2e-3))
+
+            # Move quadrant 1 (modules 0, 1, 2, 3) up 2 mm
+            geom2 = geom.shift((0, 2e-3), modules=np.s_[0:4])
+
+            # Move each module by a separate amount
+            shifts = np.zeros((16, 3))
+            shifts[5] = (0, 2e-3, 0)    # x, y, z for individual modules
+            shifts[10] = (0, -1e-3, 0)
+            geom2 = geom.shift(shifts)
 
         Parameters
         ----------
 
         shift: numpy.ndarray or tuple
-          (x, y) or (x, y, z) shift to apply in metres.
+          (x, y) or (x, y, z) shift to apply in metres. Can be a single shift
+          for all selected modules, a 2D array with a shift per module, or a
+          3D array with a shift per tile (``arr[module, tile, xyz]``).
         modules: slice
           Select modules to move; defaults to all modules.
           Like all Python slicing, the end number is excluded, so ``np.s_[:4]``
