@@ -29,12 +29,16 @@ Documentation contents
    performance
 
 .. toctree::
-   :caption: Examples
+   :caption: Create/Load Examples
 
-   apply_geometry
-   examine_geometry
    agipd_geometry
+   lpd_geometry
    dssc_geometry
+   
+.. toctree::
+   :caption: Use Examples
+   
+   apply_geometry
    masks
 
 .. toctree::
