@@ -67,6 +67,8 @@ but this geometry code works with a position for each tile.
 
    .. automethod:: data_coords_to_positions
 
+.. autofunction:: agipd_asic_seams
+
 .. _det-AGIPD-500K2G:
 
 AGIPD-500K2G
@@ -106,6 +108,8 @@ but this geometry code works with a position for each tile.
    .. automethod:: compare
 
    .. automethod:: data_coords_to_positions
+
+The :func:`agipd_asic_seams` also applies to AGIPD-500K2G.
 
 .. _det-LPD-1M:
 

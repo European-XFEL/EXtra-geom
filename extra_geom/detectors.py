@@ -1127,6 +1127,19 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
         super().write_crystfel_geom(*args, nquads=1, **kwargs)
 
 
+def agipd_asic_seams():
+    """Make a boolean array marking the double-width pixels in an AGIPD module
+
+    This returns a (512, 128) array with False for normal (square) pixels, and
+    True for the 400 x 200 µm pixels at the horizontal joins between ASICs.
+    """
+    arr = np.zeros((512, 128), dtype=np.bool)
+    # The outer edges (indexes 0 & 511) appear to be normal pixels
+    arr[64::64] = True
+    arr[63:511:64] = True
+    return arr
+
+
 class LPD_1MGeometry(DetectorGeometryBase):
     """Detector layout for LPD-1M
 
