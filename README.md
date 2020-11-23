@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/European-XFEL/EXtra-geom.svg?branch=master)](https://travis-ci.org/European-XFEL/EXtra-geom)
+[![Build Status](https://github.com/European-XFEL/EXtra-geom/workflows/Tests/badge.svg)](https://github.com/European-XFEL/EXtra-geom/actions?query=workflow%3ATests)
 [![codecov](https://codecov.io/gh/European-XFEL/EXtra-geom/branch/master/graph/badge.svg)](https://codecov.io/gh/European-XFEL/EXtra-geom)
 
 Python tools to work with EuXFEL detector geometry and assemble detector images.
