@@ -55,6 +55,10 @@ class GeometryFragment:
             + (0.5 * self.fs_vec * self.fs_pixels)
         )
 
+    def offset(self, shift):
+        pos = self.corner_pos + shift
+        return type(self)(pos, self.ss_vec, self.fs_vec, self.ss_pixels, self.fs_pixels)
+
     def snap(self, px_shape):
         # Round positions and vectors to integers, drop z dimension
         corner_pos = np.around(self.corner_pos[:2] / px_shape).astype(np.int32)
@@ -654,6 +658,77 @@ class DetectorGeometryBase:
         return coords_tile_corner \
             + (np.expand_dims(tile_ss, -1) * coords_ss_vec) \
             + (np.expand_dims(tile_fs, -1) * coords_fs_vec)
+
+    def offset(self, shift, *, modules=np.s_[:], tiles=np.s_[:]):
+        """Move part or all of the detector, making a new geometry.
+
+        By default, this moves all modules & tiles. To move the centre down in
+        the image, move the whole geometry *up* relative to it.
+
+        Returns a new geometry object of the same type.
+
+        ::
+
+            # Move the whole geometry up 2 mm (relative to the beam)
+            geom2 = geom.shift((0, 2e-3))
+
+            # Move quadrant 1 (modules 0, 1, 2, 3) up 2 mm
+            geom2 = geom.shift((0, 2e-3), modules=np.s_[0:4])
+
+            # Move each module by a separate amount
+            shifts = np.zeros((16, 3))
+            shifts[5] = (0, 2e-3, 0)    # x, y, z for individual modules
+            shifts[10] = (0, -1e-3, 0)
+            geom2 = geom.shift(shifts)
+
+        Parameters
+        ----------
+
+        shift: numpy.ndarray or tuple
+          (x, y) or (x, y, z) shift to apply in metres. Can be a single shift
+          for all selected modules, a 2D array with a shift per module, or a
+          3D array with a shift per tile (``arr[module, tile, xyz]``).
+        modules: slice
+          Select modules to move; defaults to all modules.
+          Like all Python slicing, the end number is excluded, so ``np.s_[:4]``
+          moves modules 0, 1, 2, 3.
+        tiles: slice
+          Select tiles to move within each module; defaults to all tiles.
+        """
+        shift = np.asarray(shift)
+        if not shift.shape[-1] in (2, 3):
+            raise ValueError(
+                "Shift must be 2D or 3D coordinate(s). Last dimension "
+                f"was {shift.shape[-1]}"
+            )
+
+        ntiles = max([len(m) for m in self.modules])
+        all_shifts = np.zeros((len(self.modules), ntiles, 3), dtype=shift.dtype)
+        sel_shifts = all_shifts[modules, tiles, :shift.shape[-1]]
+
+        if shift.shape[:-1] == sel_shifts.shape[:2]:
+            # Per-tile offsets
+            sel_shifts[:] = shift
+        elif shift.shape[:-1] == sel_shifts.shape[:1]:
+            # Per-module offsets - broadcast across tiles
+            sel_shifts[:] = shift[:, np.newaxis]
+        elif shift.shape[:-1] == ():
+            # Single shift - broadcast across modules and tiles
+            sel_shifts[:] = shift
+        else:
+            raise ValueError(
+                f"Got {shift.shape[:-1]} coordinates. Expected either a single "
+                f"coordinate (), a coordinate per module {sel_shifts.shape[:1]} "
+                f"or a coordinate per tile {sel_shifts.shape[:2]}"
+            )
+
+        cls = type(self)
+        return cls([
+            [
+                tile.offset(all_shifts[m, t])
+                for t, tile in enumerate(module)
+            ] for m, module in enumerate(self.modules)
+        ])
 
 
 class AGIPD_1MGeometry(DetectorGeometryBase):
