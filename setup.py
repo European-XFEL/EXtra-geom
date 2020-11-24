@@ -34,9 +34,9 @@ setup(
     license="BSD-3-Clause",
     packages=find_packages("src"),
     package_dir={"": "src"},
-    package_data={
-        'extra_geom.tests': ['dssc_geo_june19.h5', 'lpd_mar_18.h5'],
-    },
+    # package_data={
+    #     'extra_geom.tests': ['dssc_geo_june19.h5', 'lpd_mar_18.h5'],
+    # },
     install_requires=[
         'cfelpyutils>=0.92',
         'h5py>=2.7.1',
