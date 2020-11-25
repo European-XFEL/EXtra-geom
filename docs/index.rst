@@ -39,6 +39,7 @@ Documentation contents
    :caption: Use Examples
    
    apply_geometry
+   convert_coords
    masks
 
 .. toctree::
