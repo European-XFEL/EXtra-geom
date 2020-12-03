@@ -69,6 +69,8 @@ but this geometry code works with a position for each tile.
 
 .. autofunction:: agipd_asic_seams
 
+   See :doc:`masks` for an illustration of this.
+
 .. _det-AGIPD-500K2G:
 
 AGIPD-500K2G
