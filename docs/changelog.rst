@@ -1,6 +1,20 @@
 Release Notes
 =============
 
+1.1
+---
+
+- New :meth:`~.AGIPD_1MGeometry.position_modules_symmetric` method to assemble
+  data with the detector centre at the midpoint of the output array
+  (:ghpull:`31`).
+- New :meth:`~.AGIPD_1MGeometry.offset` method to move part or all of a geometry
+  in 2 or 3 dimensions (:ghpull:`27`).
+- New function :func:`.agipd_asic_seams` to select or mask the double-width
+  pixels where AGIPD tiles touch.
+- Examples in documentation rearranged and improve (:ghpull:`32`, :ghpull:`36`).
+- CI moved to Github Actions (:ghpull:`34`) and integrated with Dependabot to
+  control new versions of dependencies (:ghpull:`35`).
+
 1.0
 ---
 
