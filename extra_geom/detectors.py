@@ -1020,7 +1020,10 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
 
         # coordinates relative to the first pixel of the first module
         # detector's bottom-right corner
-        ref = (0, - (3 * (cls.frag_fs_pixels + panel_gap[1]) * unit))  
+        ref = (
+            asic_gap_px * cls.pixel_size - module_width,      # x
+            - (3 * (cls.frag_fs_pixels + panel_gap[1]) * unit)  # y
+        )
         ref = (- (origin[0] * unit + ref[0]), - (origin[1] * unit + ref[1]))  # origin
 
         modules = []
@@ -1032,11 +1035,11 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
             modules.append(tiles)
 
             for a in range(cls.n_tiles_per_module):
-                corner_x = panel_corner_x + a * tile_width
+                corner_x = panel_corner_x - a * tile_width
 
                 tiles.append(GeometryFragment(
                     corner_pos=np.array([corner_x, panel_corner_y, 0.]),
-                    ss_vec=np.array([1, 0, 0]) * unit,
+                    ss_vec=np.array([-1, 0, 0]) * unit,
                     fs_vec=np.array([0, 1, 0]) * unit,
                     ss_pixels=cls.frag_ss_pixels,
                     fs_pixels=cls.frag_fs_pixels,
