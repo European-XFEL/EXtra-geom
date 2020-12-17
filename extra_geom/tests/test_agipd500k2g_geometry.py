@@ -11,7 +11,7 @@ from extra_geom import AGIPD_500K2GGeometry
 def test_snap_assemble_data():
 
     def check_result(img, centre):
-        assert img.shape == (602, 1070)
+        assert img.shape == (602, 1068)
         assert tuple(centre) == (-100, -100)
         assert np.isnan(img[0, 535])
         assert img[50, 50] == 0

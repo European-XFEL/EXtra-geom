@@ -1016,15 +1016,16 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
         module_height = cls.frag_fs_pixels * cls.pixel_size
         # In x, 64 px + gap between tiles (asics)
         tile_width = (cls.frag_ss_pixels + asic_gap_px) * cls.pixel_size
-        module_width = 8 * tile_width
+        module_width = 8 * tile_width - asic_gap_px * cls.pixel_size  # 8 tiles + 7 gaps
 
         # coordinates relative to the first pixel of the first module
         # detector's bottom-right corner
         ref = (
-            asic_gap_px * cls.pixel_size - module_width,      # x
+            - module_width,  # x
             - (3 * (cls.frag_fs_pixels + panel_gap[1]) * unit)  # y
         )
-        ref = (- (origin[0] * unit + ref[0]), - (origin[1] * unit + ref[1]))  # origin
+        # origin
+        ref = (- (origin[0] * unit + ref[0]), - (origin[1] * unit + ref[1]))
 
         modules = []
         for p in range(cls.n_modules):
