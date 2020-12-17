@@ -11,7 +11,7 @@ from extra_geom import AGIPD_500K2GGeometry
 def test_snap_assemble_data():
 
     def check_result(img, centre):
-        assert img.shape == (602, 1070)
+        assert img.shape == (602, 1068)
         assert tuple(centre) == (-100, -100)
         assert np.isnan(img[0, 535])
         assert img[50, 50] == 0
@@ -136,10 +136,10 @@ def test_get_pixel_positions():
     assert  0. < py.min() < 0.0002
 
 def test_data_coords_to_positions():
-    geom = AGIPD_500K2GGeometry.from_origin((512, -100))
+    geom = AGIPD_500K2GGeometry.from_origin((0, -100))
 
     module_no = np.full(8, fill_value=6, dtype=np.int16)
-    slow_scan = np.linspace(0, 512, num=8, dtype=np.float32)
+    slow_scan = np.linspace(0, 511, num=8, dtype=np.float32)
     fast_scan = np.zeros(8, dtype=np.float32)
 
     res = geom.data_coords_to_positions(module_no, slow_scan, fast_scan)
@@ -152,6 +152,6 @@ def test_data_coords_to_positions():
     np.testing.assert_allclose(resz, 0)
     np.testing.assert_allclose(resy, 100 * geom.pixel_size)
 
-    assert (np.diff(resx) > 0).all()   # Monotonically increasing
-    np.testing.assert_allclose(resx[0], -512 * geom.pixel_size)
+    assert (np.diff(resx) < 0).all()   # Monotonically decreasing
+    np.testing.assert_allclose(resx[0], 526 * geom.pixel_size)
     assert -0.01 < resx[-1] < 0.01
