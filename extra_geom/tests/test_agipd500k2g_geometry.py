@@ -152,6 +152,6 @@ def test_data_coords_to_positions():
     np.testing.assert_allclose(resz, 0)
     np.testing.assert_allclose(resy, 100 * geom.pixel_size)
 
-    assert (np.diff(resx) < 0).all()   # Monotonically increasing
+    assert (np.diff(resx) < 0).all()   # Monotonically decreasing
     np.testing.assert_allclose(resx[0], 526 * geom.pixel_size)
     assert -0.01 < resx[-1] < 0.01
