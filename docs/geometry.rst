@@ -235,3 +235,29 @@ Each module is further subdivided into 8 sensor tiles.
    .. automethod:: inspect
 
    .. automethod:: compare
+
+.. _det-PNCCD:
+
+PNCCD
+-----
+
+PNCCD detectors have two movable modules of 1024×512 pixels, each of which is a
+single tile.
+
+.. autoclass:: PNCCDGeometry
+
+   .. autoattribute:: expected_data_shape
+
+   .. automethod:: from_relative_positions
+
+   .. automethod:: from_absolute_positions
+
+   .. automethod:: plot_data_fast
+
+   .. automethod:: position_modules_fast
+
+   .. automethod:: output_array_for_position_fast
+
+   .. automethod:: inspect
+
+   .. automethod:: compare
