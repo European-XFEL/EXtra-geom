@@ -1991,7 +1991,7 @@ class PNCCDGeometry(DetectorGeometryBase):
     out and written to file as a single image, with the modules split
     along the slow-scan dimension y. The public methods of this type
     support both the combined image array as well as separated module
-    with expected_data_shape.
+    with :attr:`expected_data_shape`.
     """
 
     detector_type_name = 'PNCCD1MP'
