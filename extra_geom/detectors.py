@@ -234,18 +234,51 @@ class DetectorGeometryBase:
         return ax
 
     @classmethod
+    def _cfel_panels_by_data_coord(cls, panels: dict):
+        """Arrange panel dicts from CrystFEL geometry by first data coordinate
+
+        Index panels by which part of the data they refer to, rather than
+        relying on names like p0a0.
+        """
+        res = {}
+        for pname, info in panels.items():
+            dims = info['dim_structure']
+            ix_dims = [i for i in dims if isinstance(i, int)]
+            if len(ix_dims) > 1:
+                raise ValueError(f"Too many index dimensions for {pname}: {dims}")
+
+            min_ss = info['min_ss']
+            if ix_dims:
+                # Geometry for 3D data, modules stacked along separate axis
+                modno = ix_dims[0]
+            else:
+                # Geometry for 2D data, modules concatenated along slow-scan axis
+                modno, min_ss = divmod(min_ss, cls.expected_data_shape[1])
+
+            res[(modno, min_ss, info['min_fs'])] = info
+
+        return res
+
+    @classmethod
     def from_crystfel_geom(cls, filename):
         """Read a CrystFEL format (.geom) geometry file.
 
         Returns a new geometry object.
         """
         geom_dict = load_crystfel_geometry(filename)
+        panels_by_data_coord = cls._cfel_panels_by_data_coord(geom_dict['panels'])
+        n_modules = cls.n_modules
+        if n_modules == 0:
+            # Detector type with varying number of modules (e.g. JUNGFRAU)
+            n_modules = max(c[0] for c in panels_by_data_coord) + 1
+
         modules = []
-        for p in range(cls.n_modules):
+        for p in range(n_modules):
             tiles = []
             modules.append(tiles)
             for a in range(cls.n_tiles_per_module):
-                d = geom_dict['panels']['p{}a{}'.format(p, a)]
+                ss_slice, fs_slice = cls._tile_slice(a)
+                d = panels_by_data_coord[p, ss_slice.start, fs_slice.start]
                 tiles.append(GeometryFragment.from_panel_dict(d))
         return cls(modules, filename=filename)
 
@@ -1838,6 +1871,8 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
     pixel_size = 7.5e-5   # 7.5e-5 metres = 75 micrometer = 0.075 mm
     frag_ss_pixels = 256  # pixels along slow scan axis within tile
     frag_fs_pixels = 256  # pixels along fast scan axis within tile
+    expected_data_shape = (0, 512, 1024)  # num modules filled at instantiation
+    n_tiles_per_module = 8
 
     def __init__(self, modules, filename='No file'):
         super().__init__(modules, filename)
@@ -1966,11 +2001,6 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         ss_slice = slice(tile_ss_offset, tile_ss_offset + cls.frag_ss_pixels)
         fs_slice = slice(tile_fs_offset, tile_fs_offset + cls.frag_fs_pixels)
         return ss_slice, fs_slice
-
-    @classmethod
-    def from_crystfel_geom(cls, filename):
-
-        raise NotImplementedError
 
     def write_crystfel_geom(self, file_name):
 
