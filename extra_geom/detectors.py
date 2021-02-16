@@ -82,6 +82,7 @@ class DetectorGeometryBase:
     pixel_size = 0.0
     frag_ss_pixels = 0
     frag_fs_pixels = 0
+    n_quads = 0
     n_modules = 0
     n_tiles_per_module = 0
     expected_data_shape = (0, 0, 0)
@@ -285,7 +286,7 @@ class DetectorGeometryBase:
     def write_crystfel_geom(self, filename, *,
                             data_path='/entry_1/instrument_1/detector_1/data',
                             mask_path=None, dims=('frame', 'modno', 'ss', 'fs'),
-                            nquads=4, adu_per_ev=None, clen=None,
+                            nquads=None, adu_per_ev=None, clen=None,
                             photon_energy=None):
         """Write this geometry to a CrystFEL format (.geom) geometry file.
 
@@ -313,6 +314,8 @@ class DetectorGeometryBase:
         photon_energy : float
             Beam wave length in eV
         """
+        if nquads is None:
+            nquads = self.n_quads
         write_crystfel_geom(
             self, filename, data_path=data_path, mask_path=mask_path, dims=dims,
             nquads=nquads, adu_per_ev=adu_per_ev, clen=clen,
@@ -777,6 +780,7 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
     frag_ss_pixels = 64
     frag_fs_pixels = 128
     expected_data_shape = (16, 512, 128)
+    n_quads = 4
     n_modules = 16
     n_tiles_per_module = 8
 
@@ -1185,6 +1189,7 @@ class LPD_1MGeometry(DetectorGeometryBase):
     pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
     frag_ss_pixels = 32
     frag_fs_pixels = 128
+    n_quads = 4
     n_modules = 16
     n_tiles_per_module = 16
     expected_data_shape = (16, 256, 256)
@@ -1564,6 +1569,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
     pixel_size = 236e-6
     frag_ss_pixels = 128
     frag_fs_pixels = 256
+    n_quads = 4
     n_modules = 16
     n_tiles_per_module = 2
     expected_data_shape = (16, 128, 512)
@@ -2001,10 +2007,6 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         ss_slice = slice(tile_ss_offset, tile_ss_offset + cls.frag_ss_pixels)
         fs_slice = slice(tile_fs_offset, tile_fs_offset + cls.frag_fs_pixels)
         return ss_slice, fs_slice
-
-    def write_crystfel_geom(self, file_name):
-
-        raise NotImplementedError
 
 
 class PNCCDGeometry(DetectorGeometryBase):
