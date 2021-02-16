@@ -1892,7 +1892,7 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
           for each offset to the global origin. Coordinates are in pixel units
           by default.
 
-          These offsets are positions for the bottom, beam-left corner of each
+          These offsets are positions for the bottom, beam-right corner of each
           module, regardless of its orientation.
 
         orientations: iterable of tuples
