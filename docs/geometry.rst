@@ -222,6 +222,10 @@ Each module is further subdivided into 8 sensor tiles.
 
    .. automethod:: from_module_positions
 
+   .. automethod:: from_crystfel_geom
+
+   .. automethod:: write_crystfel_geom
+
    .. automethod:: get_pixel_positions
 
    .. automethod:: to_distortion_array

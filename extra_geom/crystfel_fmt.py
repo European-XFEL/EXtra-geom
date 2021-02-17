@@ -157,21 +157,35 @@ def write_crystfel_geom(self, filename, *,
 def get_rigid_groups(geom, nquads=4):
     """Create string for rigid groups definition."""
 
-    quads = ','.join(['q{}'.format(q) for q in range(nquads)])
-    modules = ','.join(['p{}'.format(p) for p in range(geom.n_modules)])
+    lines = []
 
-    prod = product(range(geom.n_modules), range(geom.n_tiles_per_module))
-    rigid_group = ['p{}a{}'.format(p, a) for (p, a) in prod]
-    rigid_string = '\n'
+    module_groups = {
+        f'p{p}': [f"p{p}a{a}" for a in range(len(tiles))]
+        for p, tiles in enumerate(geom.modules)
+    }
+    lines += [
+        f'rigid_group_{k} = ' + ','.join(v) for k, v in module_groups.items()
+    ] + [
+        'rigid_group_collection_modules = ' + ','.join(module_groups),
+        ''
+    ]
 
-    for nn, rigid_group_q in enumerate(np.array_split(rigid_group, nquads)):
-        rigid_string += 'rigid_group_q{} = {}\n'.format(nn, ','.join(rigid_group_q))
-    rigid_string += '\n'
-    for nn, rigid_group_p in enumerate(np.array_split(rigid_group, geom.n_modules)):
-        rigid_string += 'rigid_group_p{} = {}\n'.format(nn, ','.join(rigid_group_p))
+    if nquads:
+        if len(geom.modules) % nquads:
+            raise ValueError(
+                f"Can't divide {len(geom.modules)} modules into {nquads} groups"
+            )
+        prod = product(range(len(geom.modules)), range(geom.n_tiles_per_module))
+        all_panels = [f"p{p}a{a}" for (p, a) in prod]
+        quad_groups = {
+            f'q{q}': panels
+            for q, panels in enumerate(np.array_split(all_panels, nquads))
+        }
+        lines += [
+            f'rigid_group_{k} = ' + ','.join(v) for k, v in quad_groups.items()
+        ] + [
+            'rigid_group_collection_quads = ' + ','.join(quad_groups),
+            ''
+        ]
 
-    rigid_string += '\n'
-
-    rigid_string += 'rigid_group_collection_quadrants = {}\n'.format(quads)
-    rigid_string += 'rigid_group_collection_asics = {}\n\n'.format(modules)
-    return rigid_string
+    return '\n'.join(lines)
