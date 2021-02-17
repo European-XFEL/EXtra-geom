@@ -3,7 +3,6 @@ from cfelpyutils.crystfel_utils import load_crystfel_geometry
 import h5py
 from itertools import chain, product
 import numpy as np
-from scipy.ndimage import affine_transform
 import warnings
 
 from .crystfel_fmt import write_crystfel_geom
@@ -906,6 +905,7 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
         centre : ndarray
           (y, x) pixel location of the detector centre in this geometry.
         """
+        from scipy.ndimage import affine_transform
         assert data.shape == (16, 512, 128)
         size_yx, centre = self._get_dimensions()
         tmp = np.empty((16 * 8,) + size_yx, dtype=data.dtype)
