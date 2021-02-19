@@ -11,8 +11,9 @@ If you use matplotlib's ``imshow(array)`` to display an image, it may be upside 
 What are "slow_scan" and "fast_scan"?
 -------------------------------------
 
-We talk about "slow_scan" and "fast_scan" rather than just "x" and "y" axes, because the axes of the data array in HDF5 files do not always represent the same physical directions. For example, working along the "fast_scan" axis might be increasing "y" in one AGIPD module, and decreasing "y" in another.
+We talk about "slow-scan" and "fast-scan" rather than just "x" and "y" axes, because the axes of the data array in HDF5 files do not always represent the same physical directions. For example, working along the "fast-scan" axis might be increasing y in one AGIPD module, and decreasing y in another.
 
-One way of know them it's to use the `geom.inspect()` in EXtra-geom, where you'll see diagrams where the dashed 'first row' lines are always in the "fast_scan" direction.
+Fast-scan is the inner dimension of the data, so a row of pixels along the fast-scan dimension are stored together.
+One way to see how the dimensions are arranged is to use ``geom.inspect()`` in EXtra-geom. The dashed 'first row' lines in the diagram are always in the fast-scan direction.
 
-EXtra-geom provides a convenient method, `data_coords_to_position()<https://extra-geom.readthedocs.io/en/latest/geometry.html?highlight=data_coords_to#extra_geom.AGIPD_1MGeometry.data_coords_to_positions>`_, which converts (module_no, slow_scan, fast_scan) to physical positions.
+EXtra-geom provides a method, :meth:`~.AGIPD_1MGeometry.data_coords_to_position`, which converts (module_no, slow_scan, fast_scan) coordinates to physical positions.
