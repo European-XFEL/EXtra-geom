@@ -660,7 +660,7 @@ class DetectorGeometryBase:
 
         .. seealso::
 
-           :doc:`agipd_geometry` demonstrates using this method.
+           :doc:`convert_coords` demonstrates using this method.
         """
         assert module_no.shape == slow_scan.shape == fast_scan.shape
 

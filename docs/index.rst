@@ -26,6 +26,7 @@ Documentation contents
    :maxdepth: 2
 
    geometry
+   faq
    performance
 
 .. toctree::
