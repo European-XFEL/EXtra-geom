@@ -32,7 +32,7 @@ class GeometryFragment:
     @classmethod
     def from_panel_dict(cls, d):
         res = d['res']
-        corner_pos = np.array([d['cnx'], d['cny'], d['coffset']]) / res
+        corner_pos = np.array([d['cnx']/res, d['cny']/res, d['coffset']])
         ss_vec = np.array([d['ssx'], d['ssy'], d['ssz']]) / res
         fs_vec = np.array([d['fsx'], d['fsy'], d['fsz']]) / res
         ss_pixels = d['max_ss'] - d['min_ss'] + 1
