@@ -4,6 +4,7 @@ from itertools import product
 from matplotlib.axes import Axes
 import numpy as np
 import pytest
+import xarray as xr
 
 from extra_geom import AGIPD_500K2GGeometry
 
@@ -41,6 +42,20 @@ def test_snap_assemble_data():
     with ThreadPoolExecutor(max_workers=2) as tpool:
         img, centre = geom.position_modules_fast(stacked_data, threadpool=tpool)
         check_result(img, centre)
+
+    # Assemble from xarray
+    xr_data = xr.DataArray(
+        np.zeros((7, 512, 128)),
+        dims=('module', 'slow_scan', 'fast_scan'),
+        coords={'module': list(range(0, 2)) + list(range(3, 8))}
+    )
+    img, centre = geom.position_modules_fast(xr_data)
+    check_result(img, centre)
+
+    with pytest.raises(ValueError):  # Bad module no (8)
+        geom.position_modules_fast(xr_data.assign_coords(module=range(2, 9)))
+    with pytest.raises(ValueError):  # No dimension named 'module'
+        geom.position_modules_fast(xr_data.rename({'module': 'foo'}))
 
 def test_write_read_crystfel_file(tmpdir):
     geom = AGIPD_500K2GGeometry.from_origin()

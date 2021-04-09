@@ -382,9 +382,10 @@ class DetectorGeometryBase:
         Parameters
         ----------
 
-        data : ndarray
+        data : ndarray or xarray.DataArray
           The last three dimensions should match the modules, then the
-          slow scan and fast scan pixel dimensions.
+          slow scan and fast scan pixel dimensions. If an xarray labelled array
+          is given, it must have a 'module' dimension.
         out : ndarray, optional
           An output array to assemble the image into. By default, a new
           array is allocated. Use :meth:`output_array_for_position_fast` to
@@ -424,9 +425,10 @@ class DetectorGeometryBase:
         Parameters
         ----------
 
-        data : ndarray
+        data : ndarray or xarray.DataArray
           The last three dimensions should match the modules, then the
-          slow scan and fast scan pixel dimensions.
+          slow scan and fast scan pixel dimensions. If an xarray labelled array
+          is given, it must have a 'module' dimension.
         out : ndarray, optional
           An output array to assemble the image into. By default, a new
           array is created at the minimum size to allow symmetric assembly.
