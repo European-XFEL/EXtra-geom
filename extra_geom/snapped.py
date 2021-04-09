@@ -4,10 +4,10 @@ This is useful to copy data from multiple modules into a single image array.
 This module is not a public API: it's used internally by the classes in
 extra_geom.detectors.
 """
-
 from copy import copy
 from itertools import chain
 import numpy as np
+import sys
 
 
 class GridGeometryFragment:
@@ -88,19 +88,45 @@ class SnappedGeometry:
     def position_modules(self, data, out=None, threadpool=None):
         """Implementation for position_modules_fast
         """
-        assert data.shape[-3:] == self.geom.expected_data_shape
-        if out is None:
-            out = self.make_output_array(data.shape[:-3], data.dtype)
+        nmod = self.geom.expected_data_shape[0]
+        if isinstance_no_import(data, 'xarray', 'DataArray'):
+            # Input is an xarray labelled array
+            modnos = data.coords.get('module')
+            if modnos is None:
+                raise ValueError(
+                    "xarray arrays should have a dimension named 'module'"
+                )
+            modnos = modnos.values  # xarray -> numpy
+            min_mod, max_mod = modnos.min(), modnos.max()
+            if min_mod < 0 or max_mod >= nmod:
+                raise ValueError(
+                    f"module number labels should be in the range 0-{nmod-1} "
+                    f"(found {min_mod}-{max_mod})"
+                )
+            assert data.shape[-2:] == self.geom.expected_data_shape[-2:]
+
+            mod_dim_ix = data.dims.index('module')
+            extra_shape = data.shape[:mod_dim_ix] + data.shape[mod_dim_ix+1:-2]
+            get_mod_data = lambda i: data.sel(module=i).values
         else:
-            assert out.shape == data.shape[:-3] + self.size_yx
+            # Input is a numpy array (or similar unlabelled array)
+            assert data.shape[-3:] == self.geom.expected_data_shape
+            modnos = range(nmod)
+            extra_shape = data.shape[:-3]
+            get_mod_data = np.moveaxis(data, -3, 0).__getitem__
+
+        if out is None:
+            out = self.make_output_array(extra_shape, data.dtype)
+        else:
+            assert out.shape == extra_shape + self.size_yx
             if not np.can_cast(data.dtype, out.dtype, casting='safe'):
                 raise TypeError("{} cannot be safely cast to {}".
                                 format(data.dtype, out.dtype))
 
         copy_pairs = []
-        for i, module in enumerate(self.modules):
-            mod_data = data[..., i, :, :]
-            tiles_data = self.geom.split_tiles(mod_data)
+        for modno in modnos:
+            module = self.modules[modno]
+            tiles_data = self.geom.split_tiles(get_mod_data(modno))
             for tile, tile_data in zip(module, tiles_data):
                 y, x = tile.corner_idx
                 h, w = tile.pixel_dims
@@ -199,3 +225,12 @@ class SnappedGeometry:
         ax.hlines(0, -cross_size, +cross_size, colors='w', linewidths=1)
         ax.vlines(0, -cross_size, +cross_size, colors='w', linewidths=1)
         return ax
+
+
+def isinstance_no_import(obj, mod: str, cls: str):
+    """Check if isinstance(obj, mod.cls) without loading mod"""
+    m = sys.modules.get(mod)
+    if m is None:
+        return False
+
+    return isinstance(obj, getattr(m, cls))
