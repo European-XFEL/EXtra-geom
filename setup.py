@@ -55,6 +55,7 @@ setup(name="EXtra-geom",
               'coverage',
               'nbval',
               'testpath',
+              'xarray',
           ]
       },
       python_requires='>=3.6',
