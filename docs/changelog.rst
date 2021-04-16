@@ -1,6 +1,27 @@
 Release Notes
 =============
 
+1.2
+---
+
+- JUNGFRAU geometry can now be saved to and loaded from CrystFEL format
+  ``.geom`` files - see the :doc:`JUNGFRAU example <jungfrau_geometry>`,
+  :meth:`.JUNGFRAUGeometry.write_crystfel_geom` and
+  :meth:`.JUNGFRAUGeometry.from_crystfel_geom` (:ghpull:`49`).
+- Images can now be assembled from an ``xarray.DataArray`` with a dimension
+  named 'module' labelled with module numbers counting from 0 (:ghpull:`62`).
+- Fix how ``coffset`` information is handled when reading CrystFEL geometry
+  files (:ghpull:`60`).
+- :class:`.PNCCDGeometry`, added in 0.10, is now documented and tested
+  (:ghpull:`45`).
+- New :doc:`faq` document (:ghpull:`51`)
+- Avoid importing ``scipy.ndimage`` unnecessarily (:ghpull:`50`).
+
+1.1.1
+-----
+
+- Fix module orientation for AGIPD 500k detector (:ghpull:`41`).
+
 1.1
 ---
 
