@@ -61,17 +61,14 @@ setup(name="EXtra-geom",
       },
       python_requires='>=3.6',
       classifiers=[
-          'Development Status :: 3 - Alpha',
-          'Environment :: Console',
           'Intended Audience :: Developers',
           'Intended Audience :: Science/Research',
           'License :: OSI Approved :: BSD License',
-          'Operating System :: POSIX :: Linux',
-          'Programming Language :: Python :: 3',
-          'Programming Language :: Python :: 3.5',
-          'Programming Language :: Python :: 3.6',
-          'Programming Language :: Python :: 3.7',
           'Topic :: Scientific/Engineering :: Information Analysis',
           'Topic :: Scientific/Engineering :: Physics',
-      ]
+      ],
+      project_urls={
+          'Documentation': 'https://extra-geom.readthedocs.io/en/latest/',
+          'Changelog': 'https://extra-geom.readthedocs.io/en/latest/changelog.html',
+      },
 )
