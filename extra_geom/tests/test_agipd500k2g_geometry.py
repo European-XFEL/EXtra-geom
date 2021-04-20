@@ -1,5 +1,6 @@
 from cfelpyutils.crystfel_utils import load_crystfel_geometry
 from concurrent.futures import ThreadPoolExecutor
+from extra_data.stacking import stack_detector_data
 from itertools import product
 from matplotlib.axes import Axes
 import numpy as np
@@ -56,6 +57,14 @@ def test_snap_assemble_data():
         geom.position_modules_fast(xr_data.assign_coords(module=range(2, 9)))
     with pytest.raises(ValueError):  # No dimension named 'module'
         geom.position_modules_fast(xr_data.rename({'module': 'foo'}))
+
+    # Assemble from an extra_data StackView
+    mod_arr = np.zeros((3, 512, 128))
+    d = {f'SPB_DET_AGIPD1M-1/DET/{i}CH0': {'image.data': mod_arr} for i in range(8)}
+    stack = stack_detector_data(d, 'image.data', modules=8, real_array=False)
+    imgs, centre = geom.position_modules_fast(stack)
+    assert imgs.shape == (3, 602, 1068)
+    check_result(imgs[0], centre)
 
 def test_write_read_crystfel_file(tmpdir):
     geom = AGIPD_500K2GGeometry.from_origin()
