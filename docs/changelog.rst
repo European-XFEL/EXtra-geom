@@ -1,6 +1,11 @@
 Release Notes
 =============
 
+1.2.1
+-----
+
+- Fix assembling images from an ``extra_data`` StackView object (:ghpull:`67`).
+
 1.2
 ---
 
