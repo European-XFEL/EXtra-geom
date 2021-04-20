@@ -56,6 +56,7 @@ setup(name="EXtra-geom",
               'nbval',
               'testpath',
               'xarray',
+              'EXtra-data',
           ]
       },
       python_requires='>=3.6',

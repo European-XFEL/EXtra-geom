@@ -113,7 +113,7 @@ class SnappedGeometry:
             assert data.shape[-3:] == self.geom.expected_data_shape
             modnos = range(nmod)
             extra_shape = data.shape[:-3]
-            get_mod_data = np.moveaxis(data, -3, 0).__getitem__
+            get_mod_data = lambda i: data[..., i, :, :]
 
         if out is None:
             out = self.make_output_array(extra_shape, data.dtype)
