@@ -1931,8 +1931,8 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
             if len(offsets) != len(orientations):
                 print("Offsets and orientations have different number!")
         asic_gap *= px_conversion
-        module_width = 4 * (cls.frag_fs_pixels + asic_gap)
-        module_height = 2 * (cls.frag_ss_pixels + asic_gap)
+        module_width = (4 * cls.frag_fs_pixels) + (3 * asic_gap)
+        module_height = (2 * cls.frag_ss_pixels) + asic_gap
         modules = []
         for orientation, offset in zip(orientations, offsets):
             x_orient, y_orient = orientation
