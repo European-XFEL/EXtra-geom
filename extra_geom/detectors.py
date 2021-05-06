@@ -1285,8 +1285,8 @@ class DSSC_1MGeometry(DetectorGeometryBase):
 
 class DSSC_Geometry(DSSC_1MGeometry):
     """DEPRECATED: Use DSSC_1MGeometry instead"""
-    def __init__(self, modules, filename='No file'):
-        super().__init__(modules, filename)
+    def __init__(self, modules, filename='No file', metadata=None):
+        super().__init__(modules, filename, metadata)
         warnings.warn(
             "DSSC_Geometry has been renamed to DSSC_1MGeometry.", stacklevel=2
         )
@@ -1308,8 +1308,8 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
     expected_data_shape = (0, 512, 1024)  # num modules filled at instantiation
     n_tiles_per_module = 8
 
-    def __init__(self, modules, filename='No file'):
-        super().__init__(modules, filename)
+    def __init__(self, modules, filename='No file', metadata=None):
+        super().__init__(modules, filename, metadata)
         self.expected_data_shape = (len(modules), 512, 1024)
         self.n_modules = len(modules)
 

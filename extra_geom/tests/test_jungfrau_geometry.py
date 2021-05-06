@@ -31,6 +31,8 @@ def test_write_read_crystfel_file(tmpdir):
 
     loaded = JUNGFRAUGeometry.from_crystfel_geom(path)
     assert_geom_close(loaded, geom)
+    assert loaded.metadata['crystfel']['adu_per_eV'] == 0.0042
+    assert loaded.metadata['crystfel']['clen'] == 0.101
 
     # Load the geometry file with cfelpyutils and test the rigid groups
     geom_dict = load_crystfel_geometry(path)

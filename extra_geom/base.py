@@ -92,12 +92,13 @@ class DetectorGeometryBase:
         """Pixel (x, y) shape. Overridden for DSSC."""
         return np.array([1., 1.], dtype=np.float64) * self.pixel_size
 
-    def __init__(self, modules, filename='No file'):
+    def __init__(self, modules, filename='No file', metadata=None):
         # List of lists (1 per module) of fragments (1 per tile)
         self.modules = modules
         # self.filename is metadata for plots, we don't read/write the file.
         # There are separate methods for reading and writing.
         self.filename = filename
+        self.metadata = metadata if (metadata is not None) else {}
         self._snapped_cache = None
 
     def _get_plot_scale_factor(self, axis_units):
@@ -276,10 +277,20 @@ class DetectorGeometryBase:
                 ss_slice, fs_slice = cls._tile_slice(a)
                 d = panels_by_data_coord[p, ss_slice.start, fs_slice.start]
                 tiles.append(GeometryFragment.from_panel_dict(d))
-        return cls(modules, filename=filename)
+
+        # Store some extra fields to write if we create another .geom file.
+        # It's possible for these to have different values for different panels,
+        # but it seems to be common to use them like headers, describing all
+        # panels, and we're assuming that's the case here.
+        cfel_md_keys = ('data', 'mask', 'adu_per_eV', 'clen')
+        d1 = panels_by_data_coord[0, 0, 0]
+        metadata = {'crystfel': {k: d1.get(k) for k in cfel_md_keys}}
+        # TODO: photon_energy (not returned with cfelpyutils 1.0)
+
+        return cls(modules, filename=filename, metadata=metadata)
 
     def write_crystfel_geom(self, filename, *,
-                            data_path='/entry_1/instrument_1/detector_1/data',
+                            data_path=None,
                             mask_path=None, dims=('frame', 'modno', 'ss', 'fs'),
                             nquads=None, adu_per_ev=None, clen=None,
                             photon_energy=None):
@@ -311,6 +322,20 @@ class DetectorGeometryBase:
         """
         if nquads is None:
             nquads = self.n_quads
+
+        # If this geometry came from a .geom file, restore metadata from there
+        cfelmeta = self.metadata.get('crystfel', {})
+        if data_path is None:
+            data_path = cfelmeta.get('data') or '/entry_1/instrument_1/detector_1/data'
+        if mask_path is None:
+            mask_path = cfelmeta.get('mask')
+        if adu_per_ev is None:
+            adu_per_ev = cfelmeta.get('adu_per_eV')
+        if clen is None:
+            clen = cfelmeta.get('clen')
+        if photon_energy is None:
+            photon_energy = cfelmeta.get('photon_energy')
+
         write_crystfel_geom(
             self, filename, data_path=data_path, mask_path=mask_path, dims=dims,
             nquads=nquads, adu_per_ev=adu_per_ev, clen=clen,
