@@ -1,7 +1,7 @@
-"""AGIPD & LPD geometry handling."""
+"""Detector geometry handling."""
 from cfelpyutils.crystfel_utils import load_crystfel_geometry
 import h5py
-from itertools import chain, product
+from itertools import chain, combinations, product
 import numpy as np
 import warnings
 
@@ -766,6 +766,106 @@ class DetectorGeometryBase:
                 for t, tile in enumerate(module)
             ] for m, module in enumerate(self.modules)
         ])
+
+
+class CrystFEL_Geometry(DetectorGeometryBase):
+    """A generic detector layout based on the CrystFEL geom file.
+
+    The coordinates used in this class are 3D (x, y, z), and represent metres.
+    """
+    detector_type_name = 'Generic Detector'
+    pixel_size = None   # should be in meters
+    frag_ss_pixels = None   #64
+    frag_fs_pixels = None   #128
+    expected_data_shape = ()    #(16, 512, 128)
+    n_quads = None  #4
+    n_modules = None    #16
+    n_tiles_per_module = None   #8
+
+    def __init__(self, geom_filename):
+        geom_dict = load_crystfel_geometry(geom_filename)
+        self.detect_shapes(geom_dict)
+        self.from_crystfel_geom(geom_filename)
+
+    @classmethod
+    def detect_shapes(cls, geom_dict):
+        """
+        At the moment we expect all values to be equal for all parts of the detector,
+        although in principle CrystFEL supports different values for different parts.
+        """
+        # pixel size is reversed `res`[olution] (in meters)
+        res = set([v['res'] for v in geom_dict['panels'].values()])
+        if len(res) == 1:
+            cls.pixel_size = 1 / res.pop()
+        elif len(res) == 0:
+            raise ValueError("Cannot define pixel size!")
+        else:
+            raise NotImplementedError("Variable pixel size is not supported")
+
+        # size of an asic
+        frag_fs = set([v['w'] for v in geom_dict['panels'].values()])
+        frag_ss = set([v['h'] for v in geom_dict['panels'].values()])
+        if len(frag_fs) == 1 and len(frag_ss) == 1:
+            cls.frag_fs_pixels = frag_fs.pop()
+            cls.frag_ss_pixels = frag_ss.pop()
+        elif len(frag_fs) == 0 or len(frag_ss) == 0:
+            raise ValueError("Cannot define asic size!")
+        else:
+            raise NotImplementedError("Variable asic dimensions are not supported")
+
+        # quads:
+        try:
+            cls.n_quads = len(geom_dict['rigid_group_collections']['quadrants'])
+        except KeyError:
+            cls.n_quads = len([k for k in geom_dict['rigid_groups'] if k.startswith('q')])
+            print(f"Cannot reliably detect quadrants! Trying to quess: n_quads = {cls.n_quads}")
+
+        # modules
+        modules = cls.find_modules(geom_dict)
+        cls.n_modules = len(modules)
+
+    @staticmethod
+    def find_modules(g):
+        all_tiles = set(g['panels'].keys())
+        collections = dict.fromkeys(g['rigid_group_collections'].keys())
+        tile_sets = [set(v) for k, v in g['rigid_groups'].items()]
+
+        def check_coverage(sets):
+            """ Check that
+                    1. sets have no intersections, and
+                    2. sets cover the whole detector
+                    3. are of the same size non zero size
+            """
+            if ([s1 for s1, s2 in combinations(sets, 2) if s1.intersection(s2)] == [] and
+                    all_tiles == set.union(*sets) and
+                    len(set(map(len, sets))) == 1 and len(sets[0])):
+                return len(sets[0])
+
+        if len(collections) == 1:
+            # Found! Most likely, they are modules
+            module_key_name = collections.popitem()[0]
+            modules = g['rigid_group_collections'][module_key_name]
+            # modules are indeed rigid groups:
+            assert set(modules) == set(g['rigid_groups'])
+            assert check_coverage(tile_sets)
+            return list(g['rigid_groups'].values())
+        elif len(collections) > 1:
+            # no collections, lets' check groups then:
+            for c in collections:
+                test_sets = [set(g['rigid_groups'][x]) for x in g['rigid_group_collections'][c]]
+                res = check_coverage(test_sets)
+                if res:
+                    collections[c] = res
+            return [g['rigid_groups'][m] for m in g['rigid_group_collections'][min(collections)]]
+
+    def _tile_slice(cls, tileno):
+        raise NotImplementedError
+
+    def split_tiles(self):
+        raise NotImplementedError
+
+    def _module_coords_to_tile(self):
+        raise NotImplementedError
 
 
 class AGIPD_1MGeometry(DetectorGeometryBase):
