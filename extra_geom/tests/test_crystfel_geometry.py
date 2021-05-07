@@ -1,5 +1,6 @@
 from extra_geom import CrystFEL_Geometry, AGIPD_1MGeometry
 from cfelpyutils.crystfel_utils import load_crystfel_geometry
+from os.path import abspath, dirname, join as pjoin
 
 import extra_geom
 import numpy as np
@@ -7,6 +8,8 @@ import pytest
 
 agipd_geom_file = 'agipd_simple_2d.geom'
 jungfrau_geom_file = 'jungfrau.geom'
+tests_dir = dirname(abspath(__file__))
+
 
 pixel_size = 0.01
 
@@ -30,15 +33,18 @@ def simple():
 
 @pytest.fixture
 def geom():
-    return CrystFEL_Geometry.from_crystfel_geom(agipd_geom_file)
+    path = pjoin(tests_dir, agipd_geom_file)
+    return CrystFEL_Geometry.from_crystfel_geom(path)
 
 @pytest.fixture
 def agipd():
-    return AGIPD_1MGeometry.from_crystfel_geom(agipd_geom_file)
+    path = pjoin(tests_dir, agipd_geom_file)
+    return AGIPD_1MGeometry.from_crystfel_geom(path)
 
 @pytest.fixture()
 def geom_dict():
-    return load_crystfel_geometry(agipd_geom_file)
+    path = pjoin(tests_dir, agipd_geom_file)
+    return load_crystfel_geometry(path)
 
 
 def test_simple_geometry(simple):
