@@ -775,17 +775,69 @@ class CrystFEL_Geometry(DetectorGeometryBase):
     """
     detector_type_name = 'Generic Detector'
     pixel_size = None   # should be in meters
-    frag_ss_pixels = None   #64
-    frag_fs_pixels = None   #128
-    expected_data_shape = ()    #(16, 512, 128)
-    n_quads = None  #4
-    n_modules = None    #16
-    n_tiles_per_module = None   #8
+    frag_ss_pixels = None
+    frag_fs_pixels = None
+    expected_data_shape = ()
+    n_quads = 0
+    n_modules = None
+    n_tiles_per_module = None
 
-    def __init__(self, geom_filename):
+    def __init__(self, pixel_size: float, fast_pixels: int, slow_pixels: int,
+                 corner_coordinates: [np.ndarray] = [np.zeros(3)],
+                 fs_vec: np.ndarray = np.array([0, 1, 0]),
+                 ss_vec: np.ndarray = np.array([1, 0, 0]),
+                 n_tiles_per_module: int = 1,
+                 tile_offset: float = None,
+                 tile_vec: np.ndarray = None,
+                 ):
+        """ Create a generic detector:
+
+        `pixel_size`: the size of a pixel in meters (reversed CrystFEL's `res`)
+        `fast_pixels`, `slow_pixels`: the size of a tile along fast and slow axes
+        `corner_coordinates`: 3D coordinates of the first pixel of each module
+        `n_modules`: the number of modules, default=1
+        `n_tiles_per_module`:  the number of tiles in each module, default=1
+        `tile_offset`: the gap between two tiles, default=pixel_size
+        `tile_vec`: the direction of tile replication, default=[1, 0, 0]
+
+        """
+        self.pixel_size = pixel_size
+        self.frag_fs_pixels = fast_pixels
+        self.frag_ss_pixels = slow_pixels
+        self.n_modules = len(corner_coordinates)
+        self.n_tiles_per_module = n_tiles_per_module
+        self.expected_data_shape = (self.n_modules,
+                                    self.n_tiles_per_module * self.frag_ss_pixels,
+                                    self.frag_ss_pixels)
+        self.tile_offset = tile_offset if tile_offset else pixel_size
+        self.tile_vec = np.array(tile_vec) if tile_vec else ss_vec
+
+        # Get the tile shift: it is a multiple of either `fast_pixels` or `slow_pixels`
+        tile_offset_value = np.abs(np.inner(fs_vec * fast_pixels + ss_vec * slow_pixels, self.tile_vec))
+
+        modules = []
+
+        assert np.inner(fs_vec, ss_vec) == 0    # scan vectors are perpendicular
+        assert np.linalg.norm(fs_vec) == np.linalg.norm(ss_vec) == 1    # unit vectors
+
+        for m in range(self.n_modules):
+            module = []
+            for t in range(n_tiles_per_module):
+                tile = GeometryFragment(corner_coordinates[m] +
+                                        self.tile_vec * t * (tile_offset_value * self.pixel_size + self.tile_offset),
+                                        ss_pixels=self.frag_ss_pixels, fs_pixels=self.frag_fs_pixels,
+                                        ss_vec=ss_vec * pixel_size,
+                                        fs_vec=fs_vec * pixel_size)
+                module += [tile]
+            modules += [module]
+        self.modules = modules
+        DetectorGeometryBase(modules)
+
+    @classmethod
+    def from_crystfel_geom(cls, geom_filename):
         geom_dict = load_crystfel_geometry(geom_filename)
-        self.detect_shapes(geom_dict)
-        self.from_crystfel_geom(geom_filename)
+        cls.detect_shapes(geom_dict)
+        DetectorGeometryBase.from_crystfel_geom(geom_filename)
 
     @classmethod
     def detect_shapes(cls, geom_dict):

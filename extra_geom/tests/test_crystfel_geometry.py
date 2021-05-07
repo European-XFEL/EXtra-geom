@@ -4,27 +4,37 @@ from cfelpyutils.crystfel_utils import load_crystfel_geometry
 import extra_geom
 import pytest
 
-source_geom_file = 'agipd_simple_2d.geom'
+agipd_geom_file = 'agipd_simple_2d.geom'
 jungfrau_geom_file = 'jungfrau.geom'
 
+simple_config = {'pixel_size': 0.001,
+                 'fast_pixels': 128,
+                 'slow_pixels': 64,}
+
+@pytest.fixture
+def simple():
+    return CrystFEL_Geometry(**simple_config)
 
 @pytest.fixture
 def geom():
-    return CrystFEL_Geometry(source_geom_file)
+    return CrystFEL_Geometry.from_crystfel_geom(agipd_geom_file)
 
 @pytest.fixture
 def agipd():
-    return AGIPD_1MGeometry.from_crystfel_geom(source_geom_file)
+    return AGIPD_1MGeometry.from_crystfel_geom(agipd_geom_file)
 
 @pytest.fixture()
 def geom_dict():
-    return load_crystfel_geometry(source_geom_file)
+    return load_crystfel_geometry(agipd_geom_file)
 
-def test_crystfel_geometry(geom, agipd):
+
+def test_simple_geometry(simple):
     """ Tests that an object was created """
-    # frag_fs_pixels = 128
-    # expected_data_shape = (16, 512, 128)
-    # n_tiles_per_module = 8
+    assert type(simple) == extra_geom.detectors.CrystFEL_Geometry
+
+
+def test_from_crystfel_geometry():
+    """ Tests that an object was created """
     assert type(geom) == extra_geom.detectors.CrystFEL_Geometry
 
 
