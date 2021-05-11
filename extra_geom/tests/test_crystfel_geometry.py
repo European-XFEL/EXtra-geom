@@ -1,4 +1,4 @@
-from extra_geom import CrystFEL_Geometry
+from extra_geom import GenericGeometry
 
 import extra_geom
 import numpy as np
@@ -23,10 +23,10 @@ simple_config = {'pixel_size': pixel_size,
 
 @pytest.fixture
 def simple():
-    return CrystFEL_Geometry(**simple_config)
+    return GenericGeometry(**simple_config)
 
 
 def test_simple_geometry(simple):
     """ Tests that an object was created """
-    assert type(simple) == extra_geom.detectors.CrystFEL_Geometry
+    assert type(simple) == extra_geom.detectors.GenericGeometry
 

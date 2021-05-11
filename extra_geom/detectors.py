@@ -768,7 +768,7 @@ class DetectorGeometryBase:
         ])
 
 
-class CrystFEL_Geometry(DetectorGeometryBase):
+class GenericGeometry(DetectorGeometryBase):
     """A generic detector layout based on the CrystFEL geom file.
 
     The coordinates used in this class are 3D (x, y, z), and represent metres.
