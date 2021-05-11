@@ -16,7 +16,7 @@ simple_config = {'pixel_size': pixel_size,
                  'n_tiles_per_module': 2,
                  'fs_vec': np.array([0, 1, 0]),
                  'ss_vec': np.array([1, 0, 0]),
-                 'tile_offset': 2 * pixel_size,
+                 'tile_gap': 2 * pixel_size,
                  'tile_vec': [0, -1, 0]
                  }
 

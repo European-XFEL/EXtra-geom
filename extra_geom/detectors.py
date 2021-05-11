@@ -1,7 +1,7 @@
 """Detector geometry handling."""
 from cfelpyutils.crystfel_utils import load_crystfel_geometry
 import h5py
-from itertools import chain, combinations, product
+from itertools import chain, product
 import numpy as np
 import warnings
 
@@ -774,20 +774,13 @@ class CrystFEL_Geometry(DetectorGeometryBase):
     The coordinates used in this class are 3D (x, y, z), and represent metres.
     """
     detector_type_name = 'Generic Detector'
-    pixel_size = None   # should be in meters
-    frag_ss_pixels = None
-    frag_fs_pixels = None
-    expected_data_shape = ()
-    n_quads = 0
-    n_modules = None
-    n_tiles_per_module = None
 
     def __init__(self, pixel_size: float, fast_pixels: int, slow_pixels: int,
                  corner_coordinates: [np.ndarray] = [np.zeros(3)],
                  fs_vec: np.ndarray = np.array([0, 1, 0]),
                  ss_vec: np.ndarray = np.array([1, 0, 0]),
                  n_tiles_per_module: int = 1,
-                 tile_offset: float = None,
+                 tile_gap: float = None,
                  tile_vec: np.ndarray = None,
                  ):
         """ Create a generic detector:
@@ -809,7 +802,7 @@ class CrystFEL_Geometry(DetectorGeometryBase):
         self.expected_data_shape = (self.n_modules,
                                     self.n_tiles_per_module * self.frag_ss_pixels,
                                     self.frag_ss_pixels)
-        self.tile_offset = tile_offset if tile_offset else pixel_size
+        self.tile_offset = tile_gap if tile_gap else pixel_size
         self.tile_vec = np.array(tile_vec) if tile_vec else ss_vec
 
         # Get the tile shift: it is a multiple of either `fast_pixels` or `slow_pixels`
@@ -830,8 +823,7 @@ class CrystFEL_Geometry(DetectorGeometryBase):
                                         fs_vec=fs_vec * pixel_size)
                 module += [tile]
             modules += [module]
-        self.modules = modules
-        DetectorGeometryBase(modules)
+        super().__init__(modules)
 
     def _tile_slice(cls, tileno):
         raise NotImplementedError
