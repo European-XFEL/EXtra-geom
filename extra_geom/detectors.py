@@ -769,9 +769,17 @@ class DetectorGeometryBase:
 
 
 class GenericGeometry(DetectorGeometryBase):
-    """A generic detector layout based on the CrystFEL geom file.
+    """A generic detector layout based either on the CrystFEL geom file or on a set of parameters.
 
     The coordinates used in this class are 3D (x, y, z), and represent metres.
+
+    The :attr:`expected_data_shape` is a following triple :
+
+        1. the number of modules :attr:`n_modules`
+        2. the number of tiles in a module along the slow-scan direction multiplied by
+           the number of slow-scan pixels per tile :attr:`frag_ss_pixels`
+        3. the number of tiles in a module along the fast-scan direction multiplied by
+           the number of fast-scan pixels per tile :attr:`frag_fs_pixels`
     """
     detector_type_name = 'Generic Detector'
 
@@ -790,7 +798,7 @@ class GenericGeometry(DetectorGeometryBase):
         `corner_coordinates`: 3D coordinates of the first pixel of each module
         `n_modules`: the number of modules, default=1
         `n_tiles_per_module`:  the number of tiles in each module, default=1
-        `tile_offset`: the gap between two tiles, default=pixel_size
+        `tile_gap`: the gap between two tiles, default=pixel_size
         `tile_vec`: the direction of tile replication, default=[1, 0, 0]
 
         """
@@ -799,10 +807,7 @@ class GenericGeometry(DetectorGeometryBase):
         self.frag_ss_pixels = slow_pixels
         self.n_modules = len(corner_coordinates)
         self.n_tiles_per_module = n_tiles_per_module
-        self.expected_data_shape = (self.n_modules,
-                                    self.n_tiles_per_module * self.frag_ss_pixels,
-                                    self.frag_ss_pixels)
-        self.tile_offset = tile_gap if tile_gap else pixel_size
+        self.tile_gap = tile_gap if tile_gap else pixel_size
         self.tile_vec = np.array(tile_vec) if tile_vec else ss_vec
 
         # Get the tile shift: it is a multiple of either `fast_pixels` or `slow_pixels`
@@ -813,11 +818,19 @@ class GenericGeometry(DetectorGeometryBase):
         assert np.inner(fs_vec, ss_vec) == 0    # scan vectors are perpendicular
         assert np.linalg.norm(fs_vec) == np.linalg.norm(ss_vec) == 1    # unit vectors
 
+        # the numbers of tiles per module in the fast- and slow-scan directions respectively:
+        self.fs_tiles = abs(np.inner(fs_vec, self.tile_vec)) * n_tiles_per_module or 1
+        self.ss_tiles = abs(np.inner(ss_vec, self.tile_vec)) * n_tiles_per_module or 1
+
+        self.expected_data_shape = (self.n_modules,
+                                    self.ss_tiles * self.frag_ss_pixels,
+                                    self.fs_tiles * self.frag_fs_pixels)
+
         for m in range(self.n_modules):
             module = []
             for t in range(n_tiles_per_module):
                 tile = GeometryFragment(corner_coordinates[m] +
-                                        self.tile_vec * t * (tile_offset_value * self.pixel_size + self.tile_offset),
+                                        self.tile_vec * t * (tile_offset_value * self.pixel_size + self.tile_gap),
                                         ss_pixels=self.frag_ss_pixels, fs_pixels=self.frag_fs_pixels,
                                         ss_vec=ss_vec * pixel_size,
                                         fs_vec=fs_vec * pixel_size)
@@ -825,8 +838,17 @@ class GenericGeometry(DetectorGeometryBase):
             modules += [module]
         super().__init__(modules)
 
-    def _tile_slice(cls, tileno):
-        raise NotImplementedError
+    def _tile_slice(self, tileno: int):
+        """ Which part of the data array is this tile?"""
+        if self.fs_tiles > 1:
+            fs_slice = slice(tileno * self.frag_fs_pixels, (tileno + 1) * self.frag_fs_pixels)
+        else:
+            fs_slice = slice(0, self.frag_fs_pixels)
+        if self.ss_tiles > 1:
+            ss_slice = slice(tileno * self.frag_ss_pixels, (tileno + 1) * self.frag_ss_pixels)
+        else:
+            ss_slice = slice(0, self.frag_ss_pixels)
+        return ss_slice, fs_slice
 
     def split_tiles(self):
         raise NotImplementedError

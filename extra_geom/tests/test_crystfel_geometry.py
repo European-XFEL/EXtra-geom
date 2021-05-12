@@ -28,5 +28,17 @@ def simple():
 
 def test_simple_geometry(simple):
     """ Tests that an object was created """
-    assert type(simple) == extra_geom.detectors.GenericGeometry
+    assert isinstance(simple, extra_geom.detectors.GenericGeometry)
+    assert simple.expected_data_shape == (4, 64, 256)
 
+
+def test__tile_silce(simple):
+    _slice = simple._tile_slice(1)
+    assert isinstance(_slice, tuple)
+    assert isinstance(_slice[0], slice)
+    assert isinstance(_slice[1], slice)
+    assert _slice == (slice(0, 64), slice(128, 256))
+
+
+def test_write_crystfel_geom(simple):
+    simple.write_crystfel_geom('test.geom')

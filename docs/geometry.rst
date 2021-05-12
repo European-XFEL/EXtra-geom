@@ -265,3 +265,12 @@ single tile.
    .. automethod:: inspect
 
    .. automethod:: compare
+
+Generic Detector
+----------------
+
+Generic detector may represent an unconstrained detector of your choice.
+
+.. autoclass:: GenericDetector
+
+   .. autoattribute:: expected_data_shape
