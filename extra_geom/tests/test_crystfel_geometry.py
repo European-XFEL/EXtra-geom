@@ -1,6 +1,7 @@
 from extra_geom import GenericGeometry
 
 import extra_geom
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
@@ -42,3 +43,18 @@ def test__tile_silce(simple):
 
 def test_write_crystfel_geom(simple):
     simple.write_crystfel_geom('test.geom')
+
+
+def test_compare(simple):
+    ax = simple.compare(simple)
+    assert isinstance(ax, plt.Axes)
+
+
+def test_inspect(simple):
+    assert isinstance(simple.inspect(), plt.Axes)
+
+
+def test_get_pixel_positions(simple):
+    out = simple.get_pixel_positions()
+    assert isinstance(out, np.ndarray)
+    assert out.shape == simple.expected_data_shape + tuple([3])
