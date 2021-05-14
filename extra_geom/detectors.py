@@ -3,6 +3,7 @@ from cfelpyutils.crystfel_utils import load_crystfel_geometry
 import h5py
 from itertools import chain, product
 import numpy as np
+from typing import List, Tuple
 import warnings
 
 from .crystfel_fmt import write_crystfel_geom
@@ -838,7 +839,8 @@ class GenericGeometry(DetectorGeometryBase):
             modules += [module]
         super().__init__(modules)
 
-    def _tile_slice(self, tileno: int):
+    def _tile_slice(self, tileno: int) -> Tuple[slice]:
+        # Since python 3.9 it is legal to annotate the output simply as  `-> tuple[slice]`
         """ Which part of the data array is this tile?"""
         if self.fs_tiles > 1:
             fs_slice = slice(tileno * self.frag_fs_pixels, (tileno + 1) * self.frag_fs_pixels)
@@ -850,11 +852,38 @@ class GenericGeometry(DetectorGeometryBase):
             ss_slice = slice(0, self.frag_ss_pixels)
         return ss_slice, fs_slice
 
-    def split_tiles(self):
-        raise NotImplementedError
+    def split_tiles(self, module_data: np.ndarray) -> List[np.ndarray]:
+        # Since python 3.9 it is legal to annotate the output simply as  `-> list[np.ndarray]`
 
-    def _module_coords_to_tile(self):
-        raise NotImplementedError
+        if self.n_tiles_per_module == 1:
+            return [module_data]
+        elif self.ss_tiles > 1:
+            return [module_data[..., s * self.frag_ss_pixels: (s + 1) * self.frag_ss_pixels, :]
+                    for s in range(self.n_tiles_per_module)]
+        else:
+            return [module_data[..., s * self.frag_fs_pixels: (s + 1) * self.frag_fs_pixels]
+                    for s in range(self.n_tiles_per_module)]
+
+    def _module_coords_to_tile(self, slow_scan: np.ndarray, fast_scan: np.ndarray):
+        """Positions in module to tile numbers & pos in tile.
+
+        `slow_scan` and `fast_scan` are arrays of equal size, they contain
+        the coordinates of points of interest along the slow and the fast scan axes
+        respectively.
+
+        Returned values are three arrays, and they contain:
+        1. the number of the tile in a module the point belongs to,
+        2. the slow-scan axis coordinate within the tile, i.e. `mod(ss, frag_ss_pixel)`
+        3. the fast-scan axis coordinate within the tile, i.e. `mod(fs, frag_fs_pixel)`
+        """
+        if self.n_tiles_per_module == 1:
+            return 0, slow_scan, fast_scan
+        elif self.ss_tiles > 1:
+            tileno, tile_ss = np.divmod(slow_scan, self.frag_ss_pixels)
+            return tileno.astype(np.int16), tile_ss, fast_scan
+        else:
+            tileno, tile_fs = np.divmod(fast_scan, self.frag_fs_pixels)
+            return tileno.astype(np.int16), slow_scan, tile_fs
 
 
 class AGIPD_1MGeometry(DetectorGeometryBase):
