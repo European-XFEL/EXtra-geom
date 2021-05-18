@@ -56,7 +56,7 @@ def test_inspect(simple):
 def test_get_pixel_positions(simple):
     out = simple.get_pixel_positions()
     assert isinstance(out, np.ndarray)
-    assert out.shape == simple.expected_data_shape + tuple([3])
+    assert out.shape == simple.expected_data_shape + (3,)
 
 
 def test_split_tiles(simple):
@@ -83,4 +83,3 @@ def test_module_coords_to_tile(simple):
     assert all(tileno == [0, 0, 1, 1])
     assert all(tile_ss == slow_scan)
     assert all(tile_fs == np.mod(fast_scan, 128))
-
