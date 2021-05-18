@@ -23,7 +23,7 @@ simple_config = {'pixel_size': pixel_size,
 
 @pytest.fixture
 def simple():
-    return GenericGeometry(**simple_config)
+    return GenericGeometry.from_simple_description(**simple_config)
 
 
 def test_simple_geometry(simple):

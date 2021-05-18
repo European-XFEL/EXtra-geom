@@ -784,14 +784,15 @@ class GenericGeometry(DetectorGeometryBase):
     """
     detector_type_name = 'Generic Detector'
 
-    def __init__(self, pixel_size: float, slow_pixels: int, fast_pixels: int,
-                 corner_coordinates: [np.ndarray] = [np.zeros(3)],
-                 ss_vec: np.ndarray = np.array([1, 0, 0]),
-                 fs_vec: np.ndarray = np.array([0, 1, 0]),
-                 n_tiles_per_module: int = 1,
-                 tile_gap: float = None,
-                 tile_vec: np.ndarray = None,
-                 ):
+    @classmethod
+    def from_simple_description(cls, pixel_size: float, slow_pixels: int, fast_pixels: int,
+                                corner_coordinates: [np.ndarray] = [np.zeros(3)],
+                                ss_vec: np.ndarray = np.array([1, 0, 0]),
+                                fs_vec: np.ndarray = np.array([0, 1, 0]),
+                                n_tiles_per_module: int = 1,
+                                tile_gap: float = None,
+                                tile_vec: np.ndarray = None,
+                                ):
         """ Create a generic detector:
 
         `pixel_size`: the size of a pixel in meters (reversed CrystFEL's `res`)
@@ -803,16 +804,16 @@ class GenericGeometry(DetectorGeometryBase):
         `tile_vec`: the direction of tile replication, default=[1, 0, 0]
 
         """
-        self.pixel_size = pixel_size
-        self.frag_fs_pixels = fast_pixels
-        self.frag_ss_pixels = slow_pixels
-        self.n_modules = len(corner_coordinates)
-        self.n_tiles_per_module = n_tiles_per_module
-        self.tile_gap = tile_gap if tile_gap else pixel_size
-        self.tile_vec = np.array(tile_vec) if tile_vec else ss_vec
+        cls.pixel_size = pixel_size
+        cls.frag_fs_pixels = fast_pixels
+        cls.frag_ss_pixels = slow_pixels
+        cls.n_modules = len(corner_coordinates)
+        cls.n_tiles_per_module = n_tiles_per_module
+        cls.tile_gap = tile_gap if tile_gap else pixel_size
+        cls.tile_vec = np.array(tile_vec) if tile_vec else ss_vec
 
         # Get the tile shift: it is a multiple of either `fast_pixels` or `slow_pixels`
-        tile_offset_value = np.abs(np.inner(fs_vec * fast_pixels + ss_vec * slow_pixels, self.tile_vec))
+        tile_offset_value = np.abs(np.inner(fs_vec * fast_pixels + ss_vec * slow_pixels, cls.tile_vec))
 
         modules = []
 
@@ -820,24 +821,24 @@ class GenericGeometry(DetectorGeometryBase):
         assert np.linalg.norm(fs_vec) == np.linalg.norm(ss_vec) == 1    # unit vectors
 
         # the numbers of tiles per module in the fast- and slow-scan directions respectively:
-        self.fs_tiles = abs(np.inner(fs_vec, self.tile_vec)) * n_tiles_per_module or 1
-        self.ss_tiles = abs(np.inner(ss_vec, self.tile_vec)) * n_tiles_per_module or 1
+        cls.fs_tiles = abs(np.inner(fs_vec, cls.tile_vec)) * n_tiles_per_module or 1
+        cls.ss_tiles = abs(np.inner(ss_vec, cls.tile_vec)) * n_tiles_per_module or 1
 
-        self.expected_data_shape = (self.n_modules,
-                                    self.ss_tiles * self.frag_ss_pixels,
-                                    self.fs_tiles * self.frag_fs_pixels)
+        cls.expected_data_shape = (cls.n_modules,
+                                   cls.ss_tiles * cls.frag_ss_pixels,
+                                   cls.fs_tiles * cls.frag_fs_pixels)
 
-        for m in range(self.n_modules):
+        for m in range(cls.n_modules):
             module = []
             for t in range(n_tiles_per_module):
                 tile = GeometryFragment(corner_coordinates[m] +
-                                        self.tile_vec * t * (tile_offset_value * self.pixel_size + self.tile_gap),
-                                        ss_pixels=self.frag_ss_pixels, fs_pixels=self.frag_fs_pixels,
+                                        cls.tile_vec * t * (tile_offset_value * cls.pixel_size + cls.tile_gap),
+                                        ss_pixels=cls.frag_ss_pixels, fs_pixels=cls.frag_fs_pixels,
                                         ss_vec=ss_vec * pixel_size,
                                         fs_vec=fs_vec * pixel_size)
                 module += [tile]
             modules += [module]
-        super().__init__(modules)
+        return cls(modules)
 
     def _tile_slice(self, tileno: int) -> Tuple[slice]:
         # Since python 3.9 it is legal to annotate the output simply as  `-> tuple[slice]`
