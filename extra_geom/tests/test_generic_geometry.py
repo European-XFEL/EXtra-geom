@@ -8,14 +8,14 @@ import pytest
 pixel_size = 0.01
 
 simple_config = {'pixel_size': pixel_size,
-                 'fast_pixels': 128,
                  'slow_pixels': 64,
+                 'fast_pixels': 128,
                  'corner_coordinates': [pixel_size * np.array([5, 1, 0]),
                                         pixel_size * np.array([-133, 5, 0]),
                                         pixel_size * np.array([-63, -130, 0])],
                  'n_tiles_per_module': 2,
-                 'fs_vec': np.array([0, 1, 0]),
                  'ss_vec': np.array([1, 0, 0]),
+                 'fs_vec': np.array([0, 1, 0]),
                  'tile_gap': 2 * pixel_size,
                  'tile_vec': [0, -1, 0]
                  }
@@ -80,6 +80,6 @@ def test_module_coords_to_tile(simple):
     fast_scan = np.array([10, 50, 130, 200])
     tileno, tile_ss, tile_fs = simple._module_coords_to_tile(slow_scan, fast_scan)
 
-    assert all(tileno == [0, 0, 1, 1])
-    assert all(tile_ss == slow_scan)
-    assert all(tile_fs == np.mod(fast_scan, 128))
+    np.testing.assert_array_equal(tileno, [0, 0, 1, 1])
+    np.testing.assert_array_equal(tile_ss, slow_scan)
+    np.testing.assert_allclose(tile_fs, np.mod(fast_scan, 128))

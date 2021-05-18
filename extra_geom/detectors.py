@@ -784,10 +784,10 @@ class GenericGeometry(DetectorGeometryBase):
     """
     detector_type_name = 'Generic Detector'
 
-    def __init__(self, pixel_size: float, fast_pixels: int, slow_pixels: int,
+    def __init__(self, pixel_size: float, slow_pixels: int, fast_pixels: int,
                  corner_coordinates: [np.ndarray] = [np.zeros(3)],
-                 fs_vec: np.ndarray = np.array([0, 1, 0]),
                  ss_vec: np.ndarray = np.array([1, 0, 0]),
+                 fs_vec: np.ndarray = np.array([0, 1, 0]),
                  n_tiles_per_module: int = 1,
                  tile_gap: float = None,
                  tile_vec: np.ndarray = None,
