@@ -275,8 +275,16 @@ Generic detector may represent an unconstrained detector of your choice.
 
    .. automethod:: from_simple_description
 
+   .. automethod:: compare
+
+   .. automethod:: get_pixel_positions
+
    .. automethod:: inspect
 
-   .. automethod:: compare
+   .. automethod:: output_array_for_position_fast
+
+   .. automethod:: plot_data_fast
+
+   .. automethod:: position_modules_fast
 
    .. automethod:: write_crystfel_geom
