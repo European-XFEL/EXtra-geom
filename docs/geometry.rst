@@ -271,7 +271,7 @@ Generic Detector
 
 Generic detector may represent an unconstrained detector of your choice.
 
-.. autoclass:: GenericGeomerty
+.. autoclass:: GenericGeometry
 
    .. autoattribute:: expected_data_shape
 
