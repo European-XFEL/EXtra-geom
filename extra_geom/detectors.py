@@ -833,15 +833,13 @@ class GenericGeometry(DetectorGeometryBase):
         geom.frag_ss_pixels = slow_pixels
         geom.n_modules = len(corner_coordinates)
         geom.n_tiles_per_module = n_tiles_per_module
-        geom.tile_gap = tile_gap
-        geom.tile_vec = tile_vec
 
         assert np.inner(fs_vec, ss_vec) == 0    # scan vectors are perpendicular
         assert np.linalg.norm(fs_vec) == np.linalg.norm(ss_vec) == 1    # unit vectors
 
         # the numbers of tiles per module in the fast- and slow-scan directions respectively:
-        geom.fs_tiles = abs(np.inner(fs_vec, geom.tile_vec)) * n_tiles_per_module or 1
-        geom.ss_tiles = abs(np.inner(ss_vec, geom.tile_vec)) * n_tiles_per_module or 1
+        geom.fs_tiles = abs(np.inner(fs_vec, tile_vec)) * n_tiles_per_module or 1
+        geom.ss_tiles = abs(np.inner(ss_vec, tile_vec)) * n_tiles_per_module or 1
 
         geom.expected_data_shape = (geom.n_modules,
                                     geom.ss_tiles * geom.frag_ss_pixels,
