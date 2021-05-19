@@ -776,7 +776,7 @@ class GenericGeometry(DetectorGeometryBase):
 
     The :attr:`expected_data_shape` is a following triple :
 
-        1. the number of modules :attr:`n_modules`
+        1. the number of modules which is the length of the :attr:`corner_coordinates` array
         2. the number of tiles in a module along the slow-scan direction multiplied by
            the number of slow-scan pixels per tile :attr:`frag_ss_pixels`
         3. the number of tiles in a module along the fast-scan direction multiplied by
@@ -786,23 +786,33 @@ class GenericGeometry(DetectorGeometryBase):
 
     @classmethod
     def from_simple_description(cls, pixel_size: float, slow_pixels: int, fast_pixels: int,
-                                corner_coordinates: [np.ndarray] = [np.zeros(3)],
+                                corner_coordinates: List[np.ndarray] = [np.zeros(3)],
                                 ss_vec: np.ndarray = np.array([1, 0, 0]),
                                 fs_vec: np.ndarray = np.array([0, 1, 0]),
                                 n_tiles_per_module: int = 1,
                                 tile_gap: float = None,
                                 tile_vec: np.ndarray = None,
                                 ):
-        """ Create a generic detector:
+        """ Creates a generic detector from a dictionary.
 
-        `pixel_size`: the size of a pixel in meters (reversed CrystFEL's `res`)
-        `slow_pixels`, `fast_pixels`: the size of a tile along the slow- and the fast-scan axes
-        `corner_coordinates`: 3D coordinates of the first pixel of each module
-        `ss_vec`, `fs_vec`: 3D vectors of the slow- and the fast-scan directions in the lab coordinates (the X-axis
-                               points to the left looking along the beam, the Y-axis points up, and the Z-axis goes with the beam).
-        `n_tiles_per_module`:  the number of tiles in each module, default=1
-        `tile_gap`: the gap between two tiles in metres, default=pixel_size
-        `tile_vec`: the direction of tile replication, default=[1, 0, 0]
+        Parameters
+        __________
+
+        pixel_size: float
+            the size of a pixel in meters (reversed CrystFEL's `res`)
+        slow_pixels, fast_pixels: int
+            the size of a tile along the slow- and the fast-scan axes
+        corner_coordinates: ndarray
+            3D coordinates of the first pixel of each module
+        ss_vec, fs_vec: ndarray
+            3D vectors of the slow- and the fast-scan directions in the lab coordinates (the X-axis
+            points to the left looking along the beam, the Y-axis points up, and the Z-axis goes with the beam).
+        n_tiles_per_module: int
+            the number of tiles in each module, default=1
+        tile_gap: float
+            the gap between two tiles in metres, default=pixel_size
+        tile_vec: ndarray
+            the direction of tile replication, default=[1, 0, 0]
 
         """
 

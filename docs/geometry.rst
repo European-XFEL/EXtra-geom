@@ -273,10 +273,10 @@ Generic detector may represent an unconstrained detector of your choice.
 
 .. autoclass:: GenericGeometry
 
-   .. autoattribute:: expected_data_shape
-
    .. automethod:: from_simple_description
 
    .. automethod:: inspect
 
    .. automethod:: compare
+
+   .. automethod:: write_crystfel_geom
