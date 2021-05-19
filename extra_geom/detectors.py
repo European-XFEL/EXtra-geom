@@ -815,11 +815,10 @@ class GenericGeometry(DetectorGeometryBase):
         tile_offset_value = np.abs(np.inner(fs_vec * fast_pixels + ss_vec * slow_pixels, tile_vec))
         tile_gap = tile_gap if tile_gap else pixel_size
 
-        n_modules = len(corner_coordinates)
-        for m in range(n_modules):
+        for corner_coord in corner_coordinates:
             module = []
             for t in range(n_tiles_per_module):
-                tile = GeometryFragment(corner_coordinates[m] +
+                tile = GeometryFragment(corner_coord +
                                         tile_vec * t * (tile_offset_value * pixel_size + tile_gap),
                                         ss_pixels=slow_pixels, fs_pixels=fast_pixels,
                                         ss_vec=ss_vec * pixel_size,
