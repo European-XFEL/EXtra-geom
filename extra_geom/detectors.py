@@ -800,7 +800,6 @@ class GenericGeometry(DetectorGeometryBase):
         `corner_coordinates`: 3D coordinates of the first pixel of each module
         `ss_vec`, `fs_vec`: 3D vectors of the slow- and the fast-scan directions in the lab coordinates (the X-axis
                                points to the left looking along the beam, the Y-axis points up, and the Z-axis goes with the beam).
-        `n_modules`: the number of modules, default=1
         `n_tiles_per_module`:  the number of tiles in each module, default=1
         `tile_gap`: the gap between two tiles in metres, default=pixel_size
         `tile_vec`: the direction of tile replication, default=[1, 0, 0]
