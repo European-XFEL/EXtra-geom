@@ -40,8 +40,8 @@ def test__tile_silce(simple):
     assert _slice == (slice(0, 64), slice(128, 256))
 
 
-def test_write_crystfel_geom(simple):
-    simple.write_crystfel_geom('test.geom')
+def test_write_crystfel_geom(simple, tmp_path):
+    simple.write_crystfel_geom(tmp_path / 'test.geom')
 
 
 def test_compare(simple):
