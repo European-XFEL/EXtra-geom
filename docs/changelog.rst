@@ -1,6 +1,15 @@
 Release Notes
 =============
 
+1.3
+---
+
+- A new :class:`.GenericGeometry` class allows describing the layout of an unknown
+  detector, with the user specifying details such as pixel size and number of
+  modules (:ghpull:`72`). See :doc:`generic_geometry` for an introduction.
+- Fix a small discrepancy in module positions with
+  :meth:`.JUNGFRAUGeometry.from_module_positions` (:ghpull:`69`).
+
 1.2.1
 -----
 
