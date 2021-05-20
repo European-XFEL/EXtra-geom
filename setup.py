@@ -48,6 +48,9 @@ setup(name="EXtra-geom",
               'nbsphinx',
               'ipython',  # For nbsphinx syntax highlighting
               'sphinxcontrib_github_alt',
+              'sphinx-rtd-theme',
+              # Pin docutils until sphinx-rtd-theme issue 1115 is fixed
+              'docutils==0.16',
           ],
           'test': [
               'pytest',
