@@ -265,3 +265,26 @@ single tile.
    .. automethod:: inspect
 
    .. automethod:: compare
+
+Generic Detector
+----------------
+
+Generic detector may represent an unconstrained detector of your choice.
+
+.. autoclass:: GenericGeometry
+
+   .. automethod:: from_simple_description
+
+   .. automethod:: write_crystfel_geom
+
+   .. automethod:: get_pixel_positions
+
+   .. automethod:: plot_data_fast
+
+   .. automethod:: position_modules_fast
+
+   .. automethod:: output_array_for_position_fast
+
+   .. automethod:: inspect
+
+   .. automethod:: compare

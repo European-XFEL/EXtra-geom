@@ -1,8 +1,9 @@
-"""AGIPD & LPD geometry handling."""
+"""Detector geometry handling."""
 from cfelpyutils.crystfel_utils import load_crystfel_geometry
 import h5py
 from itertools import chain, product
 import numpy as np
+from typing import List, Tuple
 import warnings
 
 from .crystfel_fmt import write_crystfel_geom
@@ -766,6 +767,141 @@ class DetectorGeometryBase:
                 for t, tile in enumerate(module)
             ] for m, module in enumerate(self.modules)
         ])
+
+
+class GenericGeometry(DetectorGeometryBase):
+    """A generic detector layout based either on the CrystFEL geom file or on a set of parameters.
+
+    The coordinates used in this class are 3D (x, y, z), and represent metres.
+
+    The :attr:`expected_data_shape` is a following triple :
+
+        1. the number of modules which is the length of the :attr:`corner_coordinates` array
+        2. the number of tiles in a module along the slow-scan direction multiplied by
+           the number of slow-scan pixels per tile :attr:`frag_ss_pixels`
+        3. the number of tiles in a module along the fast-scan direction multiplied by
+           the number of fast-scan pixels per tile :attr:`frag_fs_pixels`
+    """
+    detector_type_name = 'Generic Detector'
+
+    @classmethod
+    def from_simple_description(cls, pixel_size: float, slow_pixels: int, fast_pixels: int,
+                                corner_coordinates: List[np.ndarray] = [np.zeros(3)],
+                                ss_vec: np.ndarray = np.array([1, 0, 0]),
+                                fs_vec: np.ndarray = np.array([0, 1, 0]),
+                                n_tiles_per_module: int = 1,
+                                tile_gap: float = None,
+                                tile_vec: np.ndarray = None,
+                                ):
+        """ Creates a generic detector from a dictionary.
+
+        Parameters
+        __________
+
+        pixel_size: float
+            the size of a pixel in meters (reversed CrystFEL's `res`)
+        slow_pixels, fast_pixels: int
+            the size of a tile along the slow- and the fast-scan axes
+        corner_coordinates: ndarray
+            3D coordinates of the first pixel of each module
+        ss_vec, fs_vec: ndarray
+            3D unit vectors of the slow- and the fast-scan directions in the lab coordinates (the X-axis
+            points to the left looking along the beam, the Y-axis points up, and the Z-axis goes with the beam).
+            Example: np.array([0, 1, 0])
+        n_tiles_per_module: int
+            the number of tiles in each module, default=1
+        tile_gap: float
+            the gap between two tiles in metres, default=pixel_size
+        tile_vec: ndarray
+            the direction of tile replication, default=[1, 0, 0]
+
+        """
+
+        modules = []
+
+        tile_vec = np.array(tile_vec) if tile_vec else ss_vec
+
+        # Get the tile shift: it is a multiple of either `fast_pixels` or `slow_pixels`
+        tile_offset_value = np.abs(np.inner(fs_vec * fast_pixels + ss_vec * slow_pixels, tile_vec))
+        tile_gap = tile_gap if tile_gap else pixel_size
+
+        for corner_coord in corner_coordinates:
+            module = []
+            for t in range(n_tiles_per_module):
+                tile = GeometryFragment(corner_coord +
+                                        tile_vec * t * (tile_offset_value * pixel_size + tile_gap),
+                                        ss_pixels=slow_pixels, fs_pixels=fast_pixels,
+                                        ss_vec=ss_vec * pixel_size,
+                                        fs_vec=fs_vec * pixel_size)
+                module += [tile]
+            modules += [module]
+
+        geom = cls(modules)
+
+        geom.pixel_size = pixel_size
+        geom.frag_fs_pixels = fast_pixels
+        geom.frag_ss_pixels = slow_pixels
+        geom.n_modules = len(corner_coordinates)
+        geom.n_tiles_per_module = n_tiles_per_module
+
+        assert np.inner(fs_vec, ss_vec) == 0    # scan vectors are perpendicular
+        assert np.linalg.norm(fs_vec) == np.linalg.norm(ss_vec) == 1    # unit vectors
+
+        # the numbers of tiles per module in the fast- and slow-scan directions respectively:
+        geom.fs_tiles = abs(np.inner(fs_vec, tile_vec)) * n_tiles_per_module or 1
+        geom.ss_tiles = abs(np.inner(ss_vec, tile_vec)) * n_tiles_per_module or 1
+
+        geom.expected_data_shape = (geom.n_modules,
+                                    geom.ss_tiles * geom.frag_ss_pixels,
+                                    geom.fs_tiles * geom.frag_fs_pixels)
+
+        return geom
+
+    def _tile_slice(self, tileno: int) -> Tuple[slice]:
+        # Since python 3.9 it is legal to annotate the output simply as  `-> tuple[slice]`
+        """ Which part of the data array is this tile?"""
+        if self.fs_tiles > 1:
+            fs_slice = slice(tileno * self.frag_fs_pixels, (tileno + 1) * self.frag_fs_pixels)
+        else:
+            fs_slice = slice(0, self.frag_fs_pixels)
+        if self.ss_tiles > 1:
+            ss_slice = slice(tileno * self.frag_ss_pixels, (tileno + 1) * self.frag_ss_pixels)
+        else:
+            ss_slice = slice(0, self.frag_ss_pixels)
+        return ss_slice, fs_slice
+
+    def split_tiles(self, module_data: np.ndarray) -> List[np.ndarray]:
+        # Since python 3.9 it is legal to annotate the output simply as  `-> list[np.ndarray]`
+
+        if self.n_tiles_per_module == 1:
+            return [module_data]
+        elif self.ss_tiles > 1:
+            return [module_data[..., s * self.frag_ss_pixels: (s + 1) * self.frag_ss_pixels, :]
+                    for s in range(self.n_tiles_per_module)]
+        else:
+            return [module_data[..., s * self.frag_fs_pixels: (s + 1) * self.frag_fs_pixels]
+                    for s in range(self.n_tiles_per_module)]
+
+    def _module_coords_to_tile(self, slow_scan: np.ndarray, fast_scan: np.ndarray):
+        """Positions in module to tile numbers & pos in tile.
+
+        `slow_scan` and `fast_scan` are arrays of equal size, they contain
+        the coordinates of points of interest along the slow and the fast scan axes
+        respectively.
+
+        Returned values are three arrays, and they contain:
+        1. the number of the tile in a module the point belongs to,
+        2. the slow-scan axis coordinate within the tile, i.e. `mod(ss, frag_ss_pixel)`
+        3. the fast-scan axis coordinate within the tile, i.e. `mod(fs, frag_fs_pixel)`
+        """
+        if self.n_tiles_per_module == 1:
+            return 0, slow_scan, fast_scan
+        elif self.ss_tiles > 1:
+            tileno, tile_ss = np.divmod(slow_scan, self.frag_ss_pixels)
+            return tileno.astype(np.int16), tile_ss, fast_scan
+        else:
+            tileno, tile_fs = np.divmod(fast_scan, self.frag_fs_pixels)
+            return tileno.astype(np.int16), slow_scan, tile_fs
 
 
 class AGIPD_1MGeometry(DetectorGeometryBase):

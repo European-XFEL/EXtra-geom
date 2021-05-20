@@ -36,6 +36,7 @@ Documentation contents
    lpd_geometry
    dssc_geometry
    jungfrau_geometry
+   generic_geometry
    
 .. toctree::
    :caption: Use Examples
