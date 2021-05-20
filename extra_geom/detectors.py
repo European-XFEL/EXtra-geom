@@ -805,8 +805,9 @@ class GenericGeometry(DetectorGeometryBase):
         corner_coordinates: ndarray
             3D coordinates of the first pixel of each module
         ss_vec, fs_vec: ndarray
-            3D vectors of the slow- and the fast-scan directions in the lab coordinates (the X-axis
+            3D unit vectors of the slow- and the fast-scan directions in the lab coordinates (the X-axis
             points to the left looking along the beam, the Y-axis points up, and the Z-axis goes with the beam).
+            Example: np.array([0, 1, 0])
         n_tiles_per_module: int
             the number of tiles in each module, default=1
         tile_gap: float
