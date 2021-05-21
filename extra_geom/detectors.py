@@ -2295,3 +2295,187 @@ class PNCCDGeometry(DetectorGeometryBase):
     def plot_data_fast(self, data, *args, **kwargs):
         return super().plot_data_fast(self._ensure_shape(data),
                                       *args, **kwargs)
+
+
+class Epix100Geometry(DetectorGeometryBase):
+    """
+    Electronic layout
+    ---------------
+    detector: 704+4 rows, 768 columns, 4 asics
+    asic: 352+2 rows, 384 columns, 4 banks
+    bank: 352+2 rows, 96 columns
+        - fast parallel column readout
+        - sigma-delta ADC per column
+        - single high speed LVDS link
+
+    (+2) Each asics has two calibration rows:
+        - pixel max (the first and last rows in the pixel array)
+        - baseline (next rows)
+
+    Schema
+    ------
+       ||||||  ||||||
+    =                 =
+    =    A2      A1   =  352+2
+
+    =    A3      A0   =  352+2
+    =                 =
+       ||||||  ||||||
+         384     384
+
+    Geometry layout
+    ---------------
+    oooo-  -oooo
+    oooo-  -oooo
+    ||||#  #||||
+
+    ||||#  #||||
+    oooo-  -oooo
+    oooo-  -oooo
+
+    o : normal pixels 50x50 um
+    - : long horizontal pixels 50x175 um
+    | : long vertical pixels 175x50 um
+    # : big square pixels 175x175 um (4 big pixels in the center)
+
+    See also
+    --------
+    1. https://confluence.slac.stanford.edu/display/PSDM/EPIX10KA
+    2. A Dragone et al 2014 J. Phys.: Conf. Ser. 493 012012
+       https://doi.org/10.1088/1742-6596/493/1/012012
+    """
+    detector_type_name = 'EPIX100'
+    pixel_size = 50e-6
+    inner_pixel_size = 175e-6
+    asic_gap = inner_pixel_size/pixel_size - 1
+    frag_ss_pixels = 352  # rows
+    frag_fs_pixels = 384  # columns
+    n_modules = 1
+    n_tiles_per_module = 4
+    expected_data_shape = (1, 704, 768)
+    fs_tiles = 2
+    ss_tiles = 2
+
+    @classmethod
+    def from_origin(cls, origin=(0, 0), asic_gap=asic_gap, unit=pixel_size):
+        """Generate an AGIPD-500K2G geometry from origin position.
+
+        This produces an idealised geometry, assuming all modules are perfectly
+        flat, aligned and equally spaced within the detector.
+
+        The default origin (0, 0) of the coordinates is the center of the
+        detector. If another coordinate is given as the origin, it is relative
+        to the center. Coordinates increase upwards and to the left (looking
+        along the beam).
+
+        To give positions in units other than pixels, pass the *unit* parameter
+        as the length of the unit in metres. E.g. ``unit=1e-3`` means the
+        coordinates are in millimetres.
+        """
+        x0, y0 = origin[0]*unit, origin[1]*unit
+        a_ysz = cls.frag_ss_pixels * cls.pixel_size
+        a_xsz = cls.frag_fs_pixels * cls.pixel_size
+        g_ysz = g_xsz = asic_gap * unit
+        attrs = dict(
+            ss_vec=np.array([0, -1, 0]) * unit,
+            fs_vec=np.array([-1, 0, 0]) * unit,
+            ss_pixels=cls.frag_ss_pixels,
+            fs_pixels=cls.frag_fs_pixels,
+        )
+        corners = [
+            (-g_xsz-x0, -g_ysz-y0),
+            (-g_xsz-x0, g_ysz+a_ysz-y0),
+            (g_xsz+a_xsz-x0, g_ysz+a_ysz-y0),
+            (g_xsz+a_xsz-x0, -g_ysz-y0),
+        ]
+        tiles = [
+            GeometryFragment(corner_pos=np.array([x, y, 0]), **attrs)
+            for x, y in corners
+        ]
+        return cls([tiles])
+
+    @classmethod
+    def _module_coords_to_tile(cls, slow_scan, fast_scan):
+        ai, tile_ss = np.divmod(slow_scan, cls.frag_ss_pixels)
+        aj, tile_fs = np.divmod(fast_scan, cls.frag_fs_pixels)
+
+        aij = np.vstack([ai, aj]).T
+        tile_map = np.array([[1, 1], [0, 1], [0, 0], [1, 0]], dtype=int)
+        _, tileno = np.where(np.all(
+            np.equal(tile_map[None, :, :], aij[:, None, :]),
+            axis=2))
+
+        return tileno.astype(np.int16), tile_ss, tile_fs
+
+    @classmethod
+    def _tile_slice(cls, tileno):
+        # Which part of the array is this tile?
+        # tileno = 0 to 3
+        tile_map = [(1, 1), (0, 1), (0, 0), (1, 0)]
+        ai, aj = tile_map[tileno]
+        tile_ss_offset = ai * cls.frag_ss_pixels
+        tile_fs_offset = aj * cls.frag_fs_pixels
+        ss_slice = slice(tile_ss_offset, tile_ss_offset + cls.frag_ss_pixels)
+        fs_slice = slice(tile_fs_offset, tile_fs_offset + cls.frag_fs_pixels)
+        return ss_slice, fs_slice
+
+    @staticmethod
+    def split_tiles(module_data):
+        # Split into 4 tiles in a circle counterclockwise
+        tile_map = [(352, 384), (0, 384), (0, 0), (352, 0)]
+        return [module_data[..., i:i+352, j:j+384] for i, j in tile_map]
+
+    def inspect(self, axis_units='px', frontview=True):
+        """Plot the 2D layout of this detector geometry.
+
+        Returns a matplotlib Axes object.
+
+        Parameters
+        ----------
+        axis_units : str
+            Show the detector scale in pixels ('px') or metres ('m').
+
+        frontview : bool
+            If True (the default), x increases to the left, as if you were
+            looking along the beam. False gives a 'looking into the beam' view.
+        """
+        ax = super().inspect(axis_units=axis_units, frontview=frontview)
+        scale = self._get_plot_scale_factor(axis_units)
+
+        # Label modules and tiles
+        module = self.modules[0]
+        for t in range(4):
+            cx, cy, _ = module[t].centre() * scale
+            ax.text(cx, cy, f'A{t}', fontweight='bold',
+                    verticalalignment='center',
+                    horizontalalignment='center')
+
+        ax.set_title('ePix100 detector geometry ({})'.format(self.filename))
+        return ax
+
+    def asic_seams(cls):
+        """Make a boolean array marking the wide pixels
+
+        This returns a (704, 768) array with False for normal pixels, and
+        True for the wide 50x175, 175x50, 175x175 um pixels at inner eges
+        of ASICs.
+        """
+        ss_wides = np.full(704, False)
+        ss_wides[351:353] = True
+        fs_wides = np.full(768, False)
+        fs_wides[383:385] = True
+        return np.outer(ss_wides, fs_wides)
+
+    def pixel_areas(cls):
+        """Make an array of pixel areas
+
+        This returns a (704, 768) array with pixel areas. Pixels on inner
+        edges of ASICs are bigger (see layout).
+        """
+        npx_ss = cls.frag_ss_pixels
+        npx_fs = cls.frag_fs_pixels
+        ss_sizes = np.full(2*npx_ss, cls.pixel_size)
+        ss_sizes[npx_ss-1:npx_ss+1] = cls.inner_pixel_size
+        fs_sizes = np.full(2*npx_fs, cls.pixel_size)
+        fs_sizes[npx_fs-1:npx_fs+1] = cls.inner_pixel_size
+        return np.outer(ss_sizes, fs_sizes)
