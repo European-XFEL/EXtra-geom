@@ -2473,11 +2473,13 @@ class Epix100Geometry(DetectorGeometryBase):
         True for the wide 50x175, 175x50, 175x175 um pixels at inner eges
         of ASICs.
         """
-        ss_wides = np.full(704, False)
-        ss_wides[351:353] = True
-        fs_wides = np.full(768, False)
-        fs_wides[383:385] = True
-        return np.outer(ss_wides, fs_wides)
+        npx_ss = cls.frag_ss_pixels
+        npx_fs = cls.frag_fs_pixels
+        ss_wides = np.full(cls.ss_tiles*npx_ss, False)
+        ss_wides[npx_ss-1:npx_ss+1] = True
+        fs_wides = np.full(cls.fs_tiles*npx_fs, False)
+        fs_wides[npx_fs-1:npx_fs+1] = True
+        return ss_wides[:,None] + fs_wides[None,:]
 
     @classmethod
     def pixel_areas(cls):
@@ -2488,8 +2490,8 @@ class Epix100Geometry(DetectorGeometryBase):
         """
         npx_ss = cls.frag_ss_pixels
         npx_fs = cls.frag_fs_pixels
-        ss_sizes = np.full(2*npx_ss, cls.pixel_size)
+        ss_sizes = np.full(cls.ss_tiles*npx_ss, cls.pixel_size)
         ss_sizes[npx_ss-1:npx_ss+1] = cls.inner_pixel_size
-        fs_sizes = np.full(2*npx_fs, cls.pixel_size)
+        fs_sizes = np.full(cls.fs_tiles*npx_fs, cls.pixel_size)
         fs_sizes[npx_fs-1:npx_fs+1] = cls.inner_pixel_size
         return np.outer(ss_sizes, fs_sizes)
