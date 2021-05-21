@@ -2465,6 +2465,7 @@ class Epix100Geometry(DetectorGeometryBase):
         ax.set_title('ePix100 detector geometry ({})'.format(self.filename))
         return ax
 
+    @classmethod
     def asic_seams(cls):
         """Make a boolean array marking the wide pixels
 
@@ -2478,6 +2479,7 @@ class Epix100Geometry(DetectorGeometryBase):
         fs_wides[383:385] = True
         return np.outer(ss_wides, fs_wides)
 
+    @classmethod
     def pixel_areas(cls):
         """Make an array of pixel areas
 
