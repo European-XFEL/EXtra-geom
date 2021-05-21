@@ -2298,52 +2298,64 @@ class PNCCDGeometry(DetectorGeometryBase):
 
 
 class Epix100Geometry(DetectorGeometryBase):
+    """Detector layout for ePix100
+
+    ePix100 detectors have one module, which is built from 4 ASICs
+    with wide pixes on inner edges.
+
+    In its default configuration, the complete detector frame is read
+    out and written to file as a single image, with the ASICs split
+    along the both dimensions.
+    
+    There are 4 more rows in raw data. These are calibration pixels.
+    They have the same electronics as normal pixels but aren't wired
+    to the sensor. They are two first and two last rows in the raw data
+    array. Class Epix100Geometry assumes that calibration rows are cut.
     """
-    Electronic layout
-    ---------------
-    detector: 704+4 rows, 768 columns, 4 asics
-    asic: 352+2 rows, 384 columns, 4 banks
-    bank: 352+2 rows, 96 columns
-        - fast parallel column readout
-        - sigma-delta ADC per column
-        - single high speed LVDS link
-
-    (+2) Each asics has two calibration rows:
-        - pixel max (the first and last rows in the pixel array)
-        - baseline (next rows)
-
-    Schema
-    ------
-       ||||||  ||||||
-    =                 =
-    =    A2      A1   =  352+2
-
-    =    A3      A0   =  352+2
-    =                 =
-       ||||||  ||||||
-         384     384
-
-    Geometry layout
-    ---------------
-    oooo-  -oooo
-    oooo-  -oooo
-    ||||#  #||||
-
-    ||||#  #||||
-    oooo-  -oooo
-    oooo-  -oooo
-
-    o : normal pixels 50x50 um
-    - : long horizontal pixels 50x175 um
-    | : long vertical pixels 175x50 um
-    # : big square pixels 175x175 um (4 big pixels in the center)
-
-    See also
-    --------
-    1. https://confluence.slac.stanford.edu/display/PSDM/EPIX10KA
-    2. A Dragone et al 2014 J. Phys.: Conf. Ser. 493 012012
-       https://doi.org/10.1088/1742-6596/493/1/012012
-    """
+    # Electronic layout
+    # -----------------
+    # detector: 704+4 rows, 768 columns, 4 asics
+    # asic: 352+2 rows, 384 columns, 4 banks
+    # bank: 352+2 rows, 96 columns
+    #     - fast parallel column readout
+    #     - sigma-delta ADC per column
+    #     - single high speed LVDS link
+    # 
+    # (+2) Each asics has two calibration rows:
+    #     - pixel max (the first and last rows in the pixel array)
+    #     - baseline (next rows)
+    #
+    # Schema
+    # ------
+    #      ||||||  ||||||
+    #   =                 =
+    #   =    A2      A1   =  352+2
+    # 
+    #   =    A3      A0   =  352+2
+    #   =                 =
+    #      ||||||  ||||||
+    #        384     384
+    #
+    # Geometry layout
+    # ---------------
+    # oooo-  -oooo
+    # oooo-  -oooo
+    # ||||#  #||||
+    #
+    # ||||#  #||||
+    # oooo-  -oooo
+    # oooo-  -oooo
+    #
+    # o : normal pixels 50x50 um
+    # - : long horizontal pixels 50x175 um
+    # | : long vertical pixels 175x50 um
+    # # : big square pixels 175x175 um (4 big pixels in the center)
+    #
+    # See also
+    # --------
+    # 1. [SLAC Confluence](https://confluence.slac.stanford.edu/display/PSDM/EPIX10KA)
+    # 2. [A Dragone et al 2014 J. Phys.: Conf. Ser. 493 012012]
+    #     (https://doi.org/10.1088/1742-6596/493/1/012012)
     detector_type_name = 'EPIX100'
     pixel_size = 50e-6
     inner_pixel_size = 175e-6
@@ -2358,7 +2370,7 @@ class Epix100Geometry(DetectorGeometryBase):
 
     @classmethod
     def from_origin(cls, origin=(0, 0), asic_gap=asic_gap, unit=pixel_size):
-        """Generate an AGIPD-500K2G geometry from origin position.
+        """Generate an ePix100 geometry from origin position.
 
         This produces an idealised geometry, assuming all modules are perfectly
         flat, aligned and equally spaced within the detector.

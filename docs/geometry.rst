@@ -266,6 +266,32 @@ single tile.
 
    .. automethod:: compare
 
+.. _det-EPIX:
+
+ePix100
+-------
+
+ePix100 detectors have one module of 704×768 pixels, which is built from
+4 ASICs with wide pixes on inner edges.
+
+.. autoclass:: Epix100Geometry
+
+   .. automethod:: from_origin
+
+   .. automethod:: from_crystfel_geom
+
+   .. automethod:: write_crystfel_geom
+
+   .. automethod:: plot_data_fast
+
+   .. automethod:: position_modules_fast
+
+   .. automethod:: output_array_for_position_fast
+
+   .. automethod:: inspect
+
+   .. automethod:: compare
+
 Generic Detector
 ----------------
 
