@@ -2353,10 +2353,14 @@ class Epix100Geometry(DetectorGeometryBase):
     #
     # See also
     # --------
-    # 1. [SLAC Confluence](https://confluence.slac.stanford.edu/display/PSDM/EPIX10KA)
+    # 1. [EuXFEL ePix documentation]
+    #     (https://in.xfel.eu/readthedocs/docs/epix-documentation/en/latest/index.html)
     # 2. [A Dragone et al 2014 J. Phys.: Conf. Ser. 493 012012]
     #     (https://doi.org/10.1088/1742-6596/493/1/012012)
-    detector_type_name = 'EPIX100'
+    # 3. [SLAC Confluence](https://confluence.slac.stanford.edu/display/PSDM/EPIX10KA)
+    #     Describes ePix10KA instead of ePix100, many details are common for these
+    #     two versions
+    detector_type_name = 'ePix100'
     pixel_size = 50e-6
     inner_pixel_size = 175e-6
     asic_gap = inner_pixel_size/pixel_size - 1

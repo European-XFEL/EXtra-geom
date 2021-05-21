@@ -291,6 +291,10 @@ ePix100 detectors have one module of 704×768 pixels, which is built from
    .. automethod:: inspect
 
    .. automethod:: compare
+   
+   .. automethod:: asic_seams
+   
+   .. automethod:: pixel_areas
 
 Generic Detector
 ----------------

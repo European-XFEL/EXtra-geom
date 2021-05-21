@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
+from cfelpyutils.crystfel_utils import load_crystfel_geometry
+from .utils import assert_geom_close
 
 @pytest.fixture
 def epix():
@@ -82,3 +84,21 @@ def test_module_coords_to_tile(epix):
     np.testing.assert_array_equal(tileno, [2, 0, 1, 3])
     np.testing.assert_array_equal(tile_ss, np.mod(slow_scan, 352))
     np.testing.assert_allclose(tile_fs, np.mod(fast_scan, 384))
+
+def test_write_read_crystfel_file(epix, tmpdir):
+    path = str(tmpdir / 'test.geom')
+    epix.write_crystfel_geom(filename=path, photon_energy=9000,
+                             adu_per_ev=0.0042, clen=0.101)
+
+    loaded = Epix100Geometry.from_crystfel_geom(path)
+    assert_geom_close(loaded, epix)
+
+    # Load the geometry file with cfelpyutils and test the rigid groups
+    geom_dict = load_crystfel_geometry(path)
+    assert geom_dict['panels']['p0a0']['res'] == 1 / 50e-6
+    assert len(geom_dict['panels']) == 4
+    p0a0 = geom_dict['panels']['p0a0']
+    assert p0a0['min_ss'] == 352
+    assert p0a0['max_ss'] == 703
+    assert p0a0['min_fs'] == 384
+    assert p0a0['max_fs'] == 767
