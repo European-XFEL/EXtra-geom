@@ -2447,7 +2447,7 @@ class EpixGeometryBase(DetectorGeometryBase):
         return ss_slice, fs_slice
 
     @classmethod
-    def _split_tiles(cls, module_data):
+    def split_tiles(cls, module_data):
         # Split into 4 tiles
         return [module_data[
             ...,
@@ -2541,10 +2541,6 @@ class Epix100Geometry(EpixGeometryBase):
         2*frag_ss_pixels,
         2*frag_fs_pixels)
 
-    @staticmethod
-    def split_tiles(module_data):
-        return Epix100Geometry._split_tiles(module_data)
-
 
 class Epix10KGeometry(EpixGeometryBase):
     """Detector layout for ePix10K
@@ -2571,7 +2567,3 @@ class Epix10KGeometry(EpixGeometryBase):
         EpixGeometryBase.n_modules,
         2*frag_ss_pixels,
         2*frag_fs_pixels)
-
-    @staticmethod
-    def split_tiles(module_data):
-        return Epix10KGeometry._split_tiles(module_data)
