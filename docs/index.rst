@@ -36,7 +36,7 @@ Documentation contents
    lpd_geometry
    dssc_geometry
    jungfrau_geometry
-   epix100_geometry
+   epix_geometry
    generic_geometry
    
 .. toctree::

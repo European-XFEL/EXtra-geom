@@ -268,11 +268,14 @@ single tile.
 
 .. _det-EPIX:
 
-ePix100
--------
+ePix100/ePix10K
+---------------
 
-ePix100 detectors have one module of 704×768 pixels, which is built from
-4 ASICs with wide pixes on inner edges.
+ePix100 detectors have one module of 704 × 768 pixels. Module built from 4 ASICs with 352 rows and 384 columns of pixels with wide pixes on inner edges. Normal pixels are 50 × 50 um.
+
+ePix10K detectors have one module of 352 × 384 pixels. Module built from 4 ASICs with 176 rows and 192 columns of pixels with wide pixes on inner edges. Normal pixels are 100 × 100 um.
+
+.. note:: References are given for :class:`Epix100Geometry` providing ePix100 layout. For ePix10K, use :class:`Epix10KGeometry` with the same interface.
 
 .. autoclass:: Epix100Geometry
 
@@ -281,6 +284,8 @@ ePix100 detectors have one module of 704×768 pixels, which is built from
    .. automethod:: from_crystfel_geom
 
    .. automethod:: write_crystfel_geom
+
+   .. automethod:: get_pixel_positions
 
    .. automethod:: plot_data_fast
 

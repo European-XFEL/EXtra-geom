@@ -37,7 +37,7 @@ __version__ = "1.3.0"
 
 from .detectors import (
     AGIPD_1MGeometry, AGIPD_500K2GGeometry, GenericGeometry, DSSC_1MGeometry, JUNGFRAUGeometry,
-    LPD_1MGeometry, PNCCDGeometry, Epix100Geometry, agipd_asic_seams,
+    LPD_1MGeometry, PNCCDGeometry, Epix100Geometry, Epix10KGeometry, agipd_asic_seams,
 )
 
 __all__ = [
@@ -50,4 +50,5 @@ __all__ = [
     'LPD_1MGeometry',
     'PNCCDGeometry',
     'Epix100Geometry',
+    'Epix10KGeometry',
 ]
