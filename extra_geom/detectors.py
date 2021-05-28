@@ -857,6 +857,48 @@ class GenericGeometry(DetectorGeometryBase):
 
         return geom
 
+    def inspect(self, axis_units='px', frontview=True, aspect='auto'):
+        """Plot the 2D layout of this detector geometry.
+
+        Returns a matplotlib Axes object.
+
+        Parameters
+        ----------
+
+        axis_units : str
+          Show the detector scale in pixels ('px') or metres ('m').
+        frontview : bool
+          If True (the default), x increases to the left, as if you were looking
+          along the beam. False gives a 'looking into the beam' view.
+        aspect : str, float
+          Set the aspect ratio of the plot, possible values:
+            * 'auto' (default): automatic; fill the position rectangle with data
+            * 'equal': same scaling from data to plot units for x and y
+            * a number: a figure will be stretched such that the height is num times the width.
+              aspect=1 is the same as 'equal'.
+        """
+        ax = super().inspect(axis_units=axis_units, frontview=frontview)
+
+        ax.set_title(f"{self.detector_type_name} geometry ({self.filename})")
+
+        scale = self._get_plot_scale_factor(axis_units)
+
+        # Label modules and tiles
+        for ch, module in enumerate(self.modules):
+            label = f"M{ch}" if len(self.modules) > 1 else ""
+            if self.n_tiles_per_module > 1:
+                for t in [0, self.n_tiles_per_module - 1]:
+                    cx, cy, _ = module[t].centre() * scale
+                    ax.text(cx, cy, label + f"T{t}",
+                            verticalalignment='center',
+                            horizontalalignment='center')
+            elif label:
+                # one tile per each of multiple modules: only modules are labelled
+                cx, cy, _ = module[0].centre() * scale
+                ax.text(cx, cy, label, verticalalignment='center', horizontalalignment='center')
+        ax.set_aspect(aspect)
+        return ax
+
     def _tile_slice(self, tileno: int) -> Tuple[slice]:
         # Since python 3.9 it is legal to annotate the output simply as  `-> tuple[slice]`
         """ Which part of the data array is this tile?"""
