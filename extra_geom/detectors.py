@@ -595,7 +595,7 @@ def agipd_asic_seams():
     This returns a (512, 128) array with False for normal (square) pixels, and
     True for the 400 x 200 µm pixels at the horizontal joins between ASICs.
     """
-    arr = np.zeros((512, 128), dtype=np.bool)
+    arr = np.zeros((512, 128), dtype=np.bool_)
     # The outer edges (indexes 0 & 511) appear to be normal pixels
     arr[64::64] = True
     arr[63:511:64] = True
