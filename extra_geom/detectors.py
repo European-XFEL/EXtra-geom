@@ -885,12 +885,17 @@ class GenericGeometry(DetectorGeometryBase):
 
         # Label modules and tiles
         for ch, module in enumerate(self.modules):
+            label = f"M{ch}" if len(self.modules) > 1 else ""
             if self.n_tiles_per_module > 1:
                 for t in [0, self.n_tiles_per_module - 1]:
                     cx, cy, _ = module[t].centre() * scale
-                    ax.text(cx, cy, 'M{}T{}'.format(ch + 1, t + 1),
+                    ax.text(cx, cy, label + f"T{t}",
                             verticalalignment='center',
                             horizontalalignment='center')
+            elif label:
+                # one tile per each of multiple modules: only modules are labelled
+                cx, cy, _ = module[0].centre() * scale
+                ax.text(cx, cy, label, verticalalignment='center', horizontalalignment='center')
         ax.set_aspect(aspect)
         return ax
 
