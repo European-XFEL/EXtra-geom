@@ -8,8 +8,6 @@ import numpy as np
 
 from .base import DetectorGeometryBase, GeometryFragment
 
-__all__ = ['AGIPD_1MGeometry', 'LPD_1MGeometry']
-
 
 class GenericGeometry(DetectorGeometryBase):
     """A generic detector layout based either on the CrystFEL geom file or on a set of parameters.
@@ -1290,6 +1288,269 @@ class DSSC_Geometry(DSSC_1MGeometry):
         )
 
 
+class EpixGeometryBase(DetectorGeometryBase):
+    """Base class for ePix detector geometry. Subclassed for specific detectors.
+
+    The first pixel of the first tile (ASIC 0) corresponds to the first pixel
+    in the data `frame [0,0]`, and the first row of this tile corresponds to
+    half of the row line in the data `frame[0,:ncol//2]`.
+
+    The four tiles are stacked in 2 rows of 2 columns and numbered along with
+    the columns:
+    [ASIC 0] [ASIC 1]
+    [ASIC 2] [ASIC 3]
+    """
+    # Geometry layout
+    # ---------------
+    # oooo-  -oooo
+    # oooo-  -oooo
+    # ||||#  #||||
+    #
+    # ||||#  #||||
+    # oooo-  -oooo
+    # oooo-  -oooo
+    #
+    # o : normal pixels 50x50 um
+    # - : long horizontal pixels 50x175 um
+    # | : long vertical pixels 175x50 um
+    # # : big square pixels 175x175 um (4 big pixels in the center)
+    #
+    # pixel sizes given for ePix100, ePix10K has doubled size pixels
+    #
+    # Electronic layout
+    # -----------------
+    # detector: 704+4 rows, 768 columns, 4 asics
+    # asic: 352+2 rows, 384 columns, 4 banks
+    # bank: 352+2 rows, 96 columns
+    #     - fast parallel column readout
+    #     - sigma-delta ADC per column
+    #     - single high speed LVDS link
+    #
+    # (+2) Each asics has two calibration rows:
+    #     - pixel max (the first and last rows in the pixel array)
+    #     - baseline (next rows)
+    #
+    # Schema
+    # ------
+    #      ||||||  ||||||
+    #   =                 =
+    #   =    A2      A1   =  352+2
+    #
+    #   =    A3      A0   =  352+2
+    #   =                 =
+    #      ||||||  ||||||
+    #        384     384
+    #
+    # Conversions in electronic layout
+    # -------------------------------
+    # - ASIC position to No.:
+    #     tileno = 2*(1 - row*col) + row - col
+    #
+    # - ASIC No. to position:
+    #     hi, lo = tileno // 2, tileno % 2
+    #     i, j = (hi - lo + 1) & 1, 1 - hi
+    #
+    # - ASIC slice:
+    #     [(nrow-1)*row : nrow//2-row : 1-2*row] or [-1 : nrow//2-row : 1-2*row]
+    #     [(ncol-1)*col : ncol//2-col : 1-2*col] or [-1 : ncol//2-col : 1-2*col]
+    #
+    # See also
+    # --------
+    # 1. [EuXFEL ePix documentation]
+    #     (https://in.xfel.eu/readthedocs/docs/epix-documentation/en/latest/index.html)
+    # 2. [A Dragone et al 2014 J. Phys.: Conf. Ser. 493 012012]
+    #     (https://doi.org/10.1088/1742-6596/493/1/012012)
+    # 3. [SLAC Confluence](https://confluence.slac.stanford.edu/display/PSDM/EPIX10KA)
+    #     Describes ePix10KA instead of ePix100, many details are common for these
+    #     two versions
+    n_modules = 1
+    n_tiles_per_module = 4
+    fs_tiles = 2
+    ss_tiles = 2
+
+    @classmethod
+    def from_origin(cls, origin=(0, 0), asic_gap=None, unit=None):
+        """Generate an ePix100 geometry from origin position.
+
+        This produces an idealised geometry, assuming all modules are perfectly
+        flat, aligned and equally spaced within the detector.
+
+        The default origin (0, 0) of the coordinates is the center of the
+        detector. If another coordinate is given as the origin, it is relative
+        to the center. Coordinates increase upwards and to the left (looking
+        along the beam).
+
+        To give positions in units other than pixels, pass the *unit* parameter
+        as the length of the unit in metres. E.g. ``unit=1e-3`` means the
+        coordinates are in millimetres.
+        """
+        if unit is None:
+            unit = cls.pixel_size
+        if asic_gap is None:
+            asic_gap = cls.asic_gap
+
+        x0, y0 = origin[0] * unit, origin[1] * unit
+        tiles = []
+        gap = asic_gap * unit
+        row_sz = cls.frag_ss_pixels * cls.pixel_size + gap
+        col_sz = cls.frag_fs_pixels * cls.pixel_size + gap
+        for tileno in range(4):
+            row, col = tileno // 2, tileno % 2
+            tiles.append(GeometryFragment(
+                corner_pos=np.array(
+                    [col_sz - col * (col_sz + gap) - x0,
+                     row_sz - row * (row_sz + gap) - y0,
+                     0]),
+                ss_vec=np.array([0, -1, 0]) * cls.pixel_size,
+                fs_vec=np.array([-1, 0, 0]) * cls.pixel_size,
+                ss_pixels=cls.frag_ss_pixels,
+                fs_pixels=cls.frag_fs_pixels,
+            ))
+        return cls([tiles])
+
+    @classmethod
+    def _module_coords_to_tile(cls, slow_scan, fast_scan):
+        nrow, ncol = cls.frag_ss_pixels, cls.frag_fs_pixels
+        row, tile_ss = np.divmod(slow_scan, nrow)
+        col, tile_fs = np.divmod(fast_scan, ncol)
+
+        tileno = 2 * row + col
+        return tileno.astype(np.int16), tile_ss, tile_fs
+
+    @classmethod
+    def _tile_slice(cls, tileno):
+        # Which part of the array is this tile?
+        # tileno = 0 to 3
+        row, col = tileno // 2, tileno % 2
+        ss_slice = slice(cls.frag_ss_pixels * row,
+                         cls.frag_ss_pixels * (row + 1))
+        fs_slice = slice(cls.frag_fs_pixels * col,
+                         cls.frag_fs_pixels * (col + 1))
+        return ss_slice, fs_slice
+
+    @classmethod
+    def split_tiles(cls, module_data):
+        # Split into 4 tiles
+        return [module_data[
+                ...,
+                cls.frag_ss_pixels * row:cls.frag_ss_pixels * (row + 1),
+                cls.frag_fs_pixels * col:cls.frag_fs_pixels * (col + 1)]
+                for row, col in ((i // 2, i % 2) for i in range(4))]
+
+    def inspect(self, axis_units='px', frontview=True):
+        """Plot the 2D layout of this detector geometry.
+
+        Returns a matplotlib Axes object.
+
+        Parameters
+        ----------
+        axis_units : str
+            Show the detector scale in pixels ('px') or metres ('m').
+
+        frontview : bool
+            If True (the default), x increases to the left, as if you were
+            looking along the beam. False gives a 'looking into the beam' view.
+        """
+        ax = super().inspect(axis_units=axis_units, frontview=frontview)
+        scale = self._get_plot_scale_factor(axis_units)
+
+        # Label modules and tiles
+        module = self.modules[0]
+        for t in range(4):
+            cx, cy, _ = module[t].centre() * scale
+            ax.text(cx, cy, f'ASIC {t}', fontweight='bold',
+                    verticalalignment='center',
+                    horizontalalignment='center')
+
+        ax.set_title('{} detector geometry ({})'.format(
+            self.detector_type_name, self.filename))
+        return ax
+
+    @classmethod
+    def asic_seams(cls):
+        """Make a boolean array marking the wide pixels
+
+        This returns a full frame array with False for normal pixels, and
+        True for the wide pixels at inner edges of ASICs.
+        """
+        npx_ss = cls.frag_ss_pixels
+        npx_fs = cls.frag_fs_pixels
+        ss_wides = np.full(cls.ss_tiles * npx_ss, False)
+        ss_wides[npx_ss - 1:npx_ss + 1] = True
+        fs_wides = np.full(cls.fs_tiles * npx_fs, False)
+        fs_wides[npx_fs - 1:npx_fs + 1] = True
+        return ss_wides[:, None] + fs_wides[None, :]
+
+    @classmethod
+    def pixel_areas(cls):
+        """Make an array of pixel areas
+
+        This returns a full frame array with pixel areas. Pixels on inner
+        edges of ASICs are bigger.
+        """
+        npx_ss = cls.frag_ss_pixels
+        npx_fs = cls.frag_fs_pixels
+        ss_sizes = np.full(cls.ss_tiles * npx_ss, cls.pixel_size)
+        ss_sizes[npx_ss - 1:npx_ss + 1] = cls.inner_pixel_size
+        fs_sizes = np.full(cls.fs_tiles * npx_fs, cls.pixel_size)
+        fs_sizes[npx_fs - 1:npx_fs + 1] = cls.inner_pixel_size
+        return np.outer(ss_sizes, fs_sizes)
+
+
+class Epix100Geometry(EpixGeometryBase):
+    """Detector layout for ePix100
+
+    ePix100 detectors have one module, which is built from 4 ASICs
+    with wide pixes on inner edges.
+
+    In its default configuration, the complete detector frame is read
+    out and written to file as a single image, with the ASICs split
+    along the both dimensions.
+
+    There are 4 more rows in raw data. These are calibration pixels.
+    They have the same electronics as normal pixels but aren't wired
+    to the sensor. They are two first and two last rows in the raw data
+    array. This class assumes that calibration rows are cut.
+    """
+    detector_type_name = 'ePix100'
+    pixel_size = 50e-6
+    inner_pixel_size = 175e-6
+    asic_gap = inner_pixel_size / pixel_size - 1
+    frag_ss_pixels = 352  # rows
+    frag_fs_pixels = 384  # columns
+    expected_data_shape = (
+        EpixGeometryBase.n_modules,
+        2 * frag_ss_pixels,
+        2 * frag_fs_pixels)
+
+
+class Epix10KGeometry(EpixGeometryBase):
+    """Detector layout for ePix10K
+
+    ePix10K detectors have one module, which is built from 4 ASICs
+    with wide pixes on inner edges.
+
+    In its default configuration, the complete detector frame is read
+    out and written to file as a single image, with the ASICs split
+    along the both dimensions.
+
+    There are 4 more rows in raw data. These are calibration pixels.
+    They have the same electronics as normal pixels but aren't wired
+    to the sensor. They are two first and two last rows in the raw data
+    array. This class assumes that calibration rows are cut.
+    """
+    detector_type_name = 'ePix10K'
+    pixel_size = 100e-6
+    inner_pixel_size = 250e-6
+    asic_gap = inner_pixel_size / pixel_size - 1
+    frag_ss_pixels = 176  # rows
+    frag_fs_pixels = 192  # columns
+    expected_data_shape = (
+        EpixGeometryBase.n_modules,
+        2 * frag_ss_pixels,
+        2 * frag_fs_pixels)
+
+
 class JUNGFRAUGeometry(DetectorGeometryBase):
     """Detector layout for flexible Jungfrau arrangements
 
@@ -1579,266 +1840,3 @@ class PNCCDGeometry(DetectorGeometryBase):
     def plot_data_fast(self, data, *args, **kwargs):
         return super().plot_data_fast(self._ensure_shape(data),
                                       *args, **kwargs)
-
-
-class EpixGeometryBase(DetectorGeometryBase):
-    """Base class for ePix detector geometry. Subclassed for specific detectors.
-    
-    The first pixel of the first tile (ASIC 0) corresponds to the first pixel
-    in the data `frame [0,0]`, and the first row of this tile corresponds to
-    half of the row line in the data `frame[0,:ncol//2]`.
-    
-    The four tiles are stacked in 2 rows of 2 columns and numbered along with
-    the columns:
-    [ASIC 0] [ASIC 1]
-    [ASIC 2] [ASIC 3]
-    """
-    # Geometry layout
-    # ---------------
-    # oooo-  -oooo
-    # oooo-  -oooo
-    # ||||#  #||||
-    #
-    # ||||#  #||||
-    # oooo-  -oooo
-    # oooo-  -oooo
-    #
-    # o : normal pixels 50x50 um
-    # - : long horizontal pixels 50x175 um
-    # | : long vertical pixels 175x50 um
-    # # : big square pixels 175x175 um (4 big pixels in the center)
-    #
-    # pixel sizes given for ePix100, ePix10K has doubled size pixels
-    #
-    # Electronic layout
-    # -----------------
-    # detector: 704+4 rows, 768 columns, 4 asics
-    # asic: 352+2 rows, 384 columns, 4 banks
-    # bank: 352+2 rows, 96 columns
-    #     - fast parallel column readout
-    #     - sigma-delta ADC per column
-    #     - single high speed LVDS link
-    #
-    # (+2) Each asics has two calibration rows:
-    #     - pixel max (the first and last rows in the pixel array)
-    #     - baseline (next rows)
-    #
-    # Schema
-    # ------
-    #      ||||||  ||||||
-    #   =                 =
-    #   =    A2      A1   =  352+2
-    #
-    #   =    A3      A0   =  352+2
-    #   =                 =
-    #      ||||||  ||||||
-    #        384     384
-    #
-    # Conversions in electronic layout
-    # -------------------------------
-    # - ASIC position to No.:
-    #     tileno = 2*(1 - row*col) + row - col
-    #
-    # - ASIC No. to position:
-    #     hi, lo = tileno // 2, tileno % 2
-    #     i, j = (hi - lo + 1) & 1, 1 - hi
-    #
-    # - ASIC slice:
-    #     [(nrow-1)*row : nrow//2-row : 1-2*row] or [-1 : nrow//2-row : 1-2*row]
-    #     [(ncol-1)*col : ncol//2-col : 1-2*col] or [-1 : ncol//2-col : 1-2*col]
-    #
-    # See also
-    # --------
-    # 1. [EuXFEL ePix documentation]
-    #     (https://in.xfel.eu/readthedocs/docs/epix-documentation/en/latest/index.html)
-    # 2. [A Dragone et al 2014 J. Phys.: Conf. Ser. 493 012012]
-    #     (https://doi.org/10.1088/1742-6596/493/1/012012)
-    # 3. [SLAC Confluence](https://confluence.slac.stanford.edu/display/PSDM/EPIX10KA)
-    #     Describes ePix10KA instead of ePix100, many details are common for these
-    #     two versions
-    n_modules = 1
-    n_tiles_per_module = 4
-    fs_tiles = 2
-    ss_tiles = 2
-
-    @classmethod
-    def from_origin(cls, origin=(0, 0), asic_gap=None, unit=None):
-        """Generate an ePix100 geometry from origin position.
-
-        This produces an idealised geometry, assuming all modules are perfectly
-        flat, aligned and equally spaced within the detector.
-
-        The default origin (0, 0) of the coordinates is the center of the
-        detector. If another coordinate is given as the origin, it is relative
-        to the center. Coordinates increase upwards and to the left (looking
-        along the beam).
-
-        To give positions in units other than pixels, pass the *unit* parameter
-        as the length of the unit in metres. E.g. ``unit=1e-3`` means the
-        coordinates are in millimetres.
-        """
-        if unit is None:
-            unit = cls.pixel_size
-        if asic_gap is None:
-            asic_gap = cls.asic_gap
-
-        x0, y0 = origin[0]*unit, origin[1]*unit
-        tiles = []
-        gap = asic_gap * unit
-        row_sz = cls.frag_ss_pixels * cls.pixel_size + gap
-        col_sz = cls.frag_fs_pixels * cls.pixel_size + gap
-        for tileno in range(4):
-            row, col = tileno // 2, tileno % 2
-            tiles.append(GeometryFragment(
-                corner_pos=np.array(
-                    [col_sz - col * (col_sz + gap) - x0,
-                     row_sz - row * (row_sz + gap) - y0,
-                     0]),
-                ss_vec=np.array([0, -1, 0]) * cls.pixel_size,
-                fs_vec=np.array([-1, 0, 0]) * cls.pixel_size,
-                ss_pixels=cls.frag_ss_pixels,
-                fs_pixels=cls.frag_fs_pixels,
-            ))
-        return cls([tiles])
-
-    @classmethod
-    def _module_coords_to_tile(cls, slow_scan, fast_scan):
-        nrow, ncol = cls.frag_ss_pixels, cls.frag_fs_pixels
-        row, tile_ss = np.divmod(slow_scan, nrow)
-        col, tile_fs = np.divmod(fast_scan, ncol)
-
-        tileno = 2*row + col
-        return tileno.astype(np.int16), tile_ss, tile_fs
-
-    @classmethod
-    def _tile_slice(cls, tileno):
-        # Which part of the array is this tile?
-        # tileno = 0 to 3
-        row, col = tileno // 2, tileno % 2
-        ss_slice = slice(cls.frag_ss_pixels * row,
-                         cls.frag_ss_pixels * (row+1))
-        fs_slice = slice(cls.frag_fs_pixels * col,
-                         cls.frag_fs_pixels * (col+1))
-        return ss_slice, fs_slice
-
-    @classmethod
-    def split_tiles(cls, module_data):
-        # Split into 4 tiles
-        return [module_data[
-            ...,
-            cls.frag_ss_pixels*row:cls.frag_ss_pixels*(row+1),
-            cls.frag_fs_pixels*col:cls.frag_fs_pixels*(col+1)]
-                for row, col in ((i // 2, i % 2) for i in range(4))]
-
-    def inspect(self, axis_units='px', frontview=True):
-        """Plot the 2D layout of this detector geometry.
-
-        Returns a matplotlib Axes object.
-
-        Parameters
-        ----------
-        axis_units : str
-            Show the detector scale in pixels ('px') or metres ('m').
-
-        frontview : bool
-            If True (the default), x increases to the left, as if you were
-            looking along the beam. False gives a 'looking into the beam' view.
-        """
-        ax = super().inspect(axis_units=axis_units, frontview=frontview)
-        scale = self._get_plot_scale_factor(axis_units)
-
-        # Label modules and tiles
-        module = self.modules[0]
-        for t in range(4):
-            cx, cy, _ = module[t].centre() * scale
-            ax.text(cx, cy, f'ASIC {t}', fontweight='bold',
-                    verticalalignment='center',
-                    horizontalalignment='center')
-
-        ax.set_title('{} detector geometry ({})'.format(
-            self.detector_type_name, self.filename))
-        return ax
-
-    @classmethod
-    def asic_seams(cls):
-        """Make a boolean array marking the wide pixels
-
-        This returns a full frame array with False for normal pixels, and
-        True for the wide pixels at inner edges of ASICs.
-        """
-        npx_ss = cls.frag_ss_pixels
-        npx_fs = cls.frag_fs_pixels
-        ss_wides = np.full(cls.ss_tiles*npx_ss, False)
-        ss_wides[npx_ss-1:npx_ss+1] = True
-        fs_wides = np.full(cls.fs_tiles*npx_fs, False)
-        fs_wides[npx_fs-1:npx_fs+1] = True
-        return ss_wides[:, None] + fs_wides[None, :]
-
-    @classmethod
-    def pixel_areas(cls):
-        """Make an array of pixel areas
-
-        This returns a full frame array with pixel areas. Pixels on inner
-        edges of ASICs are bigger.
-        """
-        npx_ss = cls.frag_ss_pixels
-        npx_fs = cls.frag_fs_pixels
-        ss_sizes = np.full(cls.ss_tiles*npx_ss, cls.pixel_size)
-        ss_sizes[npx_ss-1:npx_ss+1] = cls.inner_pixel_size
-        fs_sizes = np.full(cls.fs_tiles*npx_fs, cls.pixel_size)
-        fs_sizes[npx_fs-1:npx_fs+1] = cls.inner_pixel_size
-        return np.outer(ss_sizes, fs_sizes)
-
-
-class Epix100Geometry(EpixGeometryBase):
-    """Detector layout for ePix100
-
-    ePix100 detectors have one module, which is built from 4 ASICs
-    with wide pixes on inner edges.
-
-    In its default configuration, the complete detector frame is read
-    out and written to file as a single image, with the ASICs split
-    along the both dimensions.
-
-    There are 4 more rows in raw data. These are calibration pixels.
-    They have the same electronics as normal pixels but aren't wired
-    to the sensor. They are two first and two last rows in the raw data
-    array. This class assumes that calibration rows are cut.
-    """
-    detector_type_name = 'ePix100'
-    pixel_size = 50e-6
-    inner_pixel_size = 175e-6
-    asic_gap = inner_pixel_size/pixel_size - 1
-    frag_ss_pixels = 352  # rows
-    frag_fs_pixels = 384  # columns
-    expected_data_shape = (
-        EpixGeometryBase.n_modules,
-        2*frag_ss_pixels,
-        2*frag_fs_pixels)
-
-
-class Epix10KGeometry(EpixGeometryBase):
-    """Detector layout for ePix10K
-
-    ePix10K detectors have one module, which is built from 4 ASICs
-    with wide pixes on inner edges.
-
-    In its default configuration, the complete detector frame is read
-    out and written to file as a single image, with the ASICs split
-    along the both dimensions.
-
-    There are 4 more rows in raw data. These are calibration pixels.
-    They have the same electronics as normal pixels but aren't wired
-    to the sensor. They are two first and two last rows in the raw data
-    array. This class assumes that calibration rows are cut.
-    """
-    detector_type_name = 'ePix10K'
-    pixel_size = 100e-6
-    inner_pixel_size = 250e-6
-    asic_gap = inner_pixel_size/pixel_size - 1
-    frag_ss_pixels = 176  # rows
-    frag_fs_pixels = 192  # columns
-    expected_data_shape = (
-        EpixGeometryBase.n_modules,
-        2*frag_ss_pixels,
-        2*frag_fs_pixels)
