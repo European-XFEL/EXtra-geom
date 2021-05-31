@@ -1,13 +1,16 @@
-from cfelpyutils.crystfel_utils import load_crystfel_geometry
+from os.path import abspath, dirname
+from os.path import join as pjoin
+
 import h5py
-from matplotlib.axes import Axes
 import numpy as np
-from os.path import abspath, dirname, join as pjoin
 import pytest
+from cfelpyutils.crystfel_utils import load_crystfel_geometry
+from matplotlib.axes import Axes
 from testpath import assert_isfile
 
 from extra_geom import LPD_1MGeometry
 from extra_geom.detectors import invert_xfel_lpd_geom
+
 from .utils import assert_geom_close
 
 tests_dir = dirname(abspath(__file__))

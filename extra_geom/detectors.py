@@ -1,13 +1,12 @@
 """Detector geometry handling."""
-import h5py
-from itertools import product
-import numpy as np
-from typing import List, Tuple
 import warnings
+from itertools import product
+from typing import List, Tuple
+
+import h5py
+import numpy as np
 
 from .base import DetectorGeometryBase, GeometryFragment
-
-__all__ = ['AGIPD_1MGeometry', 'LPD_1MGeometry']
 
 
 class GenericGeometry(DetectorGeometryBase):
@@ -1582,11 +1581,11 @@ class PNCCDGeometry(DetectorGeometryBase):
 
 class EpixGeometryBase(DetectorGeometryBase):
     """Base class for ePix detector geometry. Subclassed for specific detectors.
-    
+
     The first pixel of the first tile (ASIC 0) corresponds to the first pixel
     in the data `frame [0,0]`, and the first row of this tile corresponds to
     half of the row line in the data `frame[0,:ncol//2]`.
-    
+
     The four tiles are stacked in 2 rows of 2 columns and numbered along with
     the columns:
     [ASIC 0] [ASIC 1]
@@ -1681,7 +1680,7 @@ class EpixGeometryBase(DetectorGeometryBase):
         if asic_gap is None:
             asic_gap = cls.asic_gap
 
-        x0, y0 = origin[0]*unit, origin[1]*unit
+        x0, y0 = origin[0] * unit, origin[1] * unit
         tiles = []
         gap = asic_gap * unit
         row_sz = cls.frag_ss_pixels * cls.pixel_size + gap
@@ -1706,7 +1705,7 @@ class EpixGeometryBase(DetectorGeometryBase):
         row, tile_ss = np.divmod(slow_scan, nrow)
         col, tile_fs = np.divmod(fast_scan, ncol)
 
-        tileno = 2*row + col
+        tileno = 2 * row + col
         return tileno.astype(np.int16), tile_ss, tile_fs
 
     @classmethod
@@ -1715,18 +1714,18 @@ class EpixGeometryBase(DetectorGeometryBase):
         # tileno = 0 to 3
         row, col = tileno // 2, tileno % 2
         ss_slice = slice(cls.frag_ss_pixels * row,
-                         cls.frag_ss_pixels * (row+1))
+                         cls.frag_ss_pixels * (row + 1))
         fs_slice = slice(cls.frag_fs_pixels * col,
-                         cls.frag_fs_pixels * (col+1))
+                         cls.frag_fs_pixels * (col + 1))
         return ss_slice, fs_slice
 
     @classmethod
     def split_tiles(cls, module_data):
         # Split into 4 tiles
         return [module_data[
-            ...,
-            cls.frag_ss_pixels*row:cls.frag_ss_pixels*(row+1),
-            cls.frag_fs_pixels*col:cls.frag_fs_pixels*(col+1)]
+                ...,
+                cls.frag_ss_pixels * row:cls.frag_ss_pixels * (row + 1),
+                cls.frag_fs_pixels * col:cls.frag_fs_pixels * (col + 1)]
                 for row, col in ((i // 2, i % 2) for i in range(4))]
 
     def inspect(self, axis_units='px', frontview=True):
@@ -1767,10 +1766,10 @@ class EpixGeometryBase(DetectorGeometryBase):
         """
         npx_ss = cls.frag_ss_pixels
         npx_fs = cls.frag_fs_pixels
-        ss_wides = np.full(cls.ss_tiles*npx_ss, False)
-        ss_wides[npx_ss-1:npx_ss+1] = True
-        fs_wides = np.full(cls.fs_tiles*npx_fs, False)
-        fs_wides[npx_fs-1:npx_fs+1] = True
+        ss_wides = np.full(cls.ss_tiles * npx_ss, False)
+        ss_wides[npx_ss - 1:npx_ss + 1] = True
+        fs_wides = np.full(cls.fs_tiles * npx_fs, False)
+        fs_wides[npx_fs - 1:npx_fs + 1] = True
         return ss_wides[:, None] + fs_wides[None, :]
 
     @classmethod
@@ -1782,10 +1781,10 @@ class EpixGeometryBase(DetectorGeometryBase):
         """
         npx_ss = cls.frag_ss_pixels
         npx_fs = cls.frag_fs_pixels
-        ss_sizes = np.full(cls.ss_tiles*npx_ss, cls.pixel_size)
-        ss_sizes[npx_ss-1:npx_ss+1] = cls.inner_pixel_size
-        fs_sizes = np.full(cls.fs_tiles*npx_fs, cls.pixel_size)
-        fs_sizes[npx_fs-1:npx_fs+1] = cls.inner_pixel_size
+        ss_sizes = np.full(cls.ss_tiles * npx_ss, cls.pixel_size)
+        ss_sizes[npx_ss - 1:npx_ss + 1] = cls.inner_pixel_size
+        fs_sizes = np.full(cls.fs_tiles * npx_fs, cls.pixel_size)
+        fs_sizes[npx_fs - 1:npx_fs + 1] = cls.inner_pixel_size
         return np.outer(ss_sizes, fs_sizes)
 
 
@@ -1807,13 +1806,13 @@ class Epix100Geometry(EpixGeometryBase):
     detector_type_name = 'ePix100'
     pixel_size = 50e-6
     inner_pixel_size = 175e-6
-    asic_gap = inner_pixel_size/pixel_size - 1
+    asic_gap = inner_pixel_size / pixel_size - 1
     frag_ss_pixels = 352  # rows
     frag_fs_pixels = 384  # columns
     expected_data_shape = (
         EpixGeometryBase.n_modules,
-        2*frag_ss_pixels,
-        2*frag_fs_pixels)
+        2 * frag_ss_pixels,
+        2 * frag_fs_pixels)
 
 
 class Epix10KGeometry(EpixGeometryBase):
@@ -1834,10 +1833,10 @@ class Epix10KGeometry(EpixGeometryBase):
     detector_type_name = 'ePix10K'
     pixel_size = 100e-6
     inner_pixel_size = 250e-6
-    asic_gap = inner_pixel_size/pixel_size - 1
+    asic_gap = inner_pixel_size / pixel_size - 1
     frag_ss_pixels = 176  # rows
     frag_fs_pixels = 192  # columns
     expected_data_shape = (
         EpixGeometryBase.n_modules,
-        2*frag_ss_pixels,
-        2*frag_fs_pixels)
+        2 * frag_ss_pixels,
+        2 * frag_fs_pixels)

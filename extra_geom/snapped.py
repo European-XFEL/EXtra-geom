@@ -4,10 +4,11 @@ This is useful to copy data from multiple modules into a single image array.
 This module is not a public API: it's used internally by the classes in
 extra_geom.detectors.
 """
+import sys
 from copy import copy
 from itertools import chain
+
 import numpy as np
-import sys
 
 
 class GridGeometryFragment:
@@ -179,8 +180,8 @@ class SnappedGeometry:
                   **kwargs):
         """Implementation for plot_data_fast
         """
-        from matplotlib.cm import viridis
         import matplotlib.pyplot as plt
+        from matplotlib.cm import viridis
 
         if axis_units not in {'px', 'm'}:
             raise ValueError("axis_units must be 'px' or 'm', not {!r}"

@@ -1,11 +1,12 @@
 """DEPRECATED: LPD geometry. Use extra_geom.LPD_1MGeometry instead.
 """
-from copy import copy
-import h5py
-from itertools import product
-import numpy as np
 import sys
+from copy import copy
+from itertools import product
 from textwrap import indent
+
+import h5py
+import numpy as np
 
 
 def splitChannelDataIntoTiles(channelData, clockwiseOrder=False):
@@ -179,8 +180,8 @@ class LPDGeometry(GeometryFragment):
           Should have exactly 3 dimensions: channelno, pixel_y, pixel_x
           (lengths 16, 256, 256).
         """
-        from matplotlib.cm import viridis
         from matplotlib.backends.backend_agg import FigureCanvasAgg
+        from matplotlib.cm import viridis
         from matplotlib.figure import Figure
 
         fig = Figure((10, 10))

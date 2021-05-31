@@ -1,11 +1,11 @@
-from extra_geom import Epix100Geometry, Epix10KGeometry
-
-import extra_geom
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-
 from cfelpyutils.crystfel_utils import load_crystfel_geometry
+
+import extra_geom
+from extra_geom import Epix10KGeometry, Epix100Geometry
+
 from .utils import assert_geom_close
 
 

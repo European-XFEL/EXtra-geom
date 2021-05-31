@@ -115,7 +115,7 @@ class DetectorGeometryBase:
         Returns a matplotlib Figure object.
         """
         import matplotlib.pyplot as plt
-        from matplotlib.collections import PatchCollection, LineCollection
+        from matplotlib.collections import LineCollection, PatchCollection
         from matplotlib.patches import Polygon
 
         scale = self._get_plot_scale_factor(axis_units)

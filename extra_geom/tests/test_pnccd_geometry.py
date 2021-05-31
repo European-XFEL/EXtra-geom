@@ -1,9 +1,11 @@
-import pytest
 import numpy as np
+import pytest
 from matplotlib.axes import Axes
 
-from .utils import assert_geom_close
 from extra_geom import PNCCDGeometry
+
+from .utils import assert_geom_close
+
 
 def test_positions():
     # Positional constants
