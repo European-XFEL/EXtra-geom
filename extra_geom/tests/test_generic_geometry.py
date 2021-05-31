@@ -41,7 +41,9 @@ def test__tile_silce(simple):
 
 
 def test_write_crystfel_geom(simple, tmp_path):
-    simple.write_crystfel_geom(tmp_path / 'test.geom')
+    simple_geom_file_path = tmp_path / 'test.geom'
+    simple.write_crystfel_geom(simple_geom_file_path)
+    return simple_geom_file_path
 
 
 def test_compare(simple):
@@ -83,3 +85,9 @@ def test_module_coords_to_tile(simple):
     np.testing.assert_array_equal(tileno, [0, 0, 1, 1])
     np.testing.assert_array_equal(tile_ss, slow_scan)
     np.testing.assert_allclose(tile_fs, np.mod(fast_scan, 128))
+
+
+def test_from_crystfel_geom(simple, tmp_path):
+    path = test_write_crystfel_geom(simple, tmp_path)
+    with pytest.raises(NotImplementedError):
+        simple.from_crystfel_geom(path)
