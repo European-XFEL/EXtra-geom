@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def all_tiles(geom):
     for mod in geom.modules:
         yield from mod

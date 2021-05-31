@@ -1,9 +1,10 @@
 """Detector geometry handling."""
-import h5py
-from itertools import product
-import numpy as np
-from typing import List, Tuple
 import warnings
+from itertools import product
+from typing import List, Tuple
+
+import h5py
+import numpy as np
 
 from .base import DetectorGeometryBase, GeometryFragment
 

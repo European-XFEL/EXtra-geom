@@ -1,9 +1,9 @@
-from extra_geom import GenericGeometry
-
-import extra_geom
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+
+import extra_geom
+from extra_geom import GenericGeometry
 
 pixel_size = 0.01
 

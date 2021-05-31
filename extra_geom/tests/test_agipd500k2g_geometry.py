@@ -1,11 +1,12 @@
-from cfelpyutils.crystfel_utils import load_crystfel_geometry
 from concurrent.futures import ThreadPoolExecutor
-from extra_data.stacking import stack_detector_data
 from itertools import product
-from matplotlib.axes import Axes
+
 import numpy as np
 import pytest
 import xarray as xr
+from cfelpyutils.crystfel_utils import load_crystfel_geometry
+from extra_data.stacking import stack_detector_data
+from matplotlib.axes import Axes
 
 from extra_geom import AGIPD_500K2GGeometry
 

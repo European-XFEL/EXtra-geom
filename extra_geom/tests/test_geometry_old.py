@@ -1,9 +1,11 @@
 """Tests for deprecated extra_geom.geometry module."""
 
+from os.path import abspath, dirname
+from os.path import join as pjoin
+
 import h5py
-from matplotlib.figure import Figure
 import numpy as np
-from os.path import abspath, dirname, join as pjoin
+from matplotlib.figure import Figure
 
 from extra_geom.lpd_old import LPDGeometry
 

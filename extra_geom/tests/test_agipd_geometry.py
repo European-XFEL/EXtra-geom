@@ -1,9 +1,10 @@
-from cfelpyutils.crystfel_utils import load_crystfel_geometry
 from concurrent.futures import ThreadPoolExecutor
 from itertools import product
-from matplotlib.axes import Axes
+
 import numpy as np
 import pytest
+from cfelpyutils.crystfel_utils import load_crystfel_geometry
+from matplotlib.axes import Axes
 
 from extra_geom import AGIPD_1MGeometry, agipd_asic_seams
 

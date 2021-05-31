@@ -1,9 +1,11 @@
 
-from cfelpyutils.crystfel_utils import load_crystfel_geometry
 import numpy as np
+from cfelpyutils.crystfel_utils import load_crystfel_geometry
 
 from extra_geom import JUNGFRAUGeometry
+
 from .utils import assert_geom_close
+
 
 def jf4m_geometry():
     x_start, y_start = 1125, 1078

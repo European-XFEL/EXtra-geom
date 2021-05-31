@@ -1,6 +1,7 @@
 """Write geometry in CrystFEL format.
 """
 from itertools import product
+
 import numpy as np
 
 HEADER_TEMPLATE = """\

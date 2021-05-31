@@ -1,10 +1,13 @@
+from os.path import abspath, dirname
+from os.path import join as pjoin
+
 import h5py
-from matplotlib.axes import Axes
 import numpy as np
-from os.path import abspath, dirname, join as pjoin
+from matplotlib.axes import Axes
 from testpath import assert_isfile
 
 from extra_geom import DSSC_1MGeometry
+
 from .utils import assert_geom_close
 
 tests_dir = dirname(abspath(__file__))

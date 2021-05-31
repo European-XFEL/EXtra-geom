@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import os.path as osp
 import re
-from setuptools import setup, find_packages
 import sys
+
+from setuptools import find_packages, setup
 
 
 def get_script_path():
