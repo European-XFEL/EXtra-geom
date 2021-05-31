@@ -185,6 +185,10 @@ class GenericGeometry(DetectorGeometryBase):
             tileno, tile_fs = np.divmod(fast_scan, self.frag_fs_pixels)
             return tileno.astype(np.int16), slow_scan, tile_fs
 
+    @classmethod
+    def from_crystfel_geom(cls, filename):
+        raise NotImplementedError
+
 
 class AGIPD_1MGeometry(DetectorGeometryBase):
     """Detector layout for AGIPD-1M
