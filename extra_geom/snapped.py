@@ -84,7 +84,12 @@ class SnappedGeometry:
         """Make an output array for self.position_modules()
         """
         shape = extra_shape + self.size_yx
-        return np.full(shape, np.nan, dtype=dtype)
+        if np.issubdtype(dtype, np.floating):
+            return np.full(shape, np.nan, dtype=dtype)
+
+        # zeros() is much faster than full() with 0 - part of the cost is just
+        # deferred until we fill it, but it's probably still advantageous.
+        return np.zeros(shape, dtype=dtype)
 
     def position_modules(self, data, out=None, threadpool=None):
         """Implementation for position_modules_fast
