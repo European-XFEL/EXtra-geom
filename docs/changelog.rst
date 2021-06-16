@@ -1,6 +1,20 @@
 Release Notes
 =============
 
+1.4
+---
+
+- Added support for ePix100 & ePix10k detectors (:ghpull:`73`). See
+  :doc:`epix_geometry` (example) and :ref:`det-EPIX` (reference).
+- :meth:`.GenericGeometry.inspect` now labels modules and tiles if there
+  are more than one (:ghpull:`74`).
+- Allocating output arrays to assemble integer data should be faster
+  (:ghpull:`78`).
+- Use ``NotImplementedError`` to make it clear that creating
+  :class:`.GenericGeometry` from a ``.geom`` file is not yet supported
+  (:ghpull:`77`).
+- Some code reorganisation (:ghpull:`75`, :ghpull:`76`).
+
 1.3
 ---
 
