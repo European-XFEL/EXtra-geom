@@ -1,12 +1,14 @@
-"""Convert between
+"""Convert between masks as arrays and as a set of rectangular regions
 """
 
 import os
 import re
 import warnings
 
-import h5py
+from cfelpyutils.crystfel_utils import load_crystfel_geometry
 import numpy as np
+
+from . import crystfel_fmt
 
 
 def delta_method(mask):
@@ -71,357 +73,193 @@ def delta_method(mask):
 
     return res
 
+class RegionRect:
+    """One masked region within a 3D array of data (modules stacked)
 
-class MaskConverter:
+    This can apply to a single module (modno=5) or all modules (modno=None).
+    """
+    def __init__(self, modno, start_ss, stop_ss, start_fs, stop_fs):
+        self.modno = modno  # None -> applies to all modules
+        self.start_ss = start_ss
+        self.stop_ss = stop_ss
+        self.start_fs = start_fs
+        self.stop_fs = stop_fs
 
-    modes_avail = ('hd52geom', 'geom2hd5')
-    write_modes = ('replace', 'add')
+    def _tuple(self):
+        return self.modno, self.start_ss, self.stop_ss, self.start_fs, self.stop_fs
 
-    def __init__(self, hd5file, geofile, run_mode, write_mode,
-                 hd5path, hd5entry, detector, data_type, invert):
-        """
-        Construct a mask converter with provided parameters.
+    def __hash__(self):
+        return hash(self._tuple())
 
-        Args:
-            hd5file (string): relative or absolute path to the HD5 file.
-            geofile (string): relative or absolute path to the geometry file.
-            run_mode (string): mode of the mask converter operation.
-            write_mode (string): mode of writing to the existing file.
-            hd5path (string): path to the mask in HD5 file.
-            hd5entry (int): entry number of the mask in HD5 file.
-            detector (string): name of the detector.
-            data_type (string): type of the detector data.
-            invert (bool): invert the mask after reading from of before
-                writing to the HD5 file.
-
-        Raises:
-            KeyError: unexpected run mode.
-            KeyError: unexpected write mode.
-            KeyError: detector name missing in the detector_info keys.
-            KeyError: data type missing in detector_info for specified
-                detector.
-        """
-
-        self._hd5file = hd5file
-        self._hd5path = hd5path
-        self._hd5entry = hd5entry
-        self._geofile = geofile
-        self._run_mode = run_mode
-        self._write_mode = write_mode
-        self._detector = detector
-        self._data_type = data_type
-        self._invert = invert
-
-        if self._run_mode not in self.modes_avail:
-            raise KeyError(
-                f"Unknown MaskConverter run mode: {self._run_mode}.")
-        if self._write_mode not in self.write_modes:
-            raise KeyError(
-                f"Unknown MaskConverter write mode: {self._write_mode}.")
-        if self._detector not in di.detector_info.keys():
-            raise KeyError(
-                f"Unknown detector: {self._detector}.")
-        if self._data_type not in di.detector_info[self._detector].keys():
-            raise KeyError(
-                f"Missing info on '{self._data_type}' data type for "
-                f"detector {self._detector}.")
-
-        self._det_info = di.detector_info[self._detector][self._data_type]
-
-        self._read_mask()
+    def __eq__(self, other):
+        return isinstance(other, RegionRect) and self._tuple() == other._tuple()
 
     @property
-    def mask(self):
+    def array_slice(self):
+        """Get a tuple to use for slicing an array"""
+        mod = np.s_[:] if (self.modno is None) else self.modno
+        return np.s_[mod, self.start_ss:self.stop_ss, self.start_fs:self.stop_fs]
+
+    def intersection(self, other: 'RegionRect'):
+        """Find the intersection of this and another RegionRect
+
+        Returns (overlap, intersection). The first value is True if the two
+        regions overlap, and the second is a RegionRect for their intersection.
         """
-        Provides a copy of the detector mask.
+        modno = self.modno if (self.modno is not None) else other.modno
+        if other.modno in (modno, None):
+            # On the same module, or one of self/other is for all modules
+            r = RegionRect(
+                modno,
+                max(self.start_ss, other.start_ss),
+                min(self.stop_ss, other.stop_ss),
+                max(self.start_fs, other.start_fs),
+                min(self.stop_fs, other.stop_fs),
+            )
+            overlap = (r.start_ss < r.stop_ss) and (r.start_fs < r.stop_fs)
+            return overlap, r
 
-        Returns:
-            np.array: Detector mask as a 2D boolean numpy array.
+        return False, RegionRect(0, 0, 0, 0, 0)
+
+
+class MaskRegions:
+    """A set of rectangular regions masked in a stack of module images"""
+    def __init__(self, shape, regions=()):
+        assert len(shape) == 3
+        self.shape = shape
+        self.regions = regions  # [RegionRect]
+
+    @classmethod
+    def from_crystfel_geom(cls, filename):
+        """Read mask from a CrystFEL format geometry file.
         """
-        return np.copy(self.__mask)
+        geom_dict = load_crystfel_geometry(filename)
+        arr_shape = crystfel_fmt.data_shape(geom_dict['panels'])
+        if len(arr_shape) == 2:
+            arr_shape = (1,) + arr_shape
 
-    def convert(self):
-        """
-        Convert detector mask and write to the output file.
-        """
-        self._convert_mask()
-        self._write_mask()
+        regions = []
+        for name, info in geom_dict['bad'].items():
+            if not info['is_fsss']:
+                # Regions can also be defined with x & y coordinates, but these
+                # are not handled yet.
+                continue
 
-    def _read_mask_hd5(self):
-        """
-        Read mask from the HD5 file to boolean numpy array.
-
-        Returns:
-            np.array: Detector mask as a 2D boolean numpy array.
-        """
-
-        res_mask = None
-        mask_shape = self._det_info['shape']
-
-        with h5py.File(self._hd5file, 'r') as f_hd5:
-            hd5mask = f_hd5.get(self._hd5path)
-
-            # Check shape of the HDF5 mask
-            mu.check_hd5mask(hd5mask, mask_shape, self._hd5entry)
-
-            # Remove 'n_data' dimension, convert to np.array
-            if hd5mask.ndim > len(mask_shape):
-                hd5mask = hd5mask[self._hd5entry]
-            else:
-                hd5mask = np.array(hd5mask)
-
-        # Convert mask values to True (masked) and False
-        res_mask = self._det_info['read_mask'](hd5mask)
-
-        if self._invert:
-            res_mask = np.logical_not(res_mask)
-
-        return res_mask
-
-    def _read_mask_geo(self):
-        """
-        Read mask from the geometry file to the dictionary of rectangles
-        (in the same format as in the geometry file).
-
-        Raises:
-            ValueError: mask panel description not expected for the
-                specified data type.
-            ValueError: mask panel description does not suit specified
-                detector and data type.
-
-        Returns:
-            dict: dictionary of rectangles (in the same format as in the
-            geometry file) representing masked regions.
-        """
-
-        res_dict = {}
-        bad_dict = {}
-
-        with open(self._geofile, 'r') as f_geo:
-            for line in f_geo:
-                # To ignore comments:
-                line = line.partition(';')[0].rstrip()
-
-                m_obj = re.search(r"bad_(.+)/(\S+)\s*=\s*(\S+)", line)
-                if m_obj is not None:
-                    area, var, val = m_obj.groups()
-                    if area not in bad_dict.keys():
-                        bad_dict[area] = {
-                            'min_fs': -1,
-                            'max_fs': -1,
-                            'min_ss': -1,
-                            'max_ss': -1,
-                            'panel': 'all'
-                        }
-                    if var == 'panel':
-                        bad_dict[area][var] = val
-
-                        # Check whether panel value is expected
-                        if len(self._det_info['shape']) != 3:
-                            raise ValueError(
-                                f"Panel description ({val}) not expected "
-                                f"for {self._data_type} data.")
-
-                        # Check <val> to be suitable description
-                        # of a panel and asic
-                        m_obj = re.match(r"(p\d+)(a\d+)", val)
-                        if (m_obj is None
-                            or m_obj.group(1) not in
-                                self._det_info['panel_names']
-                            or m_obj.group(2) not in
-                                self._det_info['asic_names']):
-                            raise ValueError(
-                                f"Not suitable panel description: {val}.")
-                    elif var in bad_dict[area].keys():
-                        bad_dict[area][var] = int(val)
-                    else:
-                        warnings.warn(
-                            f"Geometry file - unsupported mask variable: "
-                            f"{var} in bad_{area}.")
-
-        # Check if rectangle information is complete
-        i = 0
-        for area in bad_dict.keys():
-            if all([
-                bad_dict[area]['min_fs'] >= 0,
-                bad_dict[area]['max_fs'] >= 0,
-                bad_dict[area]['min_ss'] >= 0,
-                bad_dict[area]['max_ss'] >= 0
-            ]):
-                res_dict[i] = bad_dict[area]
-                i += 1
-            else:
+            min_ss, max_ss = info['min_ss'], info['max_ss']
+            min_fs, max_fs = info['min_fs'], info['max_fs']
+            if (max_ss < min_ss) or (max_fs < min_fs):
                 warnings.warn(
-                    f"Geometry file - incomplete information for bad_{area}.")
+                    f"Geometry file {filename} - incomplete information for {name}."
+                )
+            if 'panel' in info:
+                panel_info = geom_dict['panels'][info['panel']]
+                modno = crystfel_fmt.panel_modno(panel_info, info['panel'])
+                modno = modno or 0  # None -> 0
 
-        return res_dict
+                # Clip the region to the panel limits
+                min_ss = max(min_ss, panel_info['min_ss'])
+                max_ss = min(max_ss, panel_info['max_ss'])
+                min_fs = max(min_fs, panel_info['min_fs'])
+                max_fs = min(max_fs, panel_info['max_fs'])
+            else:
+                modno = None  # Applies to all panels
 
-    def _read_mask(self):
+            regions.append(RegionRect(
+                modno, min_ss, max_ss + 1, min_fs, max_fs + 1,
+            ))
+
+        return cls(arr_shape, regions)
+
+    @classmethod
+    def from_mask_array(cls, arr):
+        """Convert mask from a 2D or 3D boolean numpy array to rectangular regions.
+
+        The masked/selected regions will be where the array contains True.
         """
-        Read mask from the HD5 or geometry file, depending on mode.
-        """
+        if arr.ndim not in {2, 3}:
+            raise TypeError(f"Array must be 2D or 3D (got {arr.ndim} dims)")
 
-        self.__mask = np.zeros(self._det_info['shape'], dtype=bool)
-        self.__rect = {}
+        def find_regions(arr_2d, modno):
+            return [RegionRect(
+                modno, min_ss, max_ss + 1, min_fs, max_fs + 1
+            ) for ((min_fs, max_fs), (min_ss, max_ss)) in delta_method(arr_2d)]
 
-        if self._run_mode == "hd52geom":
-            self.__mask = self._read_mask_hd5()
+        if arr.ndim == 2:
+            return cls((1,) + arr.shape, find_regions(arr, modno=np.s_[:]))
 
-            # Reduce mask in case of write option 'add'
-            if self._write_mode == 'add' and os.path.exists(self._geofile):
-                self.__rect = self._read_mask_geo()
-                reduce_mask = self._convert_rectd2nparr()
-                self.__mask = np.logical_and(self.__mask,
-                                             np.logical_not(reduce_mask))
-                self.__rect = {}
-
-        elif self._run_mode == "geom2hd5":
-            self.__rect = self._read_mask_geo()
-
-            # Read also mask from HD5 in case of write option 'add'
-            if (self._write_mode == 'add'
-                    and os.path.exists(self._hd5file)):
-                self.__mask = self._read_mask_hd5()
-
-    def _convert_nparr2rectd(self):
-        """
-        Convert mask from the 2D boolean numpy array to the dictionary
-        of rectangles (in the same format as in the geometry file).
-
-        Returns:
-            dict: Dictionary of rectangles (in the same format as in the
-            geometry file) representing masked regions.
-        """
-
-        res_dict = {}
+        # 3D array (modno, slow_scan, fast_scan)
 
         # First check for regions to be excluded in all panels:
-        if self.__mask.ndim == 3:
-            panel_all = self.mask[0]
-            for i in range(1, self.__mask.shape[0]):
-                panel_all = np.logical_and(panel_all, self.__mask[i])
-        else:
-            panel_all = self.mask
+        panel_all = np.logical_and.reduce(arr, axis=0)
+        regions = find_regions(panel_all, modno=np.s_[:])
+        is_panel_all_empty = not np.any(panel_all)
 
-        is_panel_all_empty = np.array_equiv(panel_all, False)
-        if not is_panel_all_empty:
-            res_dict.update(mu.rect2dict(delta_method(panel_all), 'all'))
+        # Loop over all panels:
+        for i, panel_arr in enumerate(arr):
+            if not is_panel_all_empty:
+                panel_arr = np.copy(panel_arr) & ~panel_all
 
-        if self.__mask.ndim == 3:
-            panels = self._det_info['panel_names']
-            asics = self._det_info['asic_names']
-            asic_range = self._det_info['asic_range']
+            regions.extend(find_regions(panel_arr, modno=i))
 
-            # Loop over all panels:
-            for i in range(len(panels)):
-                if is_panel_all_empty:
-                    panel_i = self.__mask[i]
-                else:
-                    panel_i = np.copy(self.__mask[i])
-                    panel_i = np.logical_and(panel_i,
-                                             np.logical_not(panel_all))
+        return cls(arr.shape, regions)
 
-                # Loop over all asics in the panel:
-                for j in range(len(asics)):
-                    asic_j = np.zeros(panel_i.shape, dtype=bool)
-                    asic_j[asic_range[i][j]] = True
-                    panel_i_asic_j = np.logical_and(panel_i, asic_j)
-                    res_dict.update(
-                        mu.rect2dict(delta_method(panel_i_asic_j),
-                                     f"{panels[i]}{asics[j]}"))
+    def to_mask_array(self):
+        """Convert the mask rectangles to a 3D boolean numpy array.
 
-        return res_dict
-
-    def _convert_rectd2nparr(self):
+        The selected regions will be True in the array.
         """
-        Convert mask from the dictionary of rectangles (same format as
-        in the geometry file) to the 2D boolean numpy array.
+        res_mask = np.zeros(self.shape, dtype=np.bool_)
 
-        Returns:
-            np.array: Detector mask as a 2D boolean numpy array.
-        """
-
-        shape = self._det_info['shape']
-        res_mask = np.zeros(shape, dtype=bool)
-
-        for area in self.__rect.keys():
-            slice_ss = slice(self.__rect[area]['min_ss'],
-                             self.__rect[area]['max_ss'] + 1)
-            slice_fs = slice(self.__rect[area]['min_fs'],
-                             self.__rect[area]['max_fs'] + 1)
-            if self.__rect[area]['panel'] == 'all':
-                if len(shape) == 3:
-                    res_mask[:, slice_ss, slice_fs] = True
-                else:
-                    res_mask[slice_ss, slice_fs] = True
-            else:
-                assert len(shape) == 3, (
-                    "Convert rectd2nparr: mask has to be dimensions 3 to "
-                    "apply rectangles per panel.")
-
-                panel, asic = re.match(
-                    r"(p\d+)(a\d+)", self.__rect[area]['panel']).groups()
-                panel_n = self._det_info['panel_names'].index(panel)
-                asic_n = self._det_info['asic_names'].index(asic)
-                asic_range = self._det_info['asic_range'][panel_n][asic_n]
-
-                slice_ss_in_asic = slice(
-                    max(slice_ss.start, asic_range[0].start),
-                    min(slice_ss.stop, asic_range[0].stop))
-                slice_fs_in_asic = slice(
-                    max(slice_fs.start, asic_range[1].start),
-                    min(slice_fs.stop, asic_range[1].stop))
-
-                res_mask[panel_n, slice_ss_in_asic, slice_fs_in_asic] = True
+        for region in self.regions:
+            res_mask[region.array_slice] = True
 
         return res_mask
 
-    def _convert_mask(self):
-        """
-        Convert the mask, depending on mode.
-        """
-        if self._run_mode == "hd52geom":
-            self.__rect = self._convert_nparr2rectd()
-        elif self._run_mode == "geom2hd5":
-            rect_mask = self._convert_rectd2nparr()
-            self.__mask = np.logical_or(self.__mask, rect_mask)
+    def make_crystfel_bad_regions(self, panels_dict):
+        modno_to_panels = {}
+        for pname, pinfo in panels_dict:
+            modno = crystfel_fmt.panel_modno(pinfo, pname)
+            modno_to_panels.setdefault(modno, []).append((pname, pinfo))
 
-    def _write_mask_hd5(self):
-        """
-        Write converted mask to the HD5 file.
-        """
+        def to_dict(region: RegionRect):
+            return {
+                'min_ss': region.start_ss, 'max_ss': region.stop_ss - 1,
+                'min_fs': region.start_fs, 'max_fs': region.stop_fs - 1,
+            }
 
-        mask_shape = self.__mask.shape
-        mask_tmp = self.__mask
-        if self._invert:
-            mask_tmp = np.logical_not(mask_tmp)
-        mask_to_write = self._det_info['write_mask'](mask_tmp)
+        res = []
+        for mask_region in self.regions:
+            if mask_region.modno is None:
+                res.append(to_dict(mask_region))  # Mask for all panels
 
-        with h5py.File(self._hd5file, 'a') as f_hd5:
-            if self._hd5path in f_hd5:
-                hd5mask = f_hd5[self._hd5path]
-
-                # Check shape of the existing HDF5 mask
-                mu.check_hd5mask(hd5mask, mask_shape, self._hd5entry)
-
-                if hd5mask.ndim > len(mask_shape):
-                    hd5mask[self._hd5entry] = mask_to_write
-                else:
-                    hd5mask[...] = mask_to_write
             else:
-                f_hd5.create_dataset(self._hd5path, data=mask_to_write)
+                for pname, pinfo in modno_to_panels[mask_region.modno]:
+                    panel_region = RegionRect(
+                        mask_region.modno,
+                        pinfo['min_ss'], pinfo['max_ss'] + 1,
+                        pinfo['min_fs'], pinfo['max_fs'] + 1,
+                    )
+                    overlap, matching = mask_region.intersection(panel_region)
+                    if overlap:
+                        d = to_dict(matching)
+                        d['panel'] = pname
+                        res.append(d)
 
-    def _write_mask_geo(self):
-        """
-        Write converted mask to the geometry file.
+        return res
+
+    def write_crystfel_geom(self, filename, write_mode):
+        """Write the mask regions to a CrystFEL format geometry file.
+
+        *filename* needs to exist already; it will be read to identify the
+        panels which the mask applies to.
         """
 
         text_before = text_after = []
         n_area_start = 0
 
         # Store and process content of the existing geometry file
-        if os.path.exists(self._geofile):
-            with open(self._geofile, 'r') as f_geo:
+        if os.path.exists(filename):
+            with open(filename, 'r') as f_geo:
                 contents = f_geo.readlines()
 
             idx_write = len(contents)
@@ -433,7 +271,7 @@ class MaskConverter:
 
                     # Comment existing mask for the 'replace' mode
                     if all([
-                        self._write_mode == 'replace',
+                        write_mode == 'replace',
                         "bad_" in line.partition(';')[0]
                     ]):
                         contents[i] = "; " + line
@@ -457,33 +295,31 @@ class MaskConverter:
 
         # Format mask as a list of text lines
         text_mask = []
-        if (text_before
-                and text_before[-1].strip() != ""):
+        if text_before and text_before[-1].strip() != "":
             text_mask.append("\n")
 
-        for area in self.__rect:
-            for dim in ['min_fs', 'max_fs', 'min_ss', 'max_ss']:
-                text_mask.append(
-                    f"bad_area{n_area_start + area}/{dim} = "
-                    f"{self.__rect[area][dim]}\n")
-            if self.__rect[area]['panel'] != 'all':
-                text_mask.append(
-                    f"bad_area{n_area_start + area}/panel = "
-                    f"{self.__rect[area]['panel']}\n")
-            text_mask.append("\n")
+        geom_dict = load_crystfel_geometry(filename)
+
+        new_bad_regions = self.make_crystfel_bad_regions(geom_dict['panels'])
+        for i, bad_d in enumerate(new_bad_regions, start=n_area_start):
+            text_mask.extend([
+                f'bad_area{i}/{k} = {v}' for (k, v) in bad_d.items()
+            ] + ['\n'])
 
         text_write = "".join(text_before + text_mask + text_after)
 
-        with open(self._geofile, 'w') as f_geo:
+        with open(filename, 'w') as f_geo:
             f_geo.write(text_write)
 
-    def _write_mask(self):
-        """
-        Write converted mask to the HD5 or geometry file, depending on mode.
-        """
-        # Write the mask depending on mode.
-        if self._run_mode == "hd52geom":
-            self._write_mask_geo()
-        elif self._run_mode == "geom2hd5":
-            self._write_mask_hd5()
+    def __eq__(self, other):
+        if not (isinstance(other, MaskRegions) and (self.shape == other.shape)):
+            return False
+
+        if set(self.regions) == set(other.regions):
+            return True
+
+        # Two equivalent masks could have regions described in different ways.
+        # Converting them both to arrays is the easiest way to normalise them,
+        # though probably not the most efficient.
+        return np.array_equal(self.to_mask_array(), other.to_mask_array())
 

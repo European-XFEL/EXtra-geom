@@ -1,4 +1,4 @@
-"""Write geometry in CrystFEL format.
+"""Write & process geometry in CrystFEL format.
 """
 from itertools import product
 
@@ -190,3 +190,44 @@ def get_rigid_groups(geom, nquads=4):
         ]
 
     return '\n'.join(lines)
+
+
+def panel_modno(panel_info, pname):
+    """Find the module number (counting from 0) of the given panel
+
+    Returns None if the geometry describes a 2D input array rather than a 3D
+    array with a stack of modules.
+    """
+    dims = panel_info['dim_structure']
+    ix_dims = [i for i in dims if isinstance(i, int)]
+    if len(ix_dims) > 1:
+        raise ValueError(f"Too many index dimensions for {pname}: {dims}")
+
+    return ix_dims[0] if ix_dims else None
+
+
+def data_shape(panels_dict):
+    """Make a 2- or 3-tuple representing the expected data shape
+
+    panels_dict is the structure given by cfelpytuils::
+
+        load_crystfel_geometry(f)['panels']
+    """
+    nmodules = slow_scan_px = fast_scan_px = 0
+
+    for pname, info in panels_dict.items():
+        modno = panel_modno(info, pname)
+        if modno is not None:
+            nmodules = max(nmodules, modno + 1)
+        slow_scan_px = max(slow_scan_px, info['max_ss'] + 1)
+        fast_scan_px = max(fast_scan_px, info['max_fs'] + 1)
+
+    if nmodules == 0:
+        shape = (slow_scan_px, fast_scan_px)
+    else:
+        shape = (nmodules, slow_scan_px, fast_scan_px)
+
+    if min(shape) <= 0:
+        raise ValueError("Could not find detector data shape from .geom file")
+
+    return shape
