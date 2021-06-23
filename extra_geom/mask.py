@@ -185,13 +185,13 @@ class MaskRegions:
             ) for ((min_fs, max_fs), (min_ss, max_ss)) in delta_method(arr_2d)]
 
         if arr.ndim == 2:
-            return cls((1,) + arr.shape, find_regions(arr, modno=np.s_[:]))
+            return cls((1,) + arr.shape, find_regions(arr, modno=None))
 
         # 3D array (modno, slow_scan, fast_scan)
 
         # First check for regions to be excluded in all panels:
         panel_all = np.logical_and.reduce(arr, axis=0)
-        regions = find_regions(panel_all, modno=np.s_[:])
+        regions = find_regions(panel_all, modno=None)
         is_panel_all_empty = not np.any(panel_all)
 
         # Loop over all panels:
