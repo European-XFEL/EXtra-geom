@@ -181,7 +181,7 @@ class MaskRegions:
 
         def find_regions(arr_2d, modno):
             return [RegionRect(
-                modno, min_ss, max_ss + 1, min_fs, max_fs + 1
+                modno, min_ss, max_ss, min_fs, max_fs
             ) for ((min_fs, max_fs), (min_ss, max_ss)) in delta_method(arr_2d)]
 
         if arr.ndim == 2:
@@ -217,7 +217,7 @@ class MaskRegions:
 
     def make_crystfel_bad_regions(self, panels_dict):
         modno_to_panels = {}
-        for pname, pinfo in panels_dict:
+        for pname, pinfo in panels_dict.items():
             modno = crystfel_fmt.panel_modno(pinfo, pname)
             modno_to_panels.setdefault(modno, []).append((pname, pinfo))
 
@@ -303,7 +303,7 @@ class MaskRegions:
         new_bad_regions = self.make_crystfel_bad_regions(geom_dict['panels'])
         for i, bad_d in enumerate(new_bad_regions, start=n_area_start):
             text_mask.extend([
-                f'bad_area{i}/{k} = {v}' for (k, v) in bad_d.items()
+                f'bad_area{i}/{k} = {v}\n' for (k, v) in bad_d.items()
             ] + ['\n'])
 
         text_write = "".join(text_before + text_mask + text_after)
