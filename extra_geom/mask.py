@@ -135,7 +135,7 @@ class MaskRegions:
     def __repr__(self):
         npx = self.to_mask_array().sum()
         return (f"<MaskRegions for {self.shape} array: "
-                f"{len(self.regions)} covering {npx} pixels>")
+                f"{len(self.regions)} regions covering {npx} pixels>")
 
     @classmethod
     def from_crystfel_geom(cls, filename):
