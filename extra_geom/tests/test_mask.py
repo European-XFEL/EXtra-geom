@@ -20,3 +20,27 @@ def test_delta_method():
     D[0:1, 0:1] = D[2:3, 2:3] = True
     exp_res_D = [((0, 1), (0, 1)), ((2, 3), (2, 3))]
     assert mask.delta_method(D) == exp_res_D, "Test on separate pixels."
+
+
+def simple_mask():
+    return mask.MaskRegions((2, 4, 5), [
+        mask.RegionRect(None, 0, 1, 0, 2),
+        mask.RegionRect(0, 2, 4, 0, 1),
+        mask.RegionRect(1, 3, 4, 0, 5),
+    ])
+
+def test_roundtrip_array():
+    m1 = simple_mask()
+    arr = m1.to_mask_array()
+    np.testing.assert_array_equal(arr, np.array([
+        [[1, 1, 0, 0, 0],
+         [0, 0, 0, 0, 0],
+         [1, 0, 0, 0, 0],
+         [1, 0, 0, 0, 0]],
+        [[1, 1, 0, 0, 0],
+         [0, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0],
+         [1, 1, 1, 1, 1]],
+    ], dtype=np.bool_))
+    m2 = mask.MaskRegions.from_mask_array(arr)
+    assert m2 == m1
