@@ -97,6 +97,13 @@ class RegionRect:
     def __eq__(self, other):
         return isinstance(other, RegionRect) and self._tuple() == other._tuple()
 
+    def replace(self, **kwargs):
+        new_kwargs = {
+            k: kwargs.get(k, getattr(self, k))
+            for k in ('modno', 'start_ss', 'stop_ss', 'start_fs', 'stop_fs')
+        }
+        return RegionRect(**new_kwargs)
+
     @property
     def array_slice(self):
         """Get a tuple to use for slicing an array"""
@@ -223,13 +230,18 @@ class MaskRegions:
 
         return res_mask
 
-    def make_crystfel_bad_regions(self, panels_dict):
-        modno_to_panels = {}
-        for pname, pinfo in panels_dict.items():
-            modno = crystfel_fmt.panel_modno(pinfo, pname)
-            modno_to_panels.setdefault(modno, []).append((pname, pinfo))
+    def make_crystfel_bad_regions(self, panel_rects, modules_stacked=True):
+        panel_rects_by_modno = {i: {} for i in range(self.shape[0])}
+        for pname, region in panel_rects.items():
+            panel_rects_by_modno[region.modno][pname] = region
 
         def to_dict(region: RegionRect):
+            if (region.modno is not None) and not modules_stacked:
+                mod_offset = region.modno * self.shape[1]
+                region = region.replace(
+                    start_ss=region.start_ss + mod_offset,
+                    stop_ss=region.stop_ss + mod_offset,
+                )
             return {
                 'min_ss': region.start_ss, 'max_ss': region.stop_ss - 1,
                 'min_fs': region.start_fs, 'max_fs': region.stop_fs - 1,
@@ -237,21 +249,25 @@ class MaskRegions:
 
         res = []
         for mask_region in self.regions:
-            if mask_region.modno is None:
-                res.append(to_dict(mask_region))  # Mask for all panels
+            if modules_stacked:
+                if mask_region.modno is None:
+                    yield to_dict(mask_region)  # Mask for all panels
+                else:
+                    module_panels = panel_rects_by_modno[mask_region.modno]
+                    for pname, panel_region in module_panels.items():
+                        overlap, matching = mask_region.intersection(panel_region)
+                        if overlap:
+                            d = to_dict(matching)
+                            d['panel'] = pname
+                            res.append(d)
+
 
             else:
-                for pname, pinfo in modno_to_panels[mask_region.modno]:
-                    panel_region = RegionRect(
-                        mask_region.modno,
-                        pinfo['min_ss'], pinfo['max_ss'] + 1,
-                        pinfo['min_fs'], pinfo['max_fs'] + 1,
-                    )
-                    overlap, matching = mask_region.intersection(panel_region)
-                    if overlap:
-                        d = to_dict(matching)
-                        d['panel'] = pname
-                        res.append(d)
+                if mask_region.modno is None:
+                    for i in range(self.shape[0]):
+                        yield to_dict(mask_region.replace(modno=i))
+                else:
+                    yield to_dict(mask_region)
 
         return res
 
@@ -308,7 +324,12 @@ class MaskRegions:
 
         geom_dict = load_crystfel_geometry(filename)
 
-        new_bad_regions = self.make_crystfel_bad_regions(geom_dict['panels'])
+        panel_rects = {pname: RegionRect(
+            crystfel_fmt.panel_modno(pinfo, pname),
+            pinfo['min_ss'], pinfo['max_ss'] + 1,
+            pinfo['min_fs'], pinfo['max_fs'] + 1,
+        ) for (pname, pinfo) in geom_dict['panels'].items()}
+        new_bad_regions = self.make_crystfel_bad_regions(panel_rects)
         for i, bad_d in enumerate(new_bad_regions, start=n_area_start):
             text_mask.extend([
                 f'bad_area{i}/{k} = {v}\n' for (k, v) in bad_d.items()

@@ -4,6 +4,8 @@ from itertools import product
 
 import numpy as np
 
+from .mask import RegionRect
+
 HEADER_TEMPLATE = """\
 ; {detector} geometry file written by EXtra-geom {version}
 ; You may need to edit this file to add:
@@ -79,7 +81,8 @@ def frag_to_crystfel(fragment, p, a, ss_slice, fs_slice, dims, pixel_size):
 
 def write_crystfel_geom(self, filename, *,
                         data_path='/entry_1/instrument_1/detector_1/data',
-                        mask_path=None, dims=('frame', 'modno', 'ss', 'fs'),
+                        mask_path=None, mask_regions=None,
+                        dims=('frame', 'modno', 'ss', 'fs'),
                         nquads=4, adu_per_ev=None, clen=None,
                         photon_energy=None):
     """Write this geometry to a CrystFEL format (.geom) geometry file.
@@ -116,9 +119,13 @@ def write_crystfel_geom(self, filename, *,
         raise ValueError('No frame dimension given')
 
     panel_chunks = []
+    panel_rects = {}
     for p, module in enumerate(self.modules):
         for a, fragment in enumerate(module):
             ss_slice, fs_slice = self._tile_slice(a)
+            panel_rects[f'p{p}a{a}'] = RegionRect(
+                p, ss_slice.start, ss_slice.stop, fs_slice.start, fs_slice.stop
+            )
             if 'modno' not in dims:
                 # If we don't have a modno dimension, assume modules are
                 # concatenated along the slow-scan dim, e.g. AGIPD (8192, 128)
@@ -139,6 +146,15 @@ def write_crystfel_geom(self, filename, *,
         paths['mask'] = mask_path
     path_str = '\n'.join('{} = {} ;'.format(i, j) for i, j in paths.items())
 
+    mask_lines = []
+    if mask_regions is not None:
+        for i, bad_d in enumerate(mask_regions.make_crystfel_bad_regions(
+            panel_rects, modules_stacked=('modno' in dims)
+        )):
+            mask_lines.extend([
+                f'bad_area{i}/{k} = {v}' for (k, v) in bad_d.items()
+            ] + [''])
+
     with open(filename, 'w') as f:
         f.write(HEADER_TEMPLATE.format(
             detector=self.detector_type_name,
@@ -152,6 +168,7 @@ def write_crystfel_geom(self, filename, *,
         ))
         rigid_groups = get_rigid_groups(self, nquads=nquads)
         f.write(rigid_groups)
+        f.write('\n'.join(mask_lines))
         for chunk in panel_chunks:
             f.write(chunk)
 
