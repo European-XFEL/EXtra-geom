@@ -43,6 +43,12 @@ def test_write_read_crystfel_file(tmpdir):
     assert p3a7['min_fs'] == 768
     assert p3a7['max_fs'] == 1023
 
+    # Check that metadata is written back to .geom file OK
+    path2 = str(tmpdir / 'test2.geom')
+    loaded.write_crystfel_geom(filename=path2, photon_energy=9000)
+    re_loaded = JUNGFRAUGeometry.from_crystfel_geom(path)
+    assert re_loaded.metadata == loaded.metadata
+
 
 def test_get_pixel_positions():
     geom = jf4m_geometry()
