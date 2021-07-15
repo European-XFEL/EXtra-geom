@@ -296,6 +296,10 @@ class DetectorGeometryBase:
                             photon_energy=None):
         """Write this geometry to a CrystFEL format (.geom) geometry file.
 
+        If the geometry was read from a ``.geom`` file by
+        :meth:`from_crystfel_geom`, some of the optional fields will be filled
+        from metadata if not specified.
+
         Parameters
         ----------
 
