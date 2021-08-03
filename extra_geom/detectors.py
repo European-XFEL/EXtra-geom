@@ -1053,6 +1053,9 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         module_width = (2 * frag_width) + asic_gap_m
         quad_height = (4 * frag_height) + (3 * panel_gap_m)
 
+        module_step_vec = np.array([0, frag_height + panel_gap_m, 0])
+        tile_step_vec = np.array([frag_width + asic_gap_m, 0, 0])
+
         modules = []
 
         for p in range(cls.n_modules):
@@ -1081,15 +1084,11 @@ class DSSC_1MGeometry(DetectorGeometryBase):
                 quad_start_y = quad_corner_y + quad_height
 
             quad_start = np.array([quad_start_x, quad_start_y, 0.])
-            module_start = quad_start + (
-                y_orient * p_in_quad * (frag_height + panel_gap_m)
-            )
+            module_start = quad_start + (y_orient * p_in_quad * module_step_vec)
 
             modules.append([
                 GeometryFragment(
-                    corner_pos=module_start + (
-                            x_orient * t * (frag_width + asic_gap_m)
-                    ),
+                    corner_pos=module_start + (x_orient * t * tile_step_vec),
                     ss_vec=ss_vec,
                     fs_vec=fs_vec,
                     ss_pixels=cls.frag_ss_pixels,
