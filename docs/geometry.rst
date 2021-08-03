@@ -186,6 +186,8 @@ approximately half a pixel width from their true position.
 
 .. autoclass:: DSSC_1MGeometry
 
+   .. automethod:: from_quad_positions
+
    .. automethod:: from_h5_file_and_quad_positions
 
    .. automethod:: offset
