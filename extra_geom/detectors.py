@@ -1074,10 +1074,13 @@ class DSSC_1MGeometry(DetectorGeometryBase):
             # with the first pixel, which is either high-x low-y or
             # low-x high-y.
             if x_orient == -1:
-                quad_start = np.array([quad_corner_x + module_width, quad_corner_y])
+                quad_start_x = quad_corner_x + module_width
+                quad_start_y = quad_corner_y
             else:  # y_orient == -1
-                quad_start = np.array([quad_corner_x, quad_corner_y + quad_height])
+                quad_start_x = quad_corner_x
+                quad_start_y = quad_corner_y + quad_height
 
+            quad_start = np.array([quad_start_x, quad_start_y, 0.])
             module_start = quad_start + (
                 y_orient * p_in_quad * (frag_height + panel_gap_m)
             )
