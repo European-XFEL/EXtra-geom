@@ -41,9 +41,9 @@ setup(name="EXtra-geom",
           'h5py>=2.7.1',
           'matplotlib',
           'numpy',
-          'scipy',
       ],
       extras_require={
+          'interpolate': ['scipy'],
           'docs': [
               'sphinx',
               'nbsphinx',
