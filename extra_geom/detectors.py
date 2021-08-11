@@ -808,6 +808,10 @@ class LPD_1MGeometry(DetectorGeometryBase):
             module_offsets.append(module_position - quad_pos[m // 4])
 
         with h5py.File(path, 'w') as hf:
+            for q in range(4):
+                Q = q + 1
+                hf[f'Q{Q}/Position'] = quad_pos[q] * 1000  # m -> mm
+
             for m in range(16):
                 Q, M = (m // 4) + 1, (m % 4) + 1
                 mod_grp = hf.create_group(f'Q{Q}/M{M}')
@@ -1126,6 +1130,10 @@ class DSSC_1MGeometry(DetectorGeometryBase):
             module_offsets.append(module_position - quad_pos[m // 4])
 
         with h5py.File(path, 'w') as hf:
+            for q in range(4):
+                Q = q + 1
+                hf[f'Q{Q}/Position'] = quad_pos[q] * 1000  # m -> mm
+
             for m in range(16):
                 Q, M = (m // 4) + 1, (m % 4) + 1
                 mod_grp = hf.create_group(f'Q{Q}/M{M}')
