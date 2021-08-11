@@ -776,6 +776,20 @@ class LPD_1MGeometry(DetectorGeometryBase):
 
         return cls(modules, filename=path)
 
+    @classmethod
+    def from_h5_file(cls, path):
+        with h5py.File(path, 'r') as f:
+            try:
+                quadpos = [f[f'Q{Q}/Position'][:2] for Q in range(1, 5)]
+            except KeyError:
+                raise ValueError(
+                    "This HDF5 geometry file does not include quadrant positions. "
+                    "You can use it with separately specified positions by "
+                    "calling from_h5_file_and_quad_positions()"
+                )
+
+        return cls.from_h5_file_and_quad_positions(path, quadpos)
+
     def to_h5_file_and_quad_positions(self, path):
         """Write this geometry to an XFEL HDF5 format geometry file
 
@@ -1097,6 +1111,20 @@ class DSSC_1MGeometry(DetectorGeometryBase):
                 modules.append(tiles)
 
         return cls(modules, filename=path)
+
+    @classmethod
+    def from_h5_file(cls, path):
+        with h5py.File(path, 'r') as f:
+            try:
+                quadpos = [f[f'Q{Q}/Position'][:2] for Q in range(1, 5)]
+            except KeyError:
+                raise ValueError(
+                    "This HDF5 geometry file does not include quadrant positions. "
+                    "You can use it with separately specified positions by "
+                    "calling from_h5_file_and_quad_positions()"
+                )
+
+        return cls.from_h5_file_and_quad_positions(path, quadpos)
 
     def to_h5_file_and_quad_positions(self, path):
         """Write this geometry to an XFEL HDF5 format geometry file
