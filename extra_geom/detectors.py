@@ -717,10 +717,10 @@ class LPD_1MGeometry(DetectorGeometryBase):
     def from_h5_file_and_quad_positions(cls, path, positions, unit=1e-3):
         """Load an LPD-1M geometry from an XFEL HDF5 format geometry file
 
-        The quadrant positions are not stored in the file, and must be provided
-        separately. By default, both the quadrant positions and the positions
+        By default, both the quadrant positions and the positions
         in the file are measured in millimetres; the unit parameter controls
-        this.
+        this. The passed positions override quadrant positions from the file, if
+        it contains them: see :meth:`from_h5_file` to use them.
 
         The origin of the coordinates is in the centre of the detector.
         Coordinates increase upwards and to the left (looking along the beam).
@@ -778,6 +778,18 @@ class LPD_1MGeometry(DetectorGeometryBase):
 
     @classmethod
     def from_h5_file(cls, path):
+        """Load an LPD-1M geometry from an XFEL HDF5 format geometry file
+
+        This requires a file containing quadrant positions, which not all
+        XFEL geometry files do. Use :meth:`from_h5_file_and_quad_positions` to
+        load a file which does not have them.
+
+        Parameters
+        ----------
+
+        path : str
+          Path of an EuXFEL format (HDF5) geometry file for LPD.
+        """
         with h5py.File(path, 'r') as f:
             try:
                 quadpos = [f[f'Q{Q}/Position'][:2] for Q in range(1, 5)]
@@ -793,8 +805,8 @@ class LPD_1MGeometry(DetectorGeometryBase):
     def to_h5_file_and_quad_positions(self, path):
         """Write this geometry to an XFEL HDF5 format geometry file
 
-        The quadrant positions are not stored in the file, so they are returned
-        separately. These and the numbers in the file are in millimetres.
+        The quadrant positions are stored in the file, but also returned.
+        These and the numbers in the file are in millimetres.
 
         The file and quadrant positions produced by this method are compatible
         with :meth:`from_h5_file_and_quad_positions`.
@@ -1036,9 +1048,10 @@ class DSSC_1MGeometry(DetectorGeometryBase):
     def from_h5_file_and_quad_positions(cls, path, positions, unit=1e-3):
         """Load a DSSC geometry from an XFEL HDF5 format geometry file
 
-        The quadrant positions are not stored in the file, and must be provided
-        separately. The position given should refer to the bottom right (looking
-        along the beam) corner of the quadrant.
+        The position given should refer to the bottom right (looking
+        along the beam) corner of the quadrant. The passed positions override
+        quadrant positions from the file, if it contains them:
+        see :meth:`from_h5_file` to use them.
 
         By default, both the quadrant positions and the positions
         in the file are measured in millimetres; the unit parameter controls
@@ -1114,6 +1127,18 @@ class DSSC_1MGeometry(DetectorGeometryBase):
 
     @classmethod
     def from_h5_file(cls, path):
+        """Load a DSSC geometry from an XFEL HDF5 format geometry file
+
+        This requires a file containing quadrant positions, which not all
+        XFEL geometry files do. Use :meth:`from_h5_file_and_quad_positions` to
+        load a file which does not have them.
+
+        Parameters
+        ----------
+
+        path : str
+          Path of an EuXFEL format (HDF5) geometry file for DSSC.
+        """
         with h5py.File(path, 'r') as f:
             try:
                 quadpos = [f[f'Q{Q}/Position'][:2] for Q in range(1, 5)]
@@ -1129,8 +1154,8 @@ class DSSC_1MGeometry(DetectorGeometryBase):
     def to_h5_file_and_quad_positions(self, path):
         """Write this geometry to an XFEL HDF5 format geometry file
 
-        The quadrant positions are not stored in the file, so they are returned
-        separately. These and the numbers in the file are in millimetres.
+        The quadrant positions are stored in the file, but also returned.
+        These and the numbers in the file are in millimetres.
 
         The file and quadrant positions produced by this method are compatible
         with :meth:`from_h5_file_and_quad_positions`.
