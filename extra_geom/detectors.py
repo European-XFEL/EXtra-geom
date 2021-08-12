@@ -1016,7 +1016,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
 
     @classmethod
     def from_quad_positions(cls, quad_pos, *, unit=1e-3, asic_gap=None,
-                            panel_gap=4):
+                            panel_gap=None):
         """Generate a DSSC-1M geometry from quadrant positions.
 
         This produces an idealised geometry, assuming all modules are perfectly
