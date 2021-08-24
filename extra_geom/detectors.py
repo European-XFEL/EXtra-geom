@@ -1,7 +1,7 @@
 """Detector geometry handling."""
 import warnings
 from itertools import product
-from typing import List, Tuple
+from typing import Collection, List, Tuple
 
 import h5py
 import numpy as np
@@ -1682,19 +1682,24 @@ class EpixGeometryBase(DetectorGeometryBase):
         if unit is None:
             unit = cls.pixel_size
         if asic_gap is None:
-            asic_gap = cls.asic_gap
+            asic_gap_h = asic_gap_v = cls.asic_gap
+        elif isinstance(asic_gap, Collection):
+            asic_gap_h = asic_gap[0]
+            asic_gap_v = asic_gap[1]
+        else:
+            asic_gap_h = asic_gap_v = asic_gap
 
         x0, y0 = origin[0] * unit, origin[1] * unit
         tiles = []
-        gap = asic_gap * unit
-        row_sz = cls.frag_ss_pixels * cls.pixel_size + gap
-        col_sz = cls.frag_fs_pixels * cls.pixel_size + gap
+        gap = (asic_gap_h * unit, asic_gap_v * unit)
+        row_sz = cls.frag_ss_pixels * cls.pixel_size
+        col_sz = cls.frag_fs_pixels * cls.pixel_size
         for tileno in range(4):
             row, col = tileno // 2, tileno % 2
             tiles.append(GeometryFragment(
                 corner_pos=np.array(
-                    [col_sz - col * (col_sz + gap) - x0,
-                     row_sz - row * (row_sz + gap) - y0,
+                    [col_sz - col * (col_sz + gap[0]) - x0 + gap[0] / 2,
+                     row_sz - row * (row_sz + gap[1]) - y0 + gap[1] / 2,
                      0]),
                 ss_vec=np.array([0, -1, 0]) * cls.pixel_size,
                 fs_vec=np.array([-1, 0, 0]) * cls.pixel_size,
@@ -1810,13 +1815,15 @@ class Epix100Geometry(EpixGeometryBase):
     detector_type_name = 'ePix100'
     pixel_size = 50e-6
     inner_pixel_size = 175e-6
-    asic_gap = inner_pixel_size / pixel_size - 1
-    frag_ss_pixels = 352  # rows
+    asic_gap = 2 * (inner_pixel_size - pixel_size) / pixel_size
+    # ePix100 should have 352 pixel per row, but the data we store has 354
+    frag_ss_pixels = 354  # rows
     frag_fs_pixels = 384  # columns
     expected_data_shape = (
         EpixGeometryBase.n_modules,
         2 * frag_ss_pixels,
-        2 * frag_fs_pixels)
+        2 * frag_fs_pixels
+    )
 
 
 class Epix10KGeometry(EpixGeometryBase):
@@ -1837,10 +1844,11 @@ class Epix10KGeometry(EpixGeometryBase):
     detector_type_name = 'ePix10K'
     pixel_size = 100e-6
     inner_pixel_size = 250e-6
-    asic_gap = inner_pixel_size / pixel_size - 1
+    asic_gap = 2 * (inner_pixel_size - pixel_size) / pixel_size
     frag_ss_pixels = 176  # rows
     frag_fs_pixels = 192  # columns
     expected_data_shape = (
         EpixGeometryBase.n_modules,
         2 * frag_ss_pixels,
-        2 * frag_fs_pixels)
+        2 * frag_fs_pixels
+    )

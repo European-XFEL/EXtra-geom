@@ -17,7 +17,7 @@ def args(request):
 @pytest.fixture
 def epix100():
     return (
-        Epix100Geometry.from_origin(), (352, 384), 50e-6,
+        Epix100Geometry.from_origin(), (354, 384), 50e-6,
         extra_geom.detectors.Epix100Geometry)
 
 
@@ -93,16 +93,16 @@ def test_split_tiles(args):
 @pytest.mark.parametrize('args', ['epix100', 'epix10K'], indirect=True)
 def test_module_coords_to_tile(args):
     """ expected data shape is
-        ePix100: (3, 704 [slow: 2 tiles * 352 px], 768 [fast: 2 tiles * 384 px])
-        ePix10K: (3, 352 [slow: 2 tiles * 176 px], 384 [fast: 2 tiles * 192 px])
+        ePix100: (4, 708 [slow: 2 tiles * 354 px], 768 [fast: 2 tiles * 384 px])
+        ePix10K: (4, 352 [slow: 2 tiles * 176 px], 384 [fast: 2 tiles * 192 px])
 
     The points are:
     (  5,  10),  <- t=0, (5, 10) 
     (200, 215),  <- t=3, (24, 23)
     (15,  225),  <- t=1, (15, 33)
     (255,  30),  <- t=2, (79, 30)
-    
-    doubled for ePix100
+
+    doubled for ePix100 (+2 pixels in the slow scan axis)
     """
     epix, (nrow, ncol), pxsz, cls = args
     css, cfs = nrow // 176, ncol // 192
@@ -113,8 +113,11 @@ def test_module_coords_to_tile(args):
         slow_scan, fast_scan)
 
     np.testing.assert_array_equal(tileno, [0, 3, 1, 2])
-    np.testing.assert_allclose(tile_ss, np.array([ 5, 24,  15, 79])*css)
-    np.testing.assert_allclose(tile_fs, np.array([10, 23, 33,  30])*cfs)
+    if isinstance(epix, Epix10KGeometry):
+        np.testing.assert_allclose(tile_ss, np.array([ 5, 24, 15, 79])*css)
+    else:
+        np.testing.assert_allclose(tile_ss, np.array([ 5, 23, 15, 78])*css)
+    np.testing.assert_allclose(tile_fs, np.array([10, 23, 33, 30])*cfs)
 
 
 @pytest.mark.parametrize('args', ['epix100', 'epix10K'], indirect=True)
@@ -136,3 +139,24 @@ def test_write_read_crystfel_file(args, tmpdir):
     assert p0a0['min_ss'] == 0
     assert p0a0['max_fs'] == ncol - 1
     assert p0a0['min_fs'] == 0
+
+
+def test_asic_gap():
+    for Epix, gap in [(Epix10KGeometry, 30), (Epix100Geometry, (5, 25))]:
+        epix = Epix.from_origin(asic_gap=gap)
+
+        if isinstance(gap, int):
+            gap = (gap, gap)
+
+        for n, asic in enumerate(epix.modules[0]):
+            row, col = divmod(n, 2)
+
+            corner = asic.corner_pos / epix.pixel_size
+            np.testing.assert_almost_equal(
+                corner[0],
+                epix.frag_fs_pixels - col * (epix.frag_fs_pixels + gap[0]) + gap[0] / 2
+            )
+            np.testing.assert_almost_equal(
+                corner[1],
+                epix.frag_ss_pixels - row * (epix.frag_ss_pixels + gap[1]) + gap[1] / 2
+            )
