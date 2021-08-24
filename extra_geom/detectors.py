@@ -1,7 +1,7 @@
 """Detector geometry handling."""
 import warnings
 from itertools import product
-from typing import Collection, List, Tuple
+from typing import List, Sequence, Tuple
 
 import h5py
 import numpy as np
@@ -1698,9 +1698,8 @@ class EpixGeometryBase(DetectorGeometryBase):
             unit = cls.pixel_size
         if asic_gap is None:
             asic_gap_h = asic_gap_v = cls.asic_gap
-        elif isinstance(asic_gap, Collection):
-            asic_gap_h = asic_gap[0]
-            asic_gap_v = asic_gap[1]
+        elif isinstance(asic_gap, Sequence):
+            asic_gap_h, asic_gap_v = asic_gap
         else:
             asic_gap_h = asic_gap_v = asic_gap
 
