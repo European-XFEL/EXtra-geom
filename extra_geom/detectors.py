@@ -1678,6 +1678,21 @@ class EpixGeometryBase(DetectorGeometryBase):
         To give positions in units other than pixels, pass the *unit* parameter
         as the length of the unit in metres. E.g. ``unit=1e-3`` means the
         coordinates are in millimetres.
+
+        .. note::
+
+            ePix100 has 2 different geometry layout:
+
+            - a single monolithic sensor with a 2x2 array of four ASICs bonded to it.
+              These would have no dead gaps but would have large pixels in the central
+              cross. This is the current default gap implementation.
+            - A pair of sensors with each sensor being bonded to two ASICs.
+              These would have a dead gap equal to twice the guard ring width (~450-500um)
+              plus a mechanical gap of about 200-300 microns. This would result in a total
+              dead gap of about 1.25 millimeters.
+              for the case 2) the correct geometry can be generated with::
+
+                geom = Epix100Geometry.from_origin(asic_gap=(5, 25))
         """
         if unit is None:
             unit = cls.pixel_size
