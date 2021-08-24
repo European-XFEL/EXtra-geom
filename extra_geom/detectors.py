@@ -1015,6 +1015,90 @@ class DSSC_1MGeometry(DetectorGeometryBase):
     ])
 
     @classmethod
+    def from_quad_positions(cls, quad_pos, *, unit=1e-3, asic_gap=None,
+                            panel_gap=None):
+        """Generate a DSSC-1M geometry from quadrant positions.
+
+        This produces an idealised geometry, assuming all modules are perfectly
+        flat, aligned and equally spaced within their quadrant.
+
+        The position given should refer to the bottom right (looking
+        along the beam) corner of the quadrant.
+
+        The origin of the coordinates is in the centre of the detector.
+        Coordinates increase upwards and to the left (looking along the beam).
+
+        Parameters
+        ----------
+        quad_pos: list of 2-tuples
+          (x, y) coordinates of the last corner (the one by module 4) of each
+          quadrant.
+        unit: float, optional
+          The conversion factor to put the coordinates into metres.
+          The default 1e-3 means the numbers are in millimetres.
+        asic_gap: float, optional
+          The gap between adjacent tiles/ASICs. The default is 2 mm.
+        panel_gap: float, optional
+          The gap between adjacent modules/panels. The default is 4 mm.
+        """
+        assert len(quad_pos) == 4
+        asic_gap_m = 2e-3 if (asic_gap is None) else asic_gap * unit
+        panel_gap_m = 4e-3 if (panel_gap is None) else panel_gap * unit
+
+        quads_x_orientation = [-1, -1, 1, 1]
+        quads_y_orientation = [1, 1, -1, -1]
+
+        frag_width = cls._pixel_shape[0] * cls.frag_fs_pixels
+        frag_height = cls._pixel_shape[1] * cls.frag_ss_pixels
+        module_width = (2 * frag_width) + asic_gap_m
+        quad_height = (4 * frag_height) + (3 * panel_gap_m)
+
+        module_step_vec = np.array([0, frag_height + panel_gap_m, 0])
+        tile_step_vec = np.array([frag_width + asic_gap_m, 0, 0])
+
+        modules = []
+
+        for p in range(cls.n_modules):
+            Q = p // 4
+            x_orient = quads_x_orientation[Q]
+            y_orient = quads_y_orientation[Q]
+            quad_corner_x = quad_pos[Q][0] * unit
+            quad_corner_y = quad_pos[Q][1] * unit
+
+            p_in_quad = p % 4
+
+            # Measuring in terms of the step within a row, the
+            # step to the next row of hexagons is 1.5/sqrt(3).
+            ss_vec = np.array([0, y_orient, 0]) * cls.pixel_size * 1.5 / np.sqrt(3)
+            fs_vec = np.array([x_orient, 0, 0]) * cls.pixel_size
+
+            # Corner position is measured at low-x, low-y corner (bottom
+            # right as plotted). We want the position of the corner
+            # with the first pixel, which is either high-x low-y or
+            # low-x high-y.
+            if x_orient == -1:
+                quad_start_x = quad_corner_x + module_width
+                quad_start_y = quad_corner_y
+            else:  # y_orient == -1
+                quad_start_x = quad_corner_x
+                quad_start_y = quad_corner_y + quad_height
+
+            quad_start = np.array([quad_start_x, quad_start_y, 0.])
+            module_start = quad_start + (y_orient * p_in_quad * module_step_vec)
+
+            modules.append([
+                GeometryFragment(
+                    corner_pos=module_start + (x_orient * t * tile_step_vec),
+                    ss_vec=ss_vec,
+                    fs_vec=fs_vec,
+                    ss_pixels=cls.frag_ss_pixels,
+                    fs_pixels=cls.frag_fs_pixels,
+                ) for t in range(cls.n_tiles_per_module)
+            ])
+
+        return cls(modules)
+
+    @classmethod
     def from_h5_file_and_quad_positions(cls, path, positions, unit=1e-3):
         """Load a DSSC geometry from an XFEL HDF5 format geometry file
 

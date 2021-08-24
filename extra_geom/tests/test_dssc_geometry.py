@@ -101,10 +101,7 @@ def test_quad_positions_with_file():
 
 
 def test_quad_positions_no_file():
-    geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
-        sample_xfel_geom, QUAD_POS
-    )
-    # Smoketest - the results without passing a file in aren't usable yet
+    geom = DSSC_1MGeometry.from_quad_positions(QUAD_POS)
     quad_pos_out = geom.quad_positions()
 
-    assert quad_pos_out.shape == (4, 2)
+    np.testing.assert_allclose(quad_pos_out, QUAD_POS)
