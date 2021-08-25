@@ -1549,7 +1549,7 @@ class PNCCDGeometry(DetectorGeometryBase):
 
     def inspect(self, axis_units='px', frontview=True):
         from matplotlib.patches import Rectangle
-        
+
         ax = super().inspect(axis_units=axis_units, frontview=frontview)
         scale = self._get_plot_scale_factor(axis_units)
 
@@ -1880,7 +1880,7 @@ class Epix100Geometry(EpixGeometryBase):
         ePix100 has 2 assemblies:
 
         - a single monolithic sensor with a 2x2 array of four ASICs bonded to it. These
-          would have no dead gaps but would have large pixels in the central cross.  
+          would have no dead gaps but would have large pixels in the central cross.
           Use :meth:`from_origin` if your detector has this layout.
         - A pair of sensors with each sensor being bonded to two ASICs. These would have
           a dead gap equal to twice the guard ring width (~450-500um) plus a mechanical
