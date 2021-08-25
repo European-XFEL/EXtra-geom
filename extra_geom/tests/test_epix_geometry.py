@@ -17,7 +17,7 @@ def args(request):
 @pytest.fixture
 def epix100():
     return (
-        Epix100Geometry.from_origin(), (354, 384), 50e-6,
+        Epix100Geometry.from_origin(), (352, 384), 50e-6,
         extra_geom.detectors.Epix100Geometry)
 
 
@@ -113,10 +113,7 @@ def test_module_coords_to_tile(args):
         slow_scan, fast_scan)
 
     np.testing.assert_array_equal(tileno, [0, 3, 1, 2])
-    if isinstance(epix, Epix10KGeometry):
-        np.testing.assert_allclose(tile_ss, np.array([ 5, 24, 15, 79])*css)
-    else:
-        np.testing.assert_allclose(tile_ss, np.array([ 5, 23, 15, 78])*css)
+    np.testing.assert_allclose(tile_ss, np.array([ 5, 24, 15, 79])*css)
     np.testing.assert_allclose(tile_fs, np.array([10, 23, 33, 30])*cfs)
 
 

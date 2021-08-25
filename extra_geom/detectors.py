@@ -1831,7 +1831,7 @@ class Epix100Geometry(EpixGeometryBase):
     inner_pixel_size = 175e-6
     asic_gap = 2 * (inner_pixel_size - pixel_size) / pixel_size
     # ePix100 should have 352 pixel per row, but the data we store has 354
-    frag_ss_pixels = 354  # rows
+    frag_ss_pixels = 352  # rows
     frag_fs_pixels = 384  # columns
     expected_data_shape = (
         EpixGeometryBase.n_modules,
