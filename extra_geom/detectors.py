@@ -1690,9 +1690,7 @@ class EpixGeometryBase(DetectorGeometryBase):
               These would have a dead gap equal to twice the guard ring width (~450-500um)
               plus a mechanical gap of about 200-300 microns. This would result in a total
               dead gap of about 1.25 millimeters.
-              for the case 2) the correct geometry can be generated with::
-
-                geom = Epix100Geometry.from_origin(asic_gap=(5, 25))
+              for this case see :meth:`from_relative_positions`
         """
         if unit is None:
             unit = cls.pixel_size
