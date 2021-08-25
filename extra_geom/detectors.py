@@ -1898,11 +1898,14 @@ class Epix100Geometry(EpixGeometryBase):
         Parameters
         ----------
 
-        asic_gap: float The gap between asics within a pair (default 250um) unit: float
+        asic_gap: float
+            The gap between asics within a pair (default 250um)
+        unit: float
             To give positions in units other than pixels, pass the *unit* parameter as
             the length of the unit in metres. E.g. ``unit=1e-3`` means the coordinates
-            are in millimetres. top, bottom: array_like of length 3 Optional offset (x,
-            y, z) for asic pair relative to the centered position.
+            are in millimetres.
+        top, bottom: array_like of length 3 Optional
+            offset (x, y, z) for asic pair relative to the centered position.
         """
         unit = unit or cls.pixel_size
         geom = cls.from_origin(asic_gap=asic_gap)
