@@ -1652,7 +1652,7 @@ class EpixGeometryBase(DetectorGeometryBase):
     # See also
     # --------
     # 1. [EuXFEL ePix documentation]
-    #     (https://in.xfel.eu/readthedocs/docs/epix-documentation/en/latest/index.html)
+    #     (https://rtd.xfel.eu/docs/epix-documentation/en/latest/index.html)
     # 2. [A Dragone et al 2014 J. Phys.: Conf. Ser. 493 012012]
     #     (https://doi.org/10.1088/1742-6596/493/1/012012)
     # 3. [SLAC Confluence](https://confluence.slac.stanford.edu/display/PSDM/EPIX10KA)
@@ -1810,6 +1810,30 @@ class EpixGeometryBase(DetectorGeometryBase):
         fs_sizes[npx_fs - 1:npx_fs + 1] = cls.inner_pixel_size
         return np.outer(ss_sizes, fs_sizes)
 
+    @classmethod
+    def _ensure_shape(cls, data):
+        """Ensure image data has the proper shape.
+
+        As a ePix frame is read out and saved as a single array, the
+        public interface of this geometry implementation supports
+        automatic reshaping to adding the modules dimension.
+        """
+        # add module dimension (ePix data is stored without module dim)
+        if data.ndim == 2:
+            data = data[None, ...]
+        elif data.ndim >= 3 and data.shape[-3] != 1:
+            data = data[..., None, :, :]
+
+        return data
+
+    def position_modules_fast(self, data, *args, **kwargs):
+        return super().position_modules_fast(self._ensure_shape(data),
+                                             *args, **kwargs)
+
+    def plot_data_fast(self, data, *args, **kwargs):
+        return super().plot_data_fast(self._ensure_shape(data),
+                                      *args, **kwargs)
+
 
 class Epix100Geometry(EpixGeometryBase):
     """Detector layout for ePix100
@@ -1838,6 +1862,25 @@ class Epix100Geometry(EpixGeometryBase):
         2 * frag_ss_pixels,
         2 * frag_fs_pixels
     )
+
+    @classmethod
+    def _ensure_shape(cls, data):
+        """Ensure image data has the proper shape.
+
+        As a ePix frame is read out and saved as a single array, the
+        public interface of this geometry implementation supports
+        automatic reshaping to adding the modules dimension.
+        """
+        if data.shape[-2:] == (2 * cls.frag_ss_pixels + 4, 2 * cls.frag_fs_pixels):
+            # EuXFEL data stored extra 2 row per ASIC used for diagnostic
+            #   - pixel max (the first and last rows in the pixel array)
+            #   - baseline (next rows)
+            # we removed them here as they do not contain data
+            data = np.concatenate((data[..., 1:cls.frag_ss_pixels+1, :],
+                                   data[..., -1-cls.frag_ss_pixels:-1, :]),
+                                  axis=-2)
+
+        return super()._ensure_shape(data)
 
 
 class Epix10KGeometry(EpixGeometryBase):

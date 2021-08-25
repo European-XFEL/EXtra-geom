@@ -157,3 +157,27 @@ def test_asic_gap():
                 corner[1],
                 epix.frag_ss_pixels - row * (epix.frag_ss_pixels + gap[1]) + gap[1] / 2
             )
+
+
+@pytest.mark.parametrize('shape', [(1,), (33, 1), (33,), tuple()])
+def test_ensure_shape(shape):
+    epix = Epix100Geometry.from_origin()
+
+    data = np.zeros(shape + epix.expected_data_shape[1:])
+    img, centre = epix.position_modules_fast(data)
+    expected_img_shape = (
+        np.empty(shape).squeeze().shape
+        + (epix.frag_ss_pixels * 2 + epix.asic_gap,
+           epix.frag_fs_pixels * 2 + epix.asic_gap)
+    )
+    assert img.shape == expected_img_shape
+    
+    # with extra diagnostic rows
+    data = np.zeros(shape + (epix.expected_data_shape[-2] + 4, epix.expected_data_shape[-1]))
+    img, centre = epix.position_modules_fast(data)
+    expected_img_shape = (
+        np.empty(shape).squeeze().shape
+        + (epix.frag_ss_pixels * 2 + epix.asic_gap,
+           epix.frag_fs_pixels * 2 + epix.asic_gap)
+    )
+    assert img.shape == expected_img_shape
