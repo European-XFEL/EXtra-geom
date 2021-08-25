@@ -97,8 +97,8 @@ def test_split_tiles(args):
 @pytest.mark.parametrize('args', ['epix100', 'epix10K'], indirect=True)
 def test_module_coords_to_tile(args):
     """ expected data shape is
-        ePix100: (4, 708 [slow: 2 tiles * 354 px], 768 [fast: 2 tiles * 384 px])
-        ePix10K: (4, 352 [slow: 2 tiles * 176 px], 384 [fast: 2 tiles * 192 px])
+        ePix100: (3, 704 [slow: 2 tiles * 354 px], 768 [fast: 2 tiles * 384 px])
+        ePix10K: (3, 352 [slow: 2 tiles * 176 px], 384 [fast: 2 tiles * 192 px])
 
     The points are:
     (  5,  10),  <- t=0, (5, 10) 
@@ -106,7 +106,7 @@ def test_module_coords_to_tile(args):
     (15,  225),  <- t=1, (15, 33)
     (255,  30),  <- t=2, (79, 30)
 
-    doubled for ePix100 (+2 pixels in the slow scan axis)
+    doubled for ePix100
     """
     epix, (nrow, ncol), pxsz, cls = args
     css, cfs = nrow // 176, ncol // 192
