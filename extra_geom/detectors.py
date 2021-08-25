@@ -1,7 +1,7 @@
 """Detector geometry handling."""
 import warnings
 from itertools import product
-from typing import List, Sequence, Tuple
+from typing import List, Tuple
 
 import h5py
 import numpy as np
