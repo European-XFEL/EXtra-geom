@@ -54,7 +54,8 @@ def _crystfel_format_vec(vec):
 
 def frag_to_crystfel(fragment, p, a, ss_slice, fs_slice, dims, pixel_size):
     tile_name = 'p{}a{}'.format(p, a)
-    c = fragment.corner_pos / pixel_size
+    c = fragment.corner_pos
+    c[:2] = c[:2] / pixel_size
     dim_list = []
     for num, value in dims.items():
         if value == 'modno':
