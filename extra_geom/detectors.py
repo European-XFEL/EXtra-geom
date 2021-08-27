@@ -1683,14 +1683,14 @@ class EpixGeometryBase(DetectorGeometryBase):
 
             ePix100 has 2 different geometry layout:
 
-            - a single monolithic sensor with a 2x2 array of four ASICs bonded to it.
+            - A single monolithic sensor with a 2x2 array of four ASICs bonded to it.
               These would have no dead gaps but would have large pixels in the central
               cross. This is the current default gap implementation.
             - A pair of sensors with each sensor being bonded to two ASICs.
               These would have a dead gap equal to twice the guard ring width (~450-500um)
               plus a mechanical gap of about 200-300 microns. This would result in a total
               dead gap of about 1.25 millimeters.
-              for this case see :meth:`from_relative_positions`
+              For this case see :meth:`from_relative_positions`
         """
         if unit is None:
             unit = cls.pixel_size
