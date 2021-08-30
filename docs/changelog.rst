@@ -1,6 +1,16 @@
 Release Notes
 =============
 
+1.5
+---
+
+- Add method to make geometry from ASIC pairs positions for ePix100 detector and method
+  to normalize ePix data (:ghpull:`97`). See :ref:`det-EPIX`.
+- Make scipy an optional dependency (:ghpull:`90`).
+- Add method to make DSSC-1M geometry from only quadrant positions (:ghpull:`89`). See
+  :doc:`dssc_geometry` (example) and :ref:`det-DSSC-1M` (reference).
+- Fix method name in docstring (:ghpull:`84`).
+
 1.4
 ---
 
