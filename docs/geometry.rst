@@ -283,6 +283,8 @@ ePix10K detectors have one module of 352 × 384 pixels. Module built from 4 ASIC
 
    .. automethod:: from_origin
 
+   .. automethod:: from_relative_positions
+
    .. automethod:: from_crystfel_geom
 
    .. automethod:: write_crystfel_geom
@@ -292,6 +294,8 @@ ePix10K detectors have one module of 352 × 384 pixels. Module built from 4 ASIC
    .. automethod:: plot_data_fast
 
    .. automethod:: position_modules_fast
+
+   .. automethod:: normalize_data
 
    .. automethod:: output_array_for_position_fast
 
