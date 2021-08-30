@@ -1874,7 +1874,8 @@ class Epix100Geometry(EpixGeometryBase):
     )
 
     @classmethod
-    def from_relative_positions(cls, asic_gap=None, unit=None, top=(0., 0., 0.), bottom=(0., 0., 0.)):
+    def from_relative_positions(cls, asic_gap=None, unit=None, top=(0., 0., 0.),
+                                bottom=(0., 0., 0.)):
         """Generate an ePix100 geometry from relative Asics-pair positions.
 
         ePix100 has 2 assemblies:

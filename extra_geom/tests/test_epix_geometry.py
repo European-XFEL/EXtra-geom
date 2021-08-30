@@ -97,7 +97,7 @@ def test_split_tiles(args):
 @pytest.mark.parametrize('args', ['epix100', 'epix10K'], indirect=True)
 def test_module_coords_to_tile(args):
     """ expected data shape is
-        ePix100: (3, 704 [slow: 2 tiles * 354 px], 768 [fast: 2 tiles * 384 px])
+        ePix100: (3, 704 [slow: 2 tiles * 352 px], 768 [fast: 2 tiles * 384 px])
         ePix10K: (3, 352 [slow: 2 tiles * 176 px], 384 [fast: 2 tiles * 192 px])
 
     The points are:
@@ -178,7 +178,6 @@ def test_ensure_shape(args, shape):
            epix.frag_fs_pixels * 2 + epix.asic_gap)
     )
     np.testing.assert_allclose(img.shape, expected_img_shape, atol=1)
-    # assert img.shape == expected_img_shape
 
     # with 4 extra diagnostic rows
     data = np.zeros(shape + (epix.expected_data_shape[-2] + 4, epix.expected_data_shape[-1]))
@@ -189,4 +188,3 @@ def test_ensure_shape(args, shape):
            epix.frag_fs_pixels * 2 + epix.asic_gap)
     )
     np.testing.assert_allclose(img.shape, expected_img_shape, atol=1)
-    # assert img.shape == expected_img_shape
