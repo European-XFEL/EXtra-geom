@@ -54,8 +54,8 @@ def _crystfel_format_vec(vec):
 
 def frag_to_crystfel(fragment, p, a, ss_slice, fs_slice, dims, pixel_size):
     tile_name = 'p{}a{}'.format(p, a)
-    c = fragment.corner_pos
-    c[:2] = c[:2] / pixel_size
+    c = fragment.corner_pos[:2] / pixel_size
+    coffset = fragment.corner_pos[2]
     dim_list = []
     for num, value in dims.items():
         if value == 'modno':
@@ -75,7 +75,7 @@ def frag_to_crystfel(fragment, p, a, ss_slice, fs_slice, dims, pixel_size):
         fs_vec=_crystfel_format_vec(fragment.fs_vec/ pixel_size),
         corner_x=c[0],
         corner_y=c[1],
-        coffset=c[2],
+        coffset=coffset,
     )
 
 def write_crystfel_geom(self, filename, *,
