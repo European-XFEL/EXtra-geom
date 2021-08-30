@@ -1633,7 +1633,7 @@ class PNCCDGeometry(DetectorGeometryBase):
 
     def inspect(self, axis_units='px', frontview=True):
         from matplotlib.patches import Rectangle
-        
+
         ax = super().inspect(axis_units=axis_units, frontview=frontview)
         scale = self._get_plot_scale_factor(axis_units)
 
@@ -1736,7 +1736,7 @@ class EpixGeometryBase(DetectorGeometryBase):
     # See also
     # --------
     # 1. [EuXFEL ePix documentation]
-    #     (https://in.xfel.eu/readthedocs/docs/epix-documentation/en/latest/index.html)
+    #     (https://rtd.xfel.eu/docs/epix-documentation/en/latest/index.html)
     # 2. [A Dragone et al 2014 J. Phys.: Conf. Ser. 493 012012]
     #     (https://doi.org/10.1088/1742-6596/493/1/012012)
     # 3. [SLAC Confluence](https://confluence.slac.stanford.edu/display/PSDM/EPIX10KA)
@@ -1762,6 +1762,19 @@ class EpixGeometryBase(DetectorGeometryBase):
         To give positions in units other than pixels, pass the *unit* parameter
         as the length of the unit in metres. E.g. ``unit=1e-3`` means the
         coordinates are in millimetres.
+
+        .. note::
+
+            ePix100 has 2 different geometry layout:
+
+            - A single monolithic sensor with a 2x2 array of four ASICs bonded to it.
+              These would have no dead gaps but would have large pixels in the central
+              cross. This is the current default gap implementation.
+            - A pair of sensors with each sensor being bonded to two ASICs.
+              These would have a dead gap equal to twice the guard ring width (~450-500um)
+              plus a mechanical gap of about 200-300 microns. This would result in a total
+              dead gap of about 1.25 millimeters.
+              For this case see :meth:`from_relative_positions`
         """
         if unit is None:
             unit = cls.pixel_size
@@ -1771,14 +1784,14 @@ class EpixGeometryBase(DetectorGeometryBase):
         x0, y0 = origin[0] * unit, origin[1] * unit
         tiles = []
         gap = asic_gap * unit
-        row_sz = cls.frag_ss_pixels * cls.pixel_size + gap
-        col_sz = cls.frag_fs_pixels * cls.pixel_size + gap
+        row_sz = cls.frag_ss_pixels * cls.pixel_size
+        col_sz = cls.frag_fs_pixels * cls.pixel_size
         for tileno in range(4):
             row, col = tileno // 2, tileno % 2
             tiles.append(GeometryFragment(
                 corner_pos=np.array(
-                    [col_sz - col * (col_sz + gap) - x0,
-                     row_sz - row * (row_sz + gap) - y0,
+                    [col_sz - col * (col_sz + gap) - x0 + gap / 2,
+                     row_sz - row * (row_sz + gap) - y0 + gap / 2,
                      0]),
                 ss_vec=np.array([0, -1, 0]) * cls.pixel_size,
                 fs_vec=np.array([-1, 0, 0]) * cls.pixel_size,
@@ -1875,6 +1888,47 @@ class EpixGeometryBase(DetectorGeometryBase):
         fs_sizes[npx_fs - 1:npx_fs + 1] = cls.inner_pixel_size
         return np.outer(ss_sizes, fs_sizes)
 
+    @classmethod
+    def normalize_data(cls, data):
+        """Remove diagnostic pixels from the data
+
+        EuXFEL ePix data can contain extra rows with diagnostic information. this method
+        remove these row if they are present.
+        """
+        if data.shape[-2:] == (2 * cls.frag_ss_pixels + 4, 2 * cls.frag_fs_pixels):
+            # EuXFEL data stored extra 2 row per ASIC used for diagnostic
+            #   - pixel max (the first and last rows in the pixel array)
+            #   - baseline (next rows)
+            # we removed them here as they do not contain data
+            data = data[..., 2:-2, :]
+        return data
+
+    @classmethod
+    def _ensure_shape(cls, data):
+        """Ensure image data has the proper shape.
+
+        As a ePix frame is read out and saved as a single array, the
+        public interface of this geometry implementation supports
+        automatic reshaping to adding the modules dimension.
+        """
+        data = cls.normalize_data(data)
+
+        # add module dimension (ePix data is stored without module dim)
+        if data.ndim == 2:
+            data = data[None, ...]
+        elif data.ndim >= 3 and data.shape[-3] != 1:
+            data = data[..., None, :, :]
+
+        return data
+
+    def position_modules_fast(self, data, *args, **kwargs):
+        return super().position_modules_fast(self._ensure_shape(data),
+                                             *args, **kwargs)
+
+    def plot_data_fast(self, data, *args, **kwargs):
+        return super().plot_data_fast(self._ensure_shape(data),
+                                      *args, **kwargs)
+
 
 class Epix100Geometry(EpixGeometryBase):
     """Detector layout for ePix100
@@ -1894,13 +1948,63 @@ class Epix100Geometry(EpixGeometryBase):
     detector_type_name = 'ePix100'
     pixel_size = 50e-6
     inner_pixel_size = 175e-6
-    asic_gap = inner_pixel_size / pixel_size - 1
+    asic_gap = 2 * (inner_pixel_size - pixel_size) / pixel_size
     frag_ss_pixels = 352  # rows
     frag_fs_pixels = 384  # columns
     expected_data_shape = (
         EpixGeometryBase.n_modules,
         2 * frag_ss_pixels,
-        2 * frag_fs_pixels)
+        2 * frag_fs_pixels
+    )
+
+    @classmethod
+    def from_relative_positions(cls, asic_gap=None, unit=None, top=(0., 0., 0.),
+                                bottom=(0., 0., 0.)):
+        """Generate an ePix100 geometry from relative Asics-pair positions.
+
+        ePix100 has 2 assemblies:
+
+        - a single monolithic sensor with a 2x2 array of four ASICs bonded to it. These
+          would have no dead gaps but would have large pixels in the central cross.
+          Use :meth:`from_origin` if your detector has this layout.
+        - A pair of sensors with each sensor being bonded to two ASICs. These would have
+          a dead gap equal to twice the guard ring width (~450-500um) plus a mechanical
+          gap of about 200-300 microns. This would result in a total dead gap of about
+          1.25 millimeters.
+
+        For the later case, one can determine determine the exact gap existing between
+        the 2 (top and bottom) asic pair. A rough estimation of the gap has been seen at
+        ~25 pixels. This can be generated with::
+
+            geom = Epix100Geometry.from_relative_positions(
+                top=[386.5, 364.5, 0.], bottom=[386.5, -12.5, 0.]
+            )
+
+        Parameters
+        ----------
+
+        asic_gap: float
+            The gap between asics within a pair (default 250um)
+        unit: float
+            To give positions in units other than pixels, pass the *unit* parameter as
+            the length of the unit in metres. E.g. ``unit=1e-3`` means the coordinates
+            are in millimetres.
+        top, bottom: array_like of length 3 Optional
+            offset (x, y, z) for asic pair relative to the centered position.
+        """
+        unit = unit or cls.pixel_size
+        geom = cls.from_origin(asic_gap=asic_gap)
+        ref_top = geom.modules[0][0].corner_pos  # asic 0
+        ref_bot = geom.modules[0][2].corner_pos  # asic 3
+
+        top, bottom = np.array(top), np.array(bottom)
+        position = [top, top, bottom, bottom]
+        reference = [ref_top, ref_top, ref_bot, ref_bot]
+
+        return cls([[
+            tile.offset(pos * unit - ref)
+            for tile, pos, ref in zip(geom.modules[0], position, reference)
+        ]])
 
 
 class Epix10KGeometry(EpixGeometryBase):
@@ -1921,10 +2025,11 @@ class Epix10KGeometry(EpixGeometryBase):
     detector_type_name = 'ePix10K'
     pixel_size = 100e-6
     inner_pixel_size = 250e-6
-    asic_gap = inner_pixel_size / pixel_size - 1
+    asic_gap = 2 * (inner_pixel_size - pixel_size) / pixel_size
     frag_ss_pixels = 176  # rows
     frag_fs_pixels = 192  # columns
     expected_data_shape = (
         EpixGeometryBase.n_modules,
         2 * frag_ss_pixels,
-        2 * frag_fs_pixels)
+        2 * frag_fs_pixels
+    )
