@@ -1,6 +1,18 @@
 Release Notes
 =============
 
+1.6
+---
+
+- Store and read (with new :meth:`~.LPD_1MGeometry.from_h5_file` method)
+  quadrant positions in EuXFEL HDF5 format geometry files (:ghpull:`92`).
+- Read some metadata from CrystFEL format ``.geom`` files and use it as defaults
+  when writing a new ``.geom`` file (:ghpull:`87`).
+- Fix writing ``coffset`` (z coordinates) correctly in ``.geom`` files
+  (:ghpull:`102`).
+- Require cfelpyutils < 2 until we fix compatibility with the new version
+  (:ghpull:`107`).
+
 1.5
 ---
 
