@@ -132,6 +132,8 @@ which this geometry code can position independently.
 
    .. automethod:: from_h5_file_and_quad_positions
 
+   .. automethod:: from_h5_file
+
    .. automethod:: from_crystfel_geom
 
    .. automethod:: offset
@@ -189,6 +191,8 @@ approximately half a pixel width from their true position.
    .. automethod:: from_quad_positions
 
    .. automethod:: from_h5_file_and_quad_positions
+
+   .. automethod:: from_h5_file
 
    .. automethod:: offset
 
