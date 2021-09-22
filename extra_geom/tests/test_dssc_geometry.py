@@ -78,7 +78,7 @@ def test_get_pixel_positions():
     np.testing.assert_allclose(px[0, 1::2, 0] - px[0, 0::2, 0], 236e-6/2)
 
 
-def test_read_write_xfel_file(tmpdir):
+def test_read_write_xfel_file_quadpos(tmpdir):
     geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
         sample_xfel_geom, QUAD_POS
     )
@@ -88,6 +88,19 @@ def test_read_write_xfel_file(tmpdir):
     assert_isfile(path)
 
     loaded = DSSC_1MGeometry.from_h5_file_and_quad_positions(path, quad_pos_out)
+    assert_geom_close(loaded, geom)
+
+
+def test_read_write_xfel_file(tmpdir):
+    geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
+        sample_xfel_geom, QUAD_POS
+    )
+    path = str(tmpdir / 'dssc_geom.h5')
+    geom.to_h5_file_and_quad_positions(path)
+
+    assert_isfile(path)
+
+    loaded = DSSC_1MGeometry.from_h5_file(path)
     assert_geom_close(loaded, geom)
 
 
@@ -101,10 +114,7 @@ def test_quad_positions_with_file():
 
 
 def test_quad_positions_no_file():
-    geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
-        sample_xfel_geom, QUAD_POS
-    )
-    # Smoketest - the results without passing a file in aren't usable yet
+    geom = DSSC_1MGeometry.from_quad_positions(QUAD_POS)
     quad_pos_out = geom.quad_positions()
 
-    assert quad_pos_out.shape == (4, 2)
+    np.testing.assert_allclose(quad_pos_out, QUAD_POS)

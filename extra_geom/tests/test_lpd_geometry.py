@@ -53,7 +53,7 @@ def test_write_read_crystfel_file(tmpdir):
     assert geom_dict['rigid_groups']['q0'] == quad_gr0
 
 
-def test_read_write_xfel_file(tmpdir):
+def test_read_write_xfel_file_quadpos(tmpdir):
     quad_pos = [(11.4, 299), (-11.5, 8), (254.5, -16), (278.5, 275)]
     geom = LPD_1MGeometry.from_quad_positions(quad_pos)
     path = str(tmpdir / 'lpd_geom.h5')
@@ -63,6 +63,18 @@ def test_read_write_xfel_file(tmpdir):
     assert_isfile(path)
 
     loaded = LPD_1MGeometry.from_h5_file_and_quad_positions(path, quad_pos_out)
+    assert_geom_close(loaded, geom)
+
+
+def test_read_write_xfel_file(tmpdir):
+    quad_pos = [(11.4, 299), (-11.5, 8), (254.5, -16), (278.5, 275)]
+    geom = LPD_1MGeometry.from_quad_positions(quad_pos)
+    path = str(tmpdir / 'lpd_geom.h5')
+    geom.to_h5_file_and_quad_positions(path)
+
+    assert_isfile(path)
+
+    loaded = LPD_1MGeometry.from_h5_file(path)
     assert_geom_close(loaded, geom)
 
 

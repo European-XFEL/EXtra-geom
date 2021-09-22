@@ -732,16 +732,16 @@ class DetectorGeometryBase:
         ::
 
             # Move the whole geometry up 2 mm (relative to the beam)
-            geom2 = geom.shift((0, 2e-3))
+            geom2 = geom.offset((0, 2e-3))
 
             # Move quadrant 1 (modules 0, 1, 2, 3) up 2 mm
-            geom2 = geom.shift((0, 2e-3), modules=np.s_[0:4])
+            geom2 = geom.offset((0, 2e-3), modules=np.s_[0:4])
 
             # Move each module by a separate amount
             shifts = np.zeros((16, 3))
             shifts[5] = (0, 2e-3, 0)    # x, y, z for individual modules
             shifts[10] = (0, -1e-3, 0)
-            geom2 = geom.shift(shifts)
+            geom2 = geom.offset(shifts)
 
         Parameters
         ----------
