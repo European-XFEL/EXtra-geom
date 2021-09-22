@@ -7,7 +7,7 @@ from cfelpyutils.crystfel_utils import load_crystfel_geometry
 from matplotlib.axes import Axes
 
 from extra_geom import AGIPD_1MGeometry, agipd_asic_seams
-
+from .utils import assert_geom_close
 
 def test_snap_assemble_data():
 
@@ -72,15 +72,14 @@ def test_write_read_crystfel_file(tmpdir):
     geom = AGIPD_1MGeometry.from_quad_positions(
         quad_pos=[(-525, 625), (-550, -10), (520, -160), (542.5, 475)]
     )
+    # Use the z dimension (coffset in .geom)
+    geom = geom.offset((0, 0, 0.001), modules=np.s_[8:12])
     path = str(tmpdir / 'test.geom')
     geom.write_crystfel_geom(filename=path, photon_energy=9000,
                              adu_per_ev=0.0075, clen=0.2)
 
     loaded = AGIPD_1MGeometry.from_crystfel_geom(path)
-    np.testing.assert_allclose(
-        loaded.modules[0][0].corner_pos, geom.modules[0][0].corner_pos
-    )
-    np.testing.assert_allclose(loaded.modules[0][0].fs_vec, geom.modules[0][0].fs_vec)
+    assert_geom_close(loaded, geom)
 
     # Load the geometry file with cfelpyutils and test the rigid groups
     geom_dict = load_crystfel_geometry(path)
