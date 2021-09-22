@@ -37,7 +37,7 @@ setup(name="EXtra-geom",
           'extra_geom.tests': ['dssc_geo_june19.h5', 'lpd_mar_18.h5'],
       },
       install_requires=[
-          'cfelpyutils>=0.92',
+          'cfelpyutils>=0.92, <2.0',
           'h5py>=2.7.1',
           'matplotlib',
           'numpy',
