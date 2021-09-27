@@ -4,7 +4,7 @@ from os.path import join as pjoin
 import h5py
 import numpy as np
 import pytest
-from cfelpyutils.crystfel_utils import load_crystfel_geometry
+from cfelpyutils.geometry import load_crystfel_geometry
 from matplotlib.axes import Axes
 from testpath import assert_isfile
 
@@ -38,7 +38,7 @@ def test_write_read_crystfel_file(tmpdir):
     np.testing.assert_allclose(loaded.modules[0][0].fs_vec, geom.modules[0][0].fs_vec)
 
 
-    geom_dict = load_crystfel_geometry(path)
+    geom_dict = load_crystfel_geometry(path).detector
     quad_gr0 = ['p0a0', 'p0a1', 'p0a2', 'p0a3', 'p0a4', 'p0a5', 'p0a6', 'p0a7',
                 'p0a8', 'p0a9', 'p0a10','p0a11', 'p0a12', 'p0a13', 'p0a14',
                 'p0a15', 'p1a0', 'p1a1','p1a2', 'p1a3','p1a4','p1a5','p1a6',

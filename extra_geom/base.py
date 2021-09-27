@@ -1,7 +1,7 @@
 from itertools import chain
 
 import numpy as np
-from cfelpyutils.crystfel_utils import load_crystfel_geometry
+from cfelpyutils.geometry import load_crystfel_geometry
 
 from .crystfel_fmt import write_crystfel_geom
 from .snapped import GridGeometryFragment, SnappedGeometry
@@ -31,8 +31,8 @@ class GeometryFragment:
         corner_pos = np.array([d['cnx']/res, d['cny']/res, d['coffset']])
         ss_vec = np.array([d['ssx'], d['ssy'], d['ssz']]) / res
         fs_vec = np.array([d['fsx'], d['fsy'], d['fsz']]) / res
-        ss_pixels = d['max_ss'] - d['min_ss'] + 1
-        fs_pixels = d['max_fs'] - d['min_fs'] + 1
+        ss_pixels = d['orig_max_ss'] - d['orig_min_ss'] + 1
+        fs_pixels = d['orig_max_fs'] - d['orig_min_fs'] + 1
         return cls(corner_pos, ss_vec, fs_vec, ss_pixels, fs_pixels)
 
     def corners(self):
@@ -244,7 +244,7 @@ class DetectorGeometryBase:
             if len(ix_dims) > 1:
                 raise ValueError(f"Too many index dimensions for {pname}: {dims}")
 
-            min_ss = info['min_ss']
+            min_ss = info['orig_min_ss']
             if ix_dims:
                 # Geometry for 3D data, modules stacked along separate axis
                 modno = ix_dims[0]
@@ -252,7 +252,7 @@ class DetectorGeometryBase:
                 # Geometry for 2D data, modules concatenated along slow-scan axis
                 modno, min_ss = divmod(min_ss, cls.expected_data_shape[1])
 
-            res[(modno, min_ss, info['min_fs'])] = info
+            res[(modno, min_ss, info['orig_min_fs'])] = info
 
         return res
 
@@ -262,8 +262,10 @@ class DetectorGeometryBase:
 
         Returns a new geometry object.
         """
-        geom_dict = load_crystfel_geometry(filename)
-        panels_by_data_coord = cls._cfel_panels_by_data_coord(geom_dict['panels'])
+        cfel_geom = load_crystfel_geometry(filename)
+        panels_by_data_coord = cls._cfel_panels_by_data_coord(
+            cfel_geom.detector['panels']
+        )
         n_modules = cls.n_modules
         if n_modules == 0:
             # Detector type with varying number of modules (e.g. JUNGFRAU)

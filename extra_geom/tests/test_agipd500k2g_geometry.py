@@ -4,7 +4,7 @@ from itertools import product
 import numpy as np
 import pytest
 import xarray as xr
-from cfelpyutils.crystfel_utils import load_crystfel_geometry
+from cfelpyutils.geometry import load_crystfel_geometry
 from extra_data.stacking import stack_detector_data
 from matplotlib.axes import Axes
 
@@ -80,7 +80,7 @@ def test_write_read_crystfel_file(tmpdir):
     np.testing.assert_allclose(loaded.modules[0][0].fs_vec, geom.modules[0][0].fs_vec)
 
     # Load the geometry file with cfelpyutils and test the rigid groups
-    geom_dict = load_crystfel_geometry(path)
+    geom_dict = load_crystfel_geometry(path).detector
     quad_gr0 = [  # quadrant: p0a0 ... p7a7
         'p{}a{}'.format(p, a) for p, a in product(range(8), range(8))
     ]
@@ -89,10 +89,10 @@ def test_write_read_crystfel_file(tmpdir):
     assert geom_dict['rigid_groups']['q0'] == quad_gr0
     assert geom_dict['panels']['p0a0']['res'] == 5000  # 5000 pixels/metre
     p3a7 = geom_dict['panels']['p3a7']
-    assert p3a7['min_ss'] == 448
-    assert p3a7['max_ss'] == 511
-    assert p3a7['min_fs'] == 0
-    assert p3a7['max_fs'] == 127
+    assert p3a7['orig_min_ss'] == 448
+    assert p3a7['orig_max_ss'] == 511
+    assert p3a7['orig_min_fs'] == 0
+    assert p3a7['orig_max_fs'] == 127
 
 
 def test_write_read_crystfel_file_2d(tmpdir):
@@ -108,14 +108,14 @@ def test_write_read_crystfel_file_2d(tmpdir):
     np.testing.assert_allclose(loaded.modules[0][0].fs_vec, geom.modules[0][0].fs_vec)
 
     # Load the geometry file with cfelpyutils and check some values
-    geom_dict = load_crystfel_geometry(path)
+    geom_dict = load_crystfel_geometry(path).detector
 
     p3a7 = geom_dict['panels']['p3a7']
     assert p3a7['dim_structure'] == ['%', 'ss', 'fs']
-    assert p3a7['min_ss'] == (3 * 512) + 448
-    assert p3a7['max_ss'] == (3 * 512) + 511
-    assert p3a7['min_fs'] == 0
-    assert p3a7['max_fs'] == 127
+    assert p3a7['orig_min_ss'] == (3 * 512) + 448
+    assert p3a7['orig_max_ss'] == (3 * 512) + 511
+    assert p3a7['orig_min_fs'] == 0
+    assert p3a7['orig_max_fs'] == 127
 
 
 def test_inspect():
