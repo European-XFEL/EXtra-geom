@@ -33,6 +33,7 @@ def test_write_read_crystfel_file(tmpdir):
     assert_geom_close(loaded, geom)
     assert loaded.metadata['crystfel']['adu_per_eV'] == 0.0042
     assert loaded.metadata['crystfel']['clen'] == 0.101
+    assert loaded.metadata['crystfel']['photon_energy'] == 9000
 
     # Load the geometry file with cfelpyutils and test the rigid groups
     geom_dict = load_crystfel_geometry(path).detector

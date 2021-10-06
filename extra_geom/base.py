@@ -287,7 +287,7 @@ class DetectorGeometryBase:
         cfel_md_keys = ('data', 'mask', 'adu_per_eV', 'clen')
         d1 = panels_by_data_coord[0, 0, 0]
         metadata = {'crystfel': {k: d1.get(k) for k in cfel_md_keys}}
-        # TODO: photon_energy (not returned with cfelpyutils 1.0)
+        metadata['crystfel']['photon_energy'] = cfel_geom.beam['photon_energy']
 
         return cls(modules, filename=filename, metadata=metadata)
 
