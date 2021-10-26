@@ -1,4 +1,4 @@
-cfelpyutils==2.0.5
+cfelpyutils==2.0.6
 cycler==0.10.0
 future==0.18.2
 h5py<3.5.0
