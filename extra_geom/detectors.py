@@ -199,6 +199,7 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
     use one of the constructor class methods to create or load a geometry.
     """
     detector_type_name = 'AGIPD-1M'
+    fixed_detector_type = True
     pixel_size = 2e-4  # 2e-4 metres == 0.2 mm
     frag_ss_pixels = 64
     frag_fs_pixels = 128
@@ -443,6 +444,7 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
     use one of the constructor class methods to create or load a geometry.
     """
     detector_type_name = 'AGIPD-500K2G'
+    fixed_detector_type = True
     pixel_size = 2e-4  # 2e-4 metres == 0.2 mm
     frag_ss_pixels = 64
     frag_fs_pixels = 128
@@ -614,6 +616,7 @@ class LPD_1MGeometry(DetectorGeometryBase):
     use one of the constructor class methods to create or load a geometry.
     """
     detector_type_name = 'LPD-1M'
+    fixed_detector_type = True
     pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
     frag_ss_pixels = 32
     frag_fs_pixels = 128
@@ -1024,6 +1027,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
     """
     # Hexagonal pixels, 236 μm step in fast-scan axis, 204 μm in slow-scan
     detector_type_name = 'DSSC-1M'
+    fixed_detector_type = True
     pixel_size = 236e-6
     frag_ss_pixels = 128
     frag_fs_pixels = 256
@@ -1447,6 +1451,7 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
      dimension is x, so the data shape for one module is (y, x).
     """
     detector_type_name = 'JUNGFRAU'
+    fixed_detector_type = True
     pixel_size = 7.5e-5   # 7.5e-5 metres = 75 micrometer = 0.075 mm
     frag_ss_pixels = 256  # pixels along slow scan axis within tile
     frag_fs_pixels = 256  # pixels along fast scan axis within tile
@@ -2007,6 +2012,7 @@ class Epix100Geometry(EpixGeometryBase):
     array. This class assumes that calibration rows are cut.
     """
     detector_type_name = 'ePix100'
+    fixed_detector_type = True
     pixel_size = 50e-6
     inner_pixel_size = 175e-6
     asic_gap = 2 * (inner_pixel_size - pixel_size) / pixel_size
@@ -2084,6 +2090,7 @@ class Epix10KGeometry(EpixGeometryBase):
     array. This class assumes that calibration rows are cut.
     """
     detector_type_name = 'ePix10K'
+    fixed_detector_type = True
     pixel_size = 100e-6
     inner_pixel_size = 250e-6
     asic_gap = 2 * (inner_pixel_size - pixel_size) / pixel_size

@@ -35,6 +35,25 @@ class GeometryFragment:
         fs_pixels = d['max_fs'] - d['min_fs'] + 1
         return cls(corner_pos, ss_vec, fs_vec, ss_pixels, fs_pixels)
 
+    @classmethod
+    def from_dict(cls, d):
+        return cls(
+            corner_pos=np.asarray(d['corner_pos']),
+            ss_vec=np.asarray(d['slow_scan_vector']),
+            fs_vec=np.asarray(d['fast_scan_vector']),
+            ss_pixels=d['slow_scan_pixels'],
+            fs_pixels=d['fast_scan_pixels'],
+        )
+
+    def to_dict(self):
+        return {
+            'corner_pos': self.corner_pos.tolist(),
+            'slow_scan_vector': self.ss_vec.tolist(),
+            'fast_scan_vector': self.fs_vec.tolist(),
+            'slow_scan_pixels': self.ss_pixels,
+            'fast_scan_pixels': self.fs_pixels,
+        }
+
     def corners(self):
         return np.stack([
             self.corner_pos,
@@ -73,6 +92,7 @@ class GeometryFragment:
 class DetectorGeometryBase:
     """Base class for detector geometry. Subclassed for specific detectors."""
     # Define in subclasses:
+    fixed_detector_type = False
     detector_type_name = ''
     pixel_size = 0.0
     frag_ss_pixels = 0
@@ -100,6 +120,37 @@ class DetectorGeometryBase:
         self.filename = filename
         self.metadata = metadata if (metadata is not None) else {}
         self._snapped_cache = None
+
+    def to_dict(self):
+        if not self.fixed_detector_type:
+            raise NotImplementedError(
+                "to_dict() and from_dict() are currently only implemented for "
+                "specific fixed detector types"
+            )
+        return {
+            'detector': {'type': self.detector_type_name},
+            'modules': [
+                [t.to_dict() for t in mod]
+                for mod in self.modules
+            ]
+        }
+
+    @classmethod
+    def from_dict(cls, d):
+        if not cls.fixed_detector_type:
+            raise NotImplementedError(
+                "to_dict() and from_dict() are currently only implemented for "
+                "specific fixed detector types"
+            )
+        if d['detector']['type'] != cls.detector_type_name:
+            raise ValueError(
+                f"This class is for a {cls.detector_type_name} detector, but "
+                f"the data is for {d['detector']['type']}"
+            )
+        return cls([
+            [GeometryFragment.from_dict(d) for d in mod]
+            for mod in d['modules']
+        ])
 
     def _get_plot_scale_factor(self, axis_units):
         if axis_units == 'm':
