@@ -2101,3 +2101,14 @@ class Epix10KGeometry(EpixGeometryBase):
         2 * frag_ss_pixels,
         2 * frag_fs_pixels
     )
+
+
+def geometry_from_dict(d: dict):
+    type_name = d['detector']['type']
+    for gcls in DetectorGeometryBase.__subclasses__():
+        if gcls.fixed_detector_type and gcls.detector_type_name == type_name:
+            return gcls.from_dict(d)
+
+    raise ValueError(
+        f"This version of EXtra-geom does not recognise a {type_name!r} detector"
+    )
