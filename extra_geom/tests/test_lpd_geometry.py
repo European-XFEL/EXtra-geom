@@ -149,6 +149,83 @@ def test_offset():
         geom.offset(np.zeros(4))
 
 
+def test_rotate():
+    quad_pos = [(11.4, 299), (-11.5, 8), (254.5, -16), (278.5, 275)]
+    geom = LPD_1MGeometry.from_quad_positions(quad_pos)
+    dy, dx = geom.output_array_for_position_fast().shape
+    print(dy, dx)
+    print(geom.position_all_modules(np.zeros((16, 256, 256))))
+
+    x0 = geom.modules[0][0].corner_pos[0]
+    y0 = geom.modules[0][0].corner_pos[1]
+    z0 = geom.modules[0][0].corner_pos[2]
+    y_orig = np.array([m[0].corner_pos[1] for m in geom.modules])
+    print(x0, y0, z0)
+
+    # Uniform rotation for all modules, all tiles
+    all_rotated = geom.rotate((90, 0, 0))
+    y = np.array([m[0].corner_pos[1] for m in all_rotated.modules])
+    np.testing.assert_allclose(y, 0., atol=1e-7)
+
+    all_rotated = geom.rotate((0, 90, 0))
+    x = np.array([m[0].corner_pos[0] for m in all_rotated.modules])
+    np.testing.assert_allclose(x, 0., atol=1e-7)
+
+    all_rotated = geom.rotate((0, 0, 90))
+    assert all_rotated.output_array_for_position_fast().T.shape == \
+        geom.output_array_for_position_fast().shape
+
+    all_rotated = geom.rotate((90, 0, 0), center=(0, 1, 0))
+    y = np.array([m[0].corner_pos[1] for m in all_rotated.modules])
+    np.testing.assert_allclose(y, 1)
+
+    # Select some modules
+    q4_rotated = geom.rotate((0, 0, 180), modules=np.s_[12:])
+    assert q4_rotated.output_array_for_position_fast().shape == \
+        geom.output_array_for_position_fast().shape
+    np.testing.assert_array_almost_equal(
+        q4_rotated.modules[-1][7].corners(),
+        np.roll(geom.modules[-1][15].corners(), 2, 0)
+    )
+
+    # Per-module rotation
+    rotations = [(0, 0, 90), (0, 0, 180), (90, 0, 0), (0, 90, 0)]
+    q1_rotated = geom.rotate(rotations, modules=np.s_[:4])
+    mod3_center = np.mean([t.centre() for t in geom.modules[2]], axis=0)
+    mod4_center = np.mean([t.centre() for t in geom.modules[3]], axis=0)
+    np.testing.assert_allclose([t.corner_pos[1] for t in q1_rotated.modules[2]], mod3_center[1])
+    np.testing.assert_allclose([t.corner_pos[0] for t in q1_rotated.modules[3]], mod4_center[0])
+
+    # Per-tile rotation
+    rot = np.zeros((4, 16, 3), dtype=np.float64)
+    rot[:, 5, :] = (0, 0, 180)  # rotate T6 of each module
+    q2_t2_rotated = geom.rotate(rot, modules=np.s_[4:8])
+    for mod_rot, mod_ref in zip(q2_t2_rotated.modules[4:8], geom.modules[4:8]):
+        np.testing.assert_array_almost_equal(
+            mod_rot[5].corners(),
+            np.roll(mod_ref[5].corners(), 2, 0)
+        )
+    for mod_rot, mod_ref in zip(q2_t2_rotated.modules[:4], geom.modules[:4]):
+        np.testing.assert_array_almost_equal(
+            mod_rot[5].corners(),
+            mod_ref[5].corners(),
+        )
+
+    # set rotation center, per-det/mod/tile
+
+    # Wrong number of modules
+    with pytest.raises(ValueError):
+        geom.rotate(np.ones((15, 3)))
+
+    # Rotation for 16 modules, but only 4 selected
+    with pytest.raises(ValueError):
+        geom.rotate(np.ones((16, 16, 3)), modules=np.s_[:4])
+
+    # angles must be 3D
+    with pytest.raises(ValueError):
+        geom.rotate((1, 1))
+
+
 def test_inspect():
     geom = LPD_1MGeometry.from_quad_positions(
         [(11.4, 299), (-11.5, 8), (254.5, -16), (278.5, 275)]
