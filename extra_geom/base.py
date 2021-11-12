@@ -799,7 +799,8 @@ class DetectorGeometryBase:
             ] for m, module in enumerate(self.modules)
         ])
 
-    def rotate(self, angles, center=None, modules=np.s_[:], tiles=np.s_[:]):
+    def rotate(self, angles, center=None, modules=np.s_[:], tiles=np.s_[:],
+               degrees=True):
         """Rotate around first pixel
 
         Parameters
@@ -819,6 +820,9 @@ class DetectorGeometryBase:
             Select modules to rotate; defaults to all modules.
         tiles: slice
             Select tiles to move within each module; defaults to all tiles.
+        degrees: bool
+            If True (default), angles are in degrees. If False, angles are in
+            radians.
         """
         rot = np.asarray(angles)
         if rot.shape[-1] != 3:
@@ -884,9 +888,12 @@ class DetectorGeometryBase:
             )
 
         @lru_cache()
-        def _rot(deg):
+        def _rot(rotations):
             # generate rotation matrix for the given angles
-            w, p, k = np.deg2rad(deg)
+            if degrees:
+                w, p, k = np.deg2rad(rotations)
+            else:
+                w, p, k = rotations
 
             rot_x = np.array([[1, 0, 0],
                               [0, np.cos(w), -np.sin(w)],

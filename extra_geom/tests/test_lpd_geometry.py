@@ -152,15 +152,6 @@ def test_offset():
 def test_rotate():
     quad_pos = [(11.4, 299), (-11.5, 8), (254.5, -16), (278.5, 275)]
     geom = LPD_1MGeometry.from_quad_positions(quad_pos)
-    dy, dx = geom.output_array_for_position_fast().shape
-    print(dy, dx)
-    print(geom.position_all_modules(np.zeros((16, 256, 256))))
-
-    x0 = geom.modules[0][0].corner_pos[0]
-    y0 = geom.modules[0][0].corner_pos[1]
-    z0 = geom.modules[0][0].corner_pos[2]
-    y_orig = np.array([m[0].corner_pos[1] for m in geom.modules])
-    print(x0, y0, z0)
 
     # Uniform rotation for all modules, all tiles
     all_rotated = geom.rotate((90, 0, 0))
@@ -242,6 +233,14 @@ def test_rotate():
     # angles must be 3D
     with pytest.raises(ValueError):
         geom.rotate((1, 1))
+
+    # angles in radian
+    deg = geom.rotate((90, 0, 0), modules=np.s_[:1], tiles=np.s_[:1])
+    rad = geom.rotate((np.pi / 2, 0, 0), modules=np.s_[:1], tiles=np.s_[:1], degrees=False)
+    np.testing.assert_array_almost_equal(
+        deg.modules[1][1].corners(),
+        rad.modules[1][1].corners()
+    )
 
 
 def test_inspect():
