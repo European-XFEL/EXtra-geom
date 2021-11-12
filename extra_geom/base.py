@@ -810,11 +810,11 @@ class DetectorGeometryBase:
         increasing looking toward the detector front plan, x increasing to
         the left, y increasing to the top. Positive rotations are clockwise.
 
-In other words:
+        In other words:
 
-- Positive x angles tilt the top edge of the detector backwards, away from the source
-- Positive y angles tilt the right-hand edge (looking along the beam) away from the source
-- Positive z angles turn the detector clockwise (looking along the beam)
+        - Positive x angles tilt the top edge of the detector backwards, away from the source
+        - Positive y angles tilt the right-hand edge (looking along the beam) away from the source
+        - Positive z angles turn the detector clockwise (looking along the beam)
 
         By default, this rotates all modules & tiles.
         Returns a new geometry object of the same type.
