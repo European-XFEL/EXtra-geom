@@ -801,7 +801,24 @@ class DetectorGeometryBase:
 
     def rotate(self, angles, center=None, modules=np.s_[:], tiles=np.s_[:],
                degrees=True):
-        """Rotate around first pixel
+        """Rotate part or all of the detector, making a new geometry.
+
+        By default, this rotates all modules & tiles.
+        Returns a new geometry object of the same type.
+
+        ::
+
+            # Rotate the whole geometry by 90 degree in the xy plan
+            geom2 = geom.rotate((0, 0, 90))
+
+            # Move the tile 0 in the module 0 around its center by 90 degrees
+            geom2 = geom.rotate((0, 0, 90), modules=np.s_[:1], tiles=np.s_[:1])
+
+            # Rotate each module by a separate amount
+            rotate = np.zeros((16, 3))
+            rotate[5] = (3, 5, 1)  # x, y, z for individual modules
+            rotate[10] = (0, -2, 1)
+            geom2 = geom.rotate(rotate)
 
         Parameters
         ----------
