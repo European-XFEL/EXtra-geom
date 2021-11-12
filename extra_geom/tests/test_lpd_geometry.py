@@ -212,6 +212,24 @@ def test_rotate():
         )
 
     # set rotation center, per-det/mod/tile
+    rot = np.zeros((4, 16, 3), dtype=np.float64)
+    rot[:, 2, :] = (90, 0, 0)
+    center = np.zeros((4, 16, 3), dtype=np.float64)
+    center[0, 2, :] = geom.modules[8][2].centre()
+    center[1, 2, :] = geom.modules[9][2].centre()
+    center[2, 2, :] = geom.modules[10][2].centre()
+    center[3, 2, :] = geom.modules[11][2].centre()
+    q3_t2_rotated = geom.rotate(rot, center=center, modules=np.s_[8:12])
+    y = np.array([m[2].corner_pos[1] for m in q3_t2_rotated.modules[8:12]])
+    np.testing.assert_array_almost_equal(
+        y,
+        [
+            geom.modules[8][2].centre()[1],
+            geom.modules[9][2].centre()[1],
+            geom.modules[10][2].centre()[1],
+            geom.modules[11][2].centre()[1]
+        ]
+    )
 
     # Wrong number of modules
     with pytest.raises(ValueError):
