@@ -55,10 +55,10 @@ class GeometryFragment:
         pos = self.corner_pos + shift
         return type(self)(pos, self.ss_vec, self.fs_vec, self.ss_pixels, self.fs_pixels)
 
-    def rotate(self, angles, center):
-        ss_vec = self.ss_vec @ angles
-        fs_vec = self.fs_vec @ angles
-        pos = (self.corner_pos - center) @ angles + center
+    def rotate(self, matrix, center):
+        ss_vec = self.ss_vec @ matrix
+        fs_vec = self.fs_vec @ matrix
+        pos = (self.corner_pos - center) @ matrix + center
         return type(self)(pos, ss_vec, fs_vec, self.ss_pixels, self.fs_pixels)
 
     def snap(self, px_shape):
@@ -803,6 +803,13 @@ class DetectorGeometryBase:
                degrees=True):
         """Rotate part or all of the detector, making a new geometry.
 
+        The rotation is defined by composition of rotations about the axes of
+        the coordinate system (https://en.wikipedia.org/wiki/Euler_angles),
+        i.e. a rotation around the z axis rotates the xy (detector) plan.
+        We use the right-hand rule, xy being the detector plan with z
+        increasing looking toward the detector front plan, x increasing to
+        the left, y increasing to the top. Positive rotations are clockwise.
+
         By default, this rotates all modules & tiles.
         Returns a new geometry object of the same type.
 
@@ -841,7 +848,11 @@ class DetectorGeometryBase:
             If True (default), angles are in degrees. If False, angles are in
             radians.
         """
-        rot = np.asarray(angles)
+        if degrees:
+            rot = np.deg2rad(angles)
+        else:
+            rot = np.asarray(angles)
+
         if rot.shape[-1] != 3:
             raise ValueError('Rotation angles must be 3d (x, y, z). '
                              f'Last dimension was {rot.shape[-1]}')
@@ -869,6 +880,10 @@ class DetectorGeometryBase:
                     center = np.mean([t.centre() for t in module], axis=0)
                     mods.append(np.array([center for _ in module[tiles]]))
                 refs[modules, tiles] = np.array(mods)
+            else:
+                # Single rotation, the reference is the detector center
+                # no shift required (refs is already initialized to 0)
+                pass
         else:
             center = np.asarray(center)
             if center.shape[:-1] == sel_refs.shape[:2]:
@@ -882,8 +897,8 @@ class DetectorGeometryBase:
                 sel_refs[:] = center
             else:
                 raise ValueError(
-                    f"Got {center.shape[:-1]} coordinates. Expected either a "
-                    f"single coordinate (), a coordinate per module "
+                    f"Got {center.shape[:-1]} center coordinates. Expected"
+                    f"either a single coordinate (), a coordinate per module "
                     f"{sel_refs.shape[:1]} or a coordinate per tile "
                     f"{sel_refs.shape[:2]}"
                 )
@@ -899,18 +914,16 @@ class DetectorGeometryBase:
             sel_rot[:] = rot
         else:
             raise ValueError(
-                f"Got {rot.shape[:-1]} coordinates. Expected either a single "
-                f"coordinate (), a coordinate per module {sel_rot.shape[:1]} "
-                f"or a coordinate per tile {sel_rot.shape[:2]}"
+                f"Got {rot.shape[:-1]} rotation sequences. Expected either a single "
+                f"sequence (), a sequence per module {sel_rot.shape[:1]} "
+                f"or a sequence per tile {sel_rot.shape[:2]}"
             )
 
         @lru_cache()
         def _rot(rotations):
             # generate rotation matrix for the given angles
-            if degrees:
-                w, p, k = np.deg2rad(rotations)
-            else:
-                w, p, k = rotations
+            # https://en.wikipedia.org/wiki/Rotation_matrix#In_three_dimensions
+            w, p, k = rotations
 
             rot_x = np.array([[1, 0, 0],
                               [0, np.cos(w), -np.sin(w)],
