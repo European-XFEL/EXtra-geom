@@ -1,3 +1,4 @@
+from functools import lru_cache
 from itertools import chain
 from warnings import warn
 
@@ -54,6 +55,12 @@ class GeometryFragment:
     def offset(self, shift):
         pos = self.corner_pos + shift
         return type(self)(pos, self.ss_vec, self.fs_vec, self.ss_pixels, self.fs_pixels)
+
+    def rotate(self, matrix, center):
+        ss_vec = self.ss_vec @ matrix
+        fs_vec = self.fs_vec @ matrix
+        pos = (self.corner_pos - center) @ matrix + center
+        return type(self)(pos, ss_vec, fs_vec, self.ss_pixels, self.fs_pixels)
 
     def snap(self, px_shape):
         # Round positions and vectors to integers, drop z dimension
@@ -820,6 +827,157 @@ class DetectorGeometryBase:
         return cls([
             [
                 tile.offset(all_shifts[m, t])
+                for t, tile in enumerate(module)
+            ] for m, module in enumerate(self.modules)
+        ])
+
+    def rotate(self, angles, center=None, modules=np.s_[:], tiles=np.s_[:],
+               degrees=True):
+        """Rotate part or all of the detector, making a new geometry.
+
+        The rotation is defined by composition of rotations about the axes of
+        the coordinate system (https://en.wikipedia.org/wiki/Euler_angles),
+        i.e. a rotation around the z axis rotates the xy (detector) plan.
+        We use the right-hand rule, xy being the detector plan with z
+        increasing looking toward the detector front plan, x increasing to
+        the left, y increasing to the top. Positive rotations are clockwise.
+
+        In other words:
+
+        - Positive x angles tilt the top edge of the detector backwards, away from the source
+        - Positive y angles tilt the right-hand edge (looking along the beam) away from the source
+        - Positive z angles turn the detector clockwise (looking along the beam)
+
+        By default, this rotates all modules & tiles.
+        Returns a new geometry object of the same type.
+
+        ::
+
+            # Rotate the whole geometry by 90 degree in the xy plan
+            geom2 = geom.rotate((0, 0, 90))
+
+            # Move the tile 0 in the module 0 around its center by 90 degrees
+            geom2 = geom.rotate((0, 0, 90), modules=np.s_[:1], tiles=np.s_[:1])
+
+            # Rotate each module by a separate amount
+            rotate = np.zeros((16, 3))
+            rotate[5] = (3, 5, 1)  # x, y, z for individual modules
+            rotate[10] = (0, -2, 1)
+            geom2 = geom.rotate(rotate)
+
+        Parameters
+        ----------
+
+        angles: np.array or tuple
+            (x, y, z) rotations to apply in degree. Can be a single rotation
+            for all selected modules, a 2D array with a rotation per module, or
+            a 3D array with a rotation per tile (``arr[module, tile, xyz]``).
+        center: np.array or tuple
+            center of rotation. Shape must match angles.shape.
+            If set to None (default), the rotation center is set to:
+            * all modules: center of the detector
+            * selected modules: centers of modules
+            * selected tiles: centers of tiles
+        modules: slice
+            Select modules to rotate; defaults to all modules.
+        tiles: slice
+            Select tiles to move within each module; defaults to all tiles.
+        degrees: bool
+            If True (default), angles are in degrees. If False, angles are in
+            radians.
+        """
+        if degrees:
+            rot = np.deg2rad(angles)
+        else:
+            rot = np.asarray(angles)
+
+        if rot.shape[-1] != 3:
+            raise ValueError('Rotation angles must be 3d (x, y, z). '
+                             f'Last dimension was {rot.shape[-1]}')
+        if center is not None and np.asarray(center).shape != rot.shape:
+            raise ValueError('Rotation center must have same shape as angles')
+
+        ntiles = len(max((m for m in self.modules), key=len))
+        all_rot = np.zeros((len(self.modules), ntiles, 3), dtype=rot.dtype)
+        sel_rot = all_rot[modules, tiles]
+
+        refs = np.zeros((len(self.modules), ntiles, 3), dtype=np.float64)
+        sel_refs = refs[modules, tiles]
+
+        if center is None:
+            if rot.shape[:-1] == sel_rot.shape[:2] or tiles != np.s_[:]:
+                # Per-tile rotation
+                refs[modules, tiles] = np.array(
+                    [[t.centre() for t in m[tiles]]
+                    for m in self.modules[modules]]
+                )
+            elif rot.shape[:-1] == sel_rot.shape[:1] or modules != np.s_[:]:
+                # Per-module rotation
+                mods = []
+                for module in self.modules[modules]:
+                    center = np.mean([t.centre() for t in module], axis=0)
+                    mods.append(np.array([center for _ in module[tiles]]))
+                refs[modules, tiles] = np.array(mods)
+            else:
+                # Single rotation, the reference is the detector center
+                # no shift required (refs is already initialized to 0)
+                pass
+        else:
+            center = np.asarray(center)
+            if center.shape[:-1] == sel_refs.shape[:2]:
+                # Per-tile offsets
+                sel_refs[:] = center
+            elif center.shape[:-1] == sel_refs.shape[:1]:
+                # Per-module offsets - broadcast across tiles
+                sel_refs[:] = center[:, np.newaxis]
+            elif center.shape[:-1] == ():
+                # Single shift - broadcast across modules and tiles
+                sel_refs[:] = center
+            else:
+                raise ValueError(
+                    f"Got {center.shape[:-1]} center coordinates. Expected"
+                    f"either a single coordinate (), a coordinate per module "
+                    f"{sel_refs.shape[:1]} or a coordinate per tile "
+                    f"{sel_refs.shape[:2]}"
+                )
+
+        if rot.shape[:-1] == sel_rot.shape[:2]:
+            # per-tile rotations
+            sel_rot[:] = rot
+        elif rot.shape[:-1] == sel_rot.shape[:1]:
+            # per-module rotations - broadcast across tiles
+            sel_rot[:] = rot[:, np.newaxis]
+        elif rot.shape[:-1] == ():
+            # single rotation - broadcast across modules and tiles
+            sel_rot[:] = rot
+        else:
+            raise ValueError(
+                f"Got {rot.shape[:-1]} rotation sequences. Expected either a single "
+                f"sequence (), a sequence per module {sel_rot.shape[:1]} "
+                f"or a sequence per tile {sel_rot.shape[:2]}"
+            )
+
+        @lru_cache()
+        def _rot(rotations):
+            # generate rotation matrix for the given angles
+            # https://en.wikipedia.org/wiki/Rotation_matrix#In_three_dimensions
+            w, p, k = rotations
+
+            rot_x = np.array([[1, 0, 0],
+                              [0, np.cos(w), -np.sin(w)],
+                              [0, np.sin(w), np.cos(w)]])
+            rot_y = np.array([[np.cos(p), 0, np.sin(p)],
+                              [0, 1, 0],
+                              [-np.sin(p), 0, np.cos(p)]])
+            rot_z = np.array([[np.cos(k), -np.sin(k), 0],
+                              [np.sin(k), np.cos(k), 0],
+                              [0, 0, 1]])
+
+            return rot_x @ rot_y @ rot_z
+
+        return type(self)([
+            [
+                tile.rotate(_rot(tuple(all_rot[m, t])), refs[m, t])
                 for t, tile in enumerate(module)
             ] for m, module in enumerate(self.modules)
         ])
