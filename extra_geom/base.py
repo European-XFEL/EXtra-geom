@@ -1,4 +1,5 @@
 from itertools import chain
+from warnings import warn
 
 import numpy as np
 from cfelpyutils.geometry import load_crystfel_geometry
@@ -252,6 +253,7 @@ class DetectorGeometryBase:
                 # Geometry for 2D data, modules concatenated along slow-scan axis
                 modno, min_ss = divmod(min_ss, cls.expected_data_shape[1])
 
+            info['panel_name'] = pname
             res[(modno, min_ss, info['orig_min_fs'])] = info
 
         return res
@@ -272,6 +274,7 @@ class DetectorGeometryBase:
             n_modules = max(c[0] for c in panels_by_data_coord) + 1
 
         modules = []
+        panel_names_to_pNaM = {}
         for p in range(n_modules):
             tiles = []
             modules.append(tiles)
@@ -279,6 +282,7 @@ class DetectorGeometryBase:
                 ss_slice, fs_slice = cls._tile_slice(a)
                 d = panels_by_data_coord[p, ss_slice.start, fs_slice.start]
                 tiles.append(GeometryFragment.from_panel_dict(d))
+                panel_names_to_pNaM[d['panel_name']] = f'p{p}a{a}'
 
         # Store some extra fields to write if we create another .geom file.
         # It's possible for these to have different values for different panels,
@@ -288,6 +292,31 @@ class DetectorGeometryBase:
         d1 = panels_by_data_coord[0, 0, 0]
         metadata = {'crystfel': {k: d1.get(k) for k in cfel_md_keys}}
         metadata['crystfel']['photon_energy'] = cfel_geom.beam['photon_energy']
+
+        # Normalise description of bad regions, so we can output it correctly.
+        # - Change panel names to uniform pNaM (panel N asic M) format
+        # - If the file has a 2D layout (modules arranged along the slow-scan
+        #   axis), convert slow-scan coordinates to a 3D layout.
+        file_geom_is_2d = not any(isinstance(d, int) for d in d1['dim_structure'])
+        adjusted_bad_regions = {}
+        for bad_name, bad_d in cfel_geom.detector['bad'].items():
+            panel_name = bad_d['panel']
+            if panel_name:
+                try:
+                    bad_d['panel'] = panel_names_to_pNaM[panel_name]
+                except KeyError:
+                    warn("Discarding {bad_name}, no such panel {panel_name!r}")
+                    continue
+            if bad_d['is_fsss']:
+                if not panel_name:
+                    warn("Discarding {bad_name}, ss/fs region without panel name")
+                    continue
+                if file_geom_is_2d:
+                    bad_d['min_ss'] %= cls.expected_data_shape[1]
+                    bad_d['max_ss'] %= cls.expected_data_shape[1]
+            adjusted_bad_regions[bad_name] = bad_d
+
+        metadata['crystfel']['bad'] = adjusted_bad_regions
 
         return cls(modules, filename=filename, metadata=metadata)
 
@@ -344,6 +373,7 @@ class DetectorGeometryBase:
 
         write_crystfel_geom(
             self, filename, data_path=data_path, mask_path=mask_path, dims=dims,
+            bad_regions=cfelmeta.get('bad', {}),
             nquads=nquads, adu_per_ev=adu_per_ev, clen=clen,
             photon_energy=photon_energy,
         )
