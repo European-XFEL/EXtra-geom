@@ -433,6 +433,30 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
         # Overridden only for docstring
         return super().to_distortion_array(allow_negative_xy)
 
+    def to_pyfai_detector(self):
+        from .pyfai import AGIPD1M
+
+        pxl_corners = self.to_distortion_array(allow_negative_xy=True)
+        # Shift the x & y origin from the centre to the corner
+        center_yx = -pxl_corners[..., 1:].min(axis=(0, 1, 2))
+        pxl_corners[..., 1:] += center_yx
+
+        agipd = AGIPD1M()
+        agipd.set_pixel_corners(pxl_corners)
+
+        return agipd, center_yx
+
+    def to_pyfai_integrator(self, dist=1, wavelength=None):
+        from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+        det, center_yx = self.to_pyfai_detector()
+        return AzimuthalIntegrator(
+            dist=dist,
+            poni1=center_yx[0],
+            poni2=center_yx[1],
+            detector=det,
+            wavelength=wavelength
+        )
+
 
 class AGIPD_500K2GGeometry(DetectorGeometryBase):
     """Detector layout for AGIPD-500k
