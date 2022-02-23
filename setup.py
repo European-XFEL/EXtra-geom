@@ -61,6 +61,7 @@ setup(name="EXtra-geom",
               'testpath',
               'xarray',
               'EXtra-data',
+              'pyFAI',
           ]
       },
       python_requires='>=3.6',
