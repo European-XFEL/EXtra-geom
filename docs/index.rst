@@ -48,6 +48,7 @@ Documentation contents
    apply_geometry
    convert_coords
    masks
+   pyfai
 
 .. toctree::
    :caption: Development
