@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from itertools import product
 
 import numpy as np
+import pyFAI.detectors
 import pytest
 import xarray as xr
 from cfelpyutils.crystfel_utils import load_crystfel_geometry
@@ -180,3 +181,9 @@ def test_data_coords_to_positions():
     assert (np.diff(resx) < 0).all()   # Monotonically decreasing
     np.testing.assert_allclose(resx[0], 526 * geom.pixel_size)
     assert -0.01 < resx[-1] < 0.01
+
+
+def test_to_pyfai_detector():
+    geom = AGIPD_500K2GGeometry.from_origin()
+    agipd_pyfai = geom.to_pyfai_detector()
+    assert isinstance(agipd_pyfai, pyFAI.detectors.Detector)
