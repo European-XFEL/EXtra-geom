@@ -53,11 +53,11 @@ but this geometry code works with a position for each tile.
 
    .. automethod:: to_distortion_array
 
-   .. automethod:: plot_data_fast
+   .. automethod:: plot_data
 
-   .. automethod:: position_modules_fast
+   .. automethod:: position_modules
 
-   .. automethod:: output_array_for_position_fast
+   .. automethod:: output_array_for_position
 
    .. automethod:: position_modules_symmetric
 

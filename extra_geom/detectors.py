@@ -311,7 +311,7 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
         """Assemble data from this detector according to where the pixels are.
 
         This performs interpolation, which is very slow.
-        Use :meth:`position_modules_fast` to get a pixel-aligned approximation
+        Use :meth:`position_modules` to get a pixel-aligned approximation
         of the geometry.
 
         Parameters
@@ -1363,22 +1363,22 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         # This simple slicing is faster than np.split().
         return [module_data[..., :256], module_data[..., 256:]]
 
-    def plot_data_fast(self,
-                       data, *,
-                       axis_units='px',
-                       frontview=True,
-                       ax=None,
-                       figsize=None,
-                       colorbar=False,
-                       **kwargs):
+    def plot_data(self,
+                  data, *,
+                  axis_units='px',
+                  frontview=True,
+                  ax=None,
+                  figsize=None,
+                  colorbar=False,
+                  **kwargs):
 
-        ax = super().plot_data_fast(data,
-                                    axis_units=axis_units,
-                                    frontview=frontview,
-                                    ax=ax,
-                                    figsize=figsize,
-                                    colorbar=colorbar,
-                                    **kwargs)
+        ax = super().plot_data(data,
+                               axis_units=axis_units,
+                               frontview=frontview,
+                               ax=ax,
+                               figsize=figsize,
+                               colorbar=colorbar,
+                               **kwargs)
         if axis_units == 'px':
             # Squash image to physically equal aspect ratio, so a circle projected
             # on the detector looks like a circle on screen.
@@ -1719,13 +1719,13 @@ class PNCCDGeometry(DetectorGeometryBase):
 
         return ax
 
-    def position_modules_fast(self, data, *args, **kwargs):
-        return super().position_modules_fast(self._ensure_shape(data),
-                                             *args, **kwargs)
+    def position_modules(self, data, *args, **kwargs):
+        return super().position_modules(self._ensure_shape(data),
+                                        *args, **kwargs)
 
-    def plot_data_fast(self, data, *args, **kwargs):
-        return super().plot_data_fast(self._ensure_shape(data),
-                                      *args, **kwargs)
+    def plot_data(self, data, *args, **kwargs):
+        return super().plot_data(self._ensure_shape(data),
+                                 *args, **kwargs)
 
 
 class EpixGeometryBase(DetectorGeometryBase):
@@ -1982,13 +1982,13 @@ class EpixGeometryBase(DetectorGeometryBase):
 
         return data
 
-    def position_modules_fast(self, data, *args, **kwargs):
-        return super().position_modules_fast(self._ensure_shape(data),
-                                             *args, **kwargs)
+    def position_modules(self, data, *args, **kwargs):
+        return super().position_modules(self._ensure_shape(data),
+                                        *args, **kwargs)
 
-    def plot_data_fast(self, data, *args, **kwargs):
-        return super().plot_data_fast(self._ensure_shape(data),
-                                      *args, **kwargs)
+    def plot_data(self, data, *args, **kwargs):
+        return super().plot_data(self._ensure_shape(data),
+                                 *args, **kwargs)
 
 
 class Epix100Geometry(EpixGeometryBase):
