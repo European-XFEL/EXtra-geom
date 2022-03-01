@@ -387,11 +387,11 @@ class DetectorGeometryBase:
         raise NotImplementedError
 
     def output_array_for_position(self, extra_shape=(), dtype=np.float32):
-        """Make an empty output array to use with position_modules_fast
+        """Make an empty output array to use with position_modules
 
         You can speed up assembling images by reusing the same output array:
         call this once, and then pass the array as the ``out=`` parameter to
-        :meth:`position_modules_fast()`. By default, it allocates a new array on
+        :meth:`position_modules`. By default, it allocates a new array on
         each call, which can be slow.
 
         Parameters
@@ -427,7 +427,7 @@ class DetectorGeometryBase:
           is given, it must have a 'module' dimension.
         out : ndarray, optional
           An output array to assemble the image into. By default, a new
-          array is allocated. Use :meth:`output_array_for_position_fast` to
+          array is allocated. Use :meth:`output_array_for_position` to
           create a suitable array.
           If an array is passed in, it must match the dtype of the data and the
           shape of the array that would have been allocated.
@@ -461,7 +461,7 @@ class DetectorGeometryBase:
     def position_modules_symmetric(self, data, out=None, threadpool=None):
         """Assemble data with the centre in the middle of the output array.
 
-        The assembly process is the same as :meth:`position_modules_fast`,
+        The assembly process is the same as :meth:`position_modules`,
         aligning each module to a single pixel grid. But this makes the output
         array symmetric, with the centre at (height // 2, width // 2).
 
@@ -479,7 +479,7 @@ class DetectorGeometryBase:
           this size.
         threadpool : concurrent.futures.ThreadPoolExecutor, optional
           If passed, parallelise copying data into the output image.
-          See :meth:`position_modules_fast` for details.
+          See :meth:`position_modules` for details.
 
         Returns
         -------
