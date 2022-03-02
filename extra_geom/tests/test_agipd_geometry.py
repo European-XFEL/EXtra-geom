@@ -4,7 +4,7 @@ from itertools import product
 import numpy as np
 import pyFAI.detectors
 import pytest
-from cfelpyutils.crystfel_utils import load_crystfel_geometry
+from cfelpyutils.geometry import load_crystfel_geometry
 from matplotlib.axes import Axes
 
 from extra_geom import AGIPD_1MGeometry, agipd_asic_seams
@@ -69,21 +69,43 @@ def test_assemble_symmetric():
         geom.position_modules_symmetric(stacked_data, out=img[:-1, :-1])
 
 
+bad_xy = {
+    'is_fsss': False,
+    'min_x': -20., 'max_x': 20., 'min_y': -100., 'max_y': 100,
+    'min_fs': 0, 'max_fs': 0, 'min_ss': 0, 'max_ss': 0, 'panel': '',
+}
+bad_fsss = {
+    'is_fsss': True,
+    'min_x': None, 'max_x': None, 'min_y': None, 'max_y': None,
+    'min_fs': 10, 'max_fs': 100, 'min_ss': 450, 'max_ss': 500, 'panel': 'p3a7',
+}
+def assert_bad_region_like(actual, expected):
+    actual = {k: None if isinstance(v, float) and np.isnan(v) else v
+              for (k, v) in actual.items()}
+    assert actual == expected
+
+
 def test_write_read_crystfel_file(tmpdir):
     geom = AGIPD_1MGeometry.from_quad_positions(
         quad_pos=[(-525, 625), (-550, -10), (520, -160), (542.5, 475)]
     )
     # Use the z dimension (coffset in .geom)
     geom = geom.offset((0, 0, 0.001), modules=np.s_[8:12])
+
+    # Add some bad regions in CrystFEL file
+    geom.metadata['crystfel'] = {'bad': {'bad_xy': bad_xy, 'bad_fsss': bad_fsss}}
+
     path = str(tmpdir / 'test.geom')
     geom.write_crystfel_geom(filename=path, photon_energy=9000,
                              adu_per_ev=0.0075, clen=0.2)
 
     loaded = AGIPD_1MGeometry.from_crystfel_geom(path)
     assert_geom_close(loaded, geom)
+    assert_bad_region_like(loaded.metadata['crystfel']['bad']['bad_xy'], bad_xy)
+    assert_bad_region_like(loaded.metadata['crystfel']['bad']['bad_fsss'], bad_fsss)
 
     # Load the geometry file with cfelpyutils and test the rigid groups
-    geom_dict = load_crystfel_geometry(path)
+    geom_dict = load_crystfel_geometry(path).detector
     quad_gr0 = [  # 1st quadrant: p0a0 ... p3a7
         'p{}a{}'.format(p, a) for p, a in product(range(4), range(8))
     ]
@@ -92,10 +114,14 @@ def test_write_read_crystfel_file(tmpdir):
     assert geom_dict['rigid_groups']['q0'] == quad_gr0
     assert geom_dict['panels']['p0a0']['res'] == 5000  # 5000 pixels/metre
     p3a7 = geom_dict['panels']['p3a7']
-    assert p3a7['min_ss'] == 448
-    assert p3a7['max_ss'] == 511
-    assert p3a7['min_fs'] == 0
-    assert p3a7['max_fs'] == 127
+    assert p3a7['orig_min_ss'] == 448
+    assert p3a7['orig_max_ss'] == 511
+    assert p3a7['orig_min_fs'] == 0
+    assert p3a7['orig_max_fs'] == 127
+
+    print(geom_dict['bad'])
+    assert_bad_region_like(geom_dict['bad']['bad_xy'], bad_xy)
+    assert_bad_region_like(geom_dict['bad']['bad_fsss'], bad_fsss)
 
 
 def test_write_read_crystfel_file_2d(tmpdir):
@@ -103,24 +129,30 @@ def test_write_read_crystfel_file_2d(tmpdir):
         quad_pos=[(-525, 625), (-550, -10), (520, -160), (542.5, 475)]
     )
     path = str(tmpdir / 'test.geom')
+
+    # Add some bad regions in CrystFEL file
+    geom.metadata['crystfel'] = {'bad': {'bad_xy': bad_xy, 'bad_fsss': bad_fsss}}
+
     geom.write_crystfel_geom(filename=path, dims=('frame', 'ss', 'fs'),
                              adu_per_ev=0.0075, clen=0.2)
 
     loaded = AGIPD_1MGeometry.from_crystfel_geom(path)
-    np.testing.assert_allclose(
-        loaded.modules[0][0].corner_pos, geom.modules[0][0].corner_pos
-    )
-    np.testing.assert_allclose(loaded.modules[0][0].fs_vec, geom.modules[0][0].fs_vec)
+    assert_geom_close(loaded, geom)
+    assert_bad_region_like(loaded.metadata['crystfel']['bad']['bad_xy'], bad_xy)
+    assert_bad_region_like(loaded.metadata['crystfel']['bad']['bad_fsss'], bad_fsss)
 
     # Load the geometry file with cfelpyutils and check some values
-    geom_dict = load_crystfel_geometry(path)
+    geom_dict = load_crystfel_geometry(path).detector
 
     p3a7 = geom_dict['panels']['p3a7']
     assert p3a7['dim_structure'] == ['%', 'ss', 'fs']
-    assert p3a7['min_ss'] == (3 * 512) + 448
-    assert p3a7['max_ss'] == (3 * 512) + 511
-    assert p3a7['min_fs'] == 0
-    assert p3a7['max_fs'] == 127
+    assert p3a7['orig_min_ss'] == (3 * 512) + 448
+    assert p3a7['orig_max_ss'] == (3 * 512) + 511
+    assert p3a7['orig_min_fs'] == 0
+    assert p3a7['orig_max_fs'] == 127
+
+    assert geom_dict['bad']['bad_fsss']['min_ss'] == (3 * 512) + 450
+    assert geom_dict['bad']['bad_fsss']['max_ss'] == (3 * 512) + 500
 
 
 def test_quad_positions():

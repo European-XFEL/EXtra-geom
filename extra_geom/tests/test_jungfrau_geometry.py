@@ -1,6 +1,6 @@
 
 import numpy as np
-from cfelpyutils.crystfel_utils import load_crystfel_geometry
+from cfelpyutils.geometry import load_crystfel_geometry
 
 from extra_geom import JUNGFRAUGeometry
 
@@ -33,15 +33,16 @@ def test_write_read_crystfel_file(tmpdir):
     assert_geom_close(loaded, geom)
     assert loaded.metadata['crystfel']['adu_per_eV'] == 0.0042
     assert loaded.metadata['crystfel']['clen'] == 0.101
+    assert loaded.metadata['crystfel']['photon_energy'] == 9000
 
     # Load the geometry file with cfelpyutils and test the rigid groups
-    geom_dict = load_crystfel_geometry(path)
+    geom_dict = load_crystfel_geometry(path).detector
     assert geom_dict['panels']['p0a0']['res'] == 1 / 75e-6
     p3a7 = geom_dict['panels']['p3a7']
-    assert p3a7['min_ss'] == 256
-    assert p3a7['max_ss'] == 511
-    assert p3a7['min_fs'] == 768
-    assert p3a7['max_fs'] == 1023
+    assert p3a7['orig_min_ss'] == 256
+    assert p3a7['orig_max_ss'] == 511
+    assert p3a7['orig_min_fs'] == 768
+    assert p3a7['orig_max_fs'] == 1023
 
     # Check that metadata is written back to .geom file OK
     path2 = str(tmpdir / 'test2.geom')

@@ -1,5 +1,6 @@
 """Write geometry in CrystFEL format.
 """
+import re
 from itertools import product
 
 import numpy as np
@@ -77,11 +78,12 @@ def frag_to_crystfel(fragment, p, a, ss_slice, fs_slice, dims, pixel_size):
         coffset=fragment.corner_pos[2],
     )
 
-def write_crystfel_geom(self, filename, *,
-                        data_path='/entry_1/instrument_1/detector_1/data',
-                        mask_path=None, dims=('frame', 'modno', 'ss', 'fs'),
-                        nquads=4, adu_per_ev=None, clen=None,
-                        photon_energy=None):
+def write_crystfel_geom(
+        self, filename, *,
+        data_path='/entry_1/instrument_1/detector_1/data',
+        mask_path=None, dims=('frame', 'modno', 'ss', 'fs'), bad_regions={},
+        nquads=4, adu_per_ev=None, clen=None, photon_energy=None,
+):
     """Write this geometry to a CrystFEL format (.geom) geometry file.
     """
     from . import __version__
@@ -150,10 +152,44 @@ def write_crystfel_geom(self, filename, *,
             clen=clen_str,
             photon_energy=photon_energy_str
         ))
+        f.write(format_bad_regions(
+            bad_regions,
+            mod_ss_pixels=self.expected_data_shape[1],
+            layout_2d=('modno' not in dims)
+        ))
         rigid_groups = get_rigid_groups(self, nquads=nquads)
         f.write(rigid_groups)
         for chunk in panel_chunks:
             f.write(chunk)
+
+def format_bad_regions(bad_regions: dict, mod_ss_pixels: int, layout_2d=False):
+    lines = []
+    for name, d in bad_regions.items():
+        if d['is_fsss']:
+            if layout_2d:
+                modno = int(re.match("p(\d+)a\d+", d['panel'])[1])
+                mod_offset = modno * mod_ss_pixels
+                min_ss = d['min_ss'] + mod_offset
+                max_ss = d['max_ss'] + mod_offset
+            else:
+                min_ss, max_ss = d['min_ss'], d['max_ss']
+            lines += [
+                f"{name}/panel = {d['panel']}",
+                f"{name}/min_ss = {min_ss}",
+                f"{name}/max_ss = {max_ss}",
+                f"{name}/min_fs = {d['min_fs']}",
+                f"{name}/max_fs = {d['max_fs']}",
+                ""
+            ]
+        else:
+            lines += [
+                f"{name}/min_x = {d['min_x']}",
+                f"{name}/max_x = {d['max_x']}",
+                f"{name}/min_y = {d['min_y']}",
+                f"{name}/max_y = {d['max_y']}",
+                ""
+            ]
+    return "\n".join(lines)
 
 def get_rigid_groups(geom, nquads=4):
     """Create string for rigid groups definition."""
