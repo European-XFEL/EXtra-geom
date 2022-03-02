@@ -3,6 +3,7 @@ from os.path import join as pjoin
 
 import h5py
 import numpy as np
+import pyFAI.detectors
 import pytest
 from cfelpyutils.geometry import load_crystfel_geometry
 from matplotlib.axes import Axes
@@ -318,3 +319,11 @@ def test_invert_xfel_lpd_geom(tmpdir):
         np.testing.assert_array_equal(
             fsrc['Q1/M1/T07/Position'][:], -1 * fdst['Q1/M1/T07/Position'][:]
         )
+
+
+def test_to_pyfai_detector():
+    geom = LPD_1MGeometry.from_quad_positions(
+        [(11.4, 299), (-11.5, 8), (254.5, -16), (278.5, 275)]
+    )
+    agipd_pyfai = geom.to_pyfai_detector()
+    assert isinstance(agipd_pyfai, pyFAI.detectors.Detector)

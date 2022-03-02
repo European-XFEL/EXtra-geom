@@ -206,6 +206,7 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
     n_quads = 4
     n_modules = 16
     n_tiles_per_module = 8
+    _pyfai_cls_name = 'AGIPD1M'
 
     @classmethod
     def from_quad_positions(cls, quad_pos, asic_gap=2, panel_gap=29,
@@ -449,6 +450,7 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
     expected_data_shape = (8, 512, 128)
     n_modules = 8
     n_tiles_per_module = 8
+    _pyfai_cls_name = 'AGIPD500K'
 
     @classmethod
     def from_origin(cls, origin=(0, 0), asic_gap=2, panel_gap=(16, 30),
@@ -622,6 +624,7 @@ class LPD_1MGeometry(DetectorGeometryBase):
     n_tiles_per_module = 16
     expected_data_shape = (16, 256, 256)
     _draw_first_px_on_tile = 8  # The first pixel in stored data is on tile 8
+    _pyfai_cls_name = 'LPD1M'
 
     @classmethod
     def from_quad_positions(cls, quad_pos, *, unit=1e-3, asic_gap=None,
@@ -1034,6 +1037,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
     # This stretches the dimensions for the 'snapped' geometry so that its pixel
     # grid matches the aspect ratio of the detector pixels.
     _pixel_shape = np.array([1., 1.5/np.sqrt(3)], dtype=np.float64) * pixel_size
+    _pyfai_cls_name = 'DSSC1M'
 
     # Pixel corners described clockwise from the top, assuming the reference
     # point for a pixel is outside it, aligned with the top point & left edge.
