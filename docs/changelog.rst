@@ -1,6 +1,18 @@
 Release Notes
 =============
 
+1.7
+---
+
+- New method :meth:`~.DSSC_1MGeometry.to_pyfai_detector` for AGIPD, DSSC and LPD
+  to make a PyFAI detector object (:ghpull:`139`). See :doc:`pyfai` for an example.
+- New method :meth:`~.DSSC_1MGeometry.rotate` to rotate all or selected parts of
+  the detector by given angles in 3D (:ghpull:`128`).
+- Rename ``plot_data_fast`` to ``plot_data``, and ``position_modules_fast`` to
+  ``position_modules`` (:ghpull:`143`). The old names remain as aliases.
+- EXtra-geom now works with (and requires) cfelpyutils 2.x for reading
+  CrystFEL format ``.geom`` files (:ghpull:`114`).
+
 1.6
 ---
 
