@@ -93,6 +93,7 @@ class DetectorGeometryBase:
         [0, 0, 1, 1]   # fast-scan
     ])
     _draw_first_px_on_tile = 1  # Tile num of 1st pixel - overridden for LPD
+    _pyfai_cls_name = None  # Name of class in extra_geom.pyfai
 
     @property
     def _pixel_shape(self):
@@ -614,6 +615,21 @@ class DetectorGeometryBase:
             distortion[..., 1:] -= min_yx
 
         return distortion
+
+    def to_pyfai_detector(self):
+        """Make a PyFAI detector object for this detector
+
+        You can use PyFAI to azimuthally integrate detector images around
+        the centre point of the geometry. The detector object holds the
+        positions of all the pixels. See the examples for how to use this.
+        """
+        if self._pyfai_cls_name is None:
+            raise NotImplementedError
+
+        from . import pyfai
+        det = getattr(pyfai, self._pyfai_cls_name)()
+        det.set_pixel_corners(self.to_distortion_array(allow_negative_xy=True))
+        return det
 
     @classmethod
     def _tile_slice(cls, tileno):

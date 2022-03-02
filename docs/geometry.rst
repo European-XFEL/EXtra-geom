@@ -53,6 +53,8 @@ but this geometry code works with a position for each tile.
 
    .. automethod:: to_distortion_array
 
+   .. automethod:: to_pyfai_detector
+
    .. automethod:: plot_data
 
    .. automethod:: position_modules
@@ -98,6 +100,8 @@ but this geometry code works with a position for each tile.
    .. automethod:: get_pixel_positions
 
    .. automethod:: to_distortion_array
+
+   .. automethod:: to_pyfai_detector
 
    .. automethod:: plot_data
 
@@ -151,6 +155,8 @@ which this geometry code can position independently.
    .. automethod:: get_pixel_positions
 
    .. automethod:: to_distortion_array
+
+   .. automethod:: to_pyfai_detector
 
    .. automethod:: plot_data
 
@@ -209,6 +215,8 @@ approximately half a pixel width from their true position.
    .. automethod:: get_pixel_positions
 
    .. automethod:: to_distortion_array
+
+   .. automethod:: to_pyfai_detector
 
    .. automethod:: plot_data
 

@@ -1,8 +1,8 @@
 from os.path import abspath, dirname
 from os.path import join as pjoin
 
-import h5py
 import numpy as np
+import pyFAI.detectors
 from matplotlib.axes import Axes
 from testpath import assert_isfile
 
@@ -118,3 +118,9 @@ def test_quad_positions_no_file():
     quad_pos_out = geom.quad_positions()
 
     np.testing.assert_allclose(quad_pos_out, QUAD_POS)
+
+
+def test_to_pyfai_detector():
+    geom = DSSC_1MGeometry.from_quad_positions(QUAD_POS)
+    agipd_pyfai = geom.to_pyfai_detector()
+    assert isinstance(agipd_pyfai, pyFAI.detectors.Detector)

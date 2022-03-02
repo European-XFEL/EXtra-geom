@@ -6,7 +6,7 @@ Why is my image "flipped" when I display it?
 
 At EuXFEL, the convention is to show detector images looking at the front of the detector, meaning the beam coming from behind you. You can get the other view with EXtra-geom's plotting methods by passing ``frontview=False``.
 
-If you use matplotlib's ``imshow(array)`` to display an image, it may be upside down. You can correct this by passing ``imshow(array, origin='lower')``.
+If you use matplotlib's ``imshow(array)`` to display an image, it may be upside down. You can correct this by passing ``imshow(array, origin='lower')``. If you also want to flip the displayed image horizontally, pass ``arr[:, ::-1]`` or ``np.fliplr(arr)``.
 
 What are "slow-scan" and "fast-scan"?
 -------------------------------------

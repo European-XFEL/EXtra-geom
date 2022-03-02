@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from itertools import product
 
 import numpy as np
+import pyFAI.detectors
 import pytest
 from cfelpyutils.crystfel_utils import load_crystfel_geometry
 from matplotlib.axes import Axes
@@ -208,3 +209,11 @@ def test_asic_seams():
     assert arr.shape == (512, 128)
     assert not arr[30, 0]
     assert arr[63, 0]
+
+
+def test_to_pyfai_detector():
+    geom = AGIPD_1MGeometry.from_quad_positions(
+        quad_pos=[(-525, 625), (-550, -10), (520, -160), (542.5, 475)]
+    )
+    agipd_pyfai = geom.to_pyfai_detector()
+    assert isinstance(agipd_pyfai, pyFAI.detectors.Detector)
