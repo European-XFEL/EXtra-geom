@@ -419,12 +419,12 @@ class DetectorGeometryBase:
         """
         raise NotImplementedError
 
-    def output_array_for_position_fast(self, extra_shape=(), dtype=np.float32):
-        """Make an empty output array to use with position_modules_fast
+    def output_array_for_position(self, extra_shape=(), dtype=np.float32):
+        """Make an empty output array to use with position_modules
 
         You can speed up assembling images by reusing the same output array:
         call this once, and then pass the array as the ``out=`` parameter to
-        :meth:`position_modules_fast()`. By default, it allocates a new array on
+        :meth:`position_modules`. By default, it allocates a new array on
         each call, which can be slow.
 
         Parameters
@@ -439,10 +439,17 @@ class DetectorGeometryBase:
         return self._snapped().make_output_array(extra_shape=extra_shape,
                                                  dtype=dtype)
 
-    def position_modules_fast(self, data, out=None, threadpool=None):
+    def output_array_for_position_fast(self, extra_shape=(), dtype=np.float32):
+        """Deprecated alias for :meth:`output_array_for_position`"""
+        return self.output_array_for_position(extra_shape, dtype)
+
+    def position_modules(self, data, out=None, threadpool=None):
         """Assemble data from this detector according to where the pixels are.
 
         This approximates the geometry to align all pixels to a 2D grid.
+
+        This method was previously called ``position_modules_fast``, and can
+        still be called with that name.
 
         Parameters
         ----------
@@ -453,7 +460,7 @@ class DetectorGeometryBase:
           is given, it must have a 'module' dimension.
         out : ndarray, optional
           An output array to assemble the image into. By default, a new
-          array is allocated. Use :meth:`output_array_for_position_fast` to
+          array is allocated. Use :meth:`output_array_for_position` to
           create a suitable array.
           If an array is passed in, it must match the dtype of the data and the
           shape of the array that would have been allocated.
@@ -476,14 +483,18 @@ class DetectorGeometryBase:
         """
         return self._snapped().position_modules(data, out=out, threadpool=threadpool)
 
+    def position_modules_fast(self, data, out=None, threadpool=None):
+        """Deprecated alias for :meth:`position_modules`"""
+        return self.position_modules(data, out=out, threadpool=threadpool)
+
     def position_all_modules(self, data, out=None):
-        """Deprecated alias for :meth:`position_modules_fast`"""
-        return self.position_modules_fast(data, out=out)
+        """Deprecated alias for :meth:`position_modules`"""
+        return self.position_modules(data, out=out)
 
     def position_modules_symmetric(self, data, out=None, threadpool=None):
         """Assemble data with the centre in the middle of the output array.
 
-        The assembly process is the same as :meth:`position_modules_fast`,
+        The assembly process is the same as :meth:`position_modules`,
         aligning each module to a single pixel grid. But this makes the output
         array symmetric, with the centre at (height // 2, width // 2).
 
@@ -501,7 +512,7 @@ class DetectorGeometryBase:
           this size.
         threadpool : concurrent.futures.ThreadPoolExecutor, optional
           If passed, parallelise copying data into the output image.
-          See :meth:`position_modules_fast` for details.
+          See :meth:`position_modules` for details.
 
         Returns
         -------
@@ -513,19 +524,22 @@ class DetectorGeometryBase:
             data, out=out, threadpool=threadpool
         )
 
-    def plot_data_fast(self,
-                       data, *,
-                       axis_units='px',
-                       frontview=True,
-                       ax=None,
-                       figsize=None,
-                       colorbar=True,
-                       **kwargs):
+    def plot_data(self,
+                  data, *,
+                  axis_units='px',
+                  frontview=True,
+                  ax=None,
+                  figsize=None,
+                  colorbar=True,
+                  **kwargs):
         """Plot data from the detector using this geometry.
 
         This approximates the geometry to align all pixels to a 2D grid.
 
         Returns a matplotlib axes object.
+
+        This method was previously called ``plot_data_fast``, and can
+        still be called with that name.
 
         Parameters
         ----------
@@ -554,6 +568,10 @@ class DetectorGeometryBase:
             data, axis_units=axis_units, frontview=frontview, figsize=figsize,
             ax=ax, colorbar=colorbar, **kwargs
             )
+
+    def plot_data_fast(self, data, **kwargs):
+        """Deprecated alias for :meth:`plot_data`"""
+        return self.plot_data(data, **kwargs)
 
     @classmethod
     def _distortion_array_slice(cls, m, t):

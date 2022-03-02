@@ -55,11 +55,11 @@ but this geometry code works with a position for each tile.
 
    .. automethod:: to_pyfai_detector
 
-   .. automethod:: plot_data_fast
+   .. automethod:: plot_data
 
-   .. automethod:: position_modules_fast
+   .. automethod:: position_modules
 
-   .. automethod:: output_array_for_position_fast
+   .. automethod:: output_array_for_position
 
    .. automethod:: position_modules_symmetric
 
@@ -103,11 +103,11 @@ but this geometry code works with a position for each tile.
 
    .. automethod:: to_pyfai_detector
 
-   .. automethod:: plot_data_fast
+   .. automethod:: plot_data
 
-   .. automethod:: position_modules_fast
+   .. automethod:: position_modules
 
-   .. automethod:: output_array_for_position_fast
+   .. automethod:: output_array_for_position
 
    .. automethod:: position_modules_symmetric
 
@@ -158,11 +158,11 @@ which this geometry code can position independently.
 
    .. automethod:: to_pyfai_detector
 
-   .. automethod:: plot_data_fast
+   .. automethod:: plot_data
 
-   .. automethod:: position_modules_fast
+   .. automethod:: position_modules
 
-   .. automethod:: output_array_for_position_fast
+   .. automethod:: output_array_for_position
 
    .. automethod:: position_modules_symmetric
 
@@ -218,11 +218,11 @@ approximately half a pixel width from their true position.
 
    .. automethod:: to_pyfai_detector
 
-   .. automethod:: plot_data_fast
+   .. automethod:: plot_data
 
-   .. automethod:: position_modules_fast
+   .. automethod:: position_modules
 
-   .. automethod:: output_array_for_position_fast
+   .. automethod:: output_array_for_position
 
    .. automethod:: inspect
 
@@ -250,11 +250,11 @@ Each module is further subdivided into 8 sensor tiles.
 
    .. automethod:: to_distortion_array
 
-   .. automethod:: plot_data_fast
+   .. automethod:: plot_data
 
-   .. automethod:: position_modules_fast
+   .. automethod:: position_modules
 
-   .. automethod:: output_array_for_position_fast
+   .. automethod:: output_array_for_position
 
    .. automethod:: inspect
 
@@ -276,11 +276,11 @@ single tile.
 
    .. automethod:: from_absolute_positions
 
-   .. automethod:: plot_data_fast
+   .. automethod:: plot_data
 
-   .. automethod:: position_modules_fast
+   .. automethod:: position_modules
 
-   .. automethod:: output_array_for_position_fast
+   .. automethod:: output_array_for_position
 
    .. automethod:: inspect
 
@@ -309,13 +309,13 @@ ePix10K detectors have one module of 352 × 384 pixels. Module built from 4 ASIC
 
    .. automethod:: get_pixel_positions
 
-   .. automethod:: plot_data_fast
+   .. automethod:: plot_data
 
-   .. automethod:: position_modules_fast
+   .. automethod:: position_modules
 
    .. automethod:: normalize_data
 
-   .. automethod:: output_array_for_position_fast
+   .. automethod:: output_array_for_position
 
    .. automethod:: inspect
 
@@ -338,11 +338,11 @@ Generic detector may represent an unconstrained detector of your choice.
 
    .. automethod:: get_pixel_positions
 
-   .. automethod:: plot_data_fast
+   .. automethod:: plot_data
 
-   .. automethod:: position_modules_fast
+   .. automethod:: position_modules
 
-   .. automethod:: output_array_for_position_fast
+   .. automethod:: output_array_for_position
 
    .. automethod:: inspect
 
