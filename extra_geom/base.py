@@ -437,7 +437,9 @@ class DetectorGeometryBase:
             if m:
                 panel, field, value, comment = m.groups()
                 new_val = updates.pop((panel, field))
-                new_lines.append(f"{panel}/{field} = {new_val} {comment or ''}")
+                new_lines.append(
+                    f"{panel}/{field} = {new_val} {comment or ''}".rstrip()
+                )
             else:
                 new_lines.append(line)
 
