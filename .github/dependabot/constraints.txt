@@ -1,7 +1,7 @@
 cfelpyutils==2.0.6
 coverage<6.4
 cycler==0.11.0
-extra_data==1.10.0
+extra_data==1.11.0
 future==0.18.2
 h5py<3.7.0
 kiwisolver==1.4.0
