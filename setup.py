@@ -50,8 +50,8 @@ setup(name="EXtra-geom",
               'ipython',  # For nbsphinx syntax highlighting
               'sphinxcontrib_github_alt',
               'sphinx-rtd-theme',
-              # Pin docutils until sphinx-rtd-theme issue 1115 is fixed
-              'docutils==0.16',
+              # Pin Jinja2 until https://github.com/jupyter/nbconvert/issues/1736 fixed
+              'Jinja2<3.1.0'
           ],
           'test': [
               'pytest',
