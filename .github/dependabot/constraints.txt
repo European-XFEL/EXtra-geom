@@ -8,7 +8,7 @@ kiwisolver==1.4.2
 matplotlib<3.6.0
 nbval==0.9.6
 numpy<1.23.0
-Pillow==9.0.1
+Pillow==9.1.0
 pyFAI==0.21.3
 pyparsing==3.0.7
 pytest<7.2.0
