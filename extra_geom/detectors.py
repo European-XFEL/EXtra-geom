@@ -1423,7 +1423,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
     @classmethod
     def _adjust_pixel_coords(cls, ss_coords, fs_coords, centre):
         # Shift odd-numbered rows by half a pixel.
-        fs_coords[1::2] -= 0.5
+        fs_coords[1::2] += 0.5
         if centre:
             # Vertical (slow scan) centre is 2/3 of the way to the start of the
             # next row of hexagons, because the tessellating pixels extend
