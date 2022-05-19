@@ -74,8 +74,8 @@ def test_get_pixel_positions():
     assert -0.2 < py.min() < -0.12
     assert  0.2 > py.max() >  0.12
 
-    # Odd-numbered rows in Q1 & Q2 should have 0.5 pixel higher x than the even.
-    np.testing.assert_allclose(px[0, 1::2, 0] - px[0, 0::2, 0], 236e-6/2)
+    # Odd-numbered rows in Q1 & Q2 should have 0.5 pixel lower x than the even.
+    np.testing.assert_allclose(px[0, 1::2, 0] - px[0, 0::2, 0], -236e-6/2)
 
 
 def test_read_write_xfel_file_quadpos(tmpdir):
