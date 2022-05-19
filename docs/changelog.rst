@@ -1,6 +1,12 @@
 Release Notes
 =============
 
+1.7.1
+-----
+
+- Fix the pattern of hexagonal pixels in the DSSC detector (:ghpull:`160`).
+  Thanks to Loïc le Guyader for identifying and investigating this issue.
+
 1.7
 ---
 
