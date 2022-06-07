@@ -47,10 +47,11 @@ PANEL_TEMPLATE = """
 def _crystfel_format_vec(vec):
     """Convert an array of 3 numbers to CrystFEL format like "+1.0x -0.1y"
     """
-    s = '{:+}x {:+}y'.format(*vec[:2])
-    if vec[2] != 0:
-        s += ' {:+}z'.format(vec[2])
-    return s
+    return ' '.join([
+        f'{np.format_float_positional(value, sign=True)}{axis}'
+        for value, axis in zip(vec, 'xyz')
+        if not (axis == 'z' and value == 0)
+    ])
 
 
 def frag_to_crystfel(fragment, p, a, ss_slice, fs_slice, dims, pixel_size):
