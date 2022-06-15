@@ -1428,7 +1428,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         if isinstance(colorbar, dict) or colorbar is True:
             if isinstance(colorbar, bool):
                 colorbar = {}
-            colorbar = plt.colorbar(collection, ax=ax, **colorbar)
+            plt.colorbar(collection, ax=ax, **colorbar)
 
         ax.set_xlabel('metres')
         ax.set_ylabel('metres')
