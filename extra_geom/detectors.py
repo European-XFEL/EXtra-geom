@@ -1396,7 +1396,6 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         import matplotlib.pyplot as plt
         from matplotlib.cm import viridis
         from matplotlib.collections import PolyCollection
-        from matplotlib.transforms import IdentityTransform
 
         px_offsets = self.get_pixel_positions(centre=False)[..., :2].reshape(-1, 2)
 
@@ -1413,12 +1412,22 @@ class DSSC_1MGeometry(DetectorGeometryBase):
             fig = plt.figure(figsize=figsize or (10, 10))
             ax = fig.add_subplot(1, 1, 1)
 
+        try:
+            # matplotlib 3.3.0 onwards
+            from matplotlib.transforms import AffineDeltaTransform
+            tfm_kwargs = {'transOffset': AffineDeltaTransform(ax.transData)}
+        except ImportError:
+            # Works Up to (& excluding) matplotlib 3.5.0 - offset_position removed
+            from matplotlib.transforms import IdentityTransform
+            tfm_kwargs = {
+                'transOffset': IdentityTransform(), 'offset_position': 'data'
+            }
+
         collection = PolyCollection(
             [self._pixel_corners[::-1].T * self.pixel_size],
             offsets=px_offsets,
-            transOffset=IdentityTransform(),
-            offset_position="data",
             cmap=_cmap,
+            **tfm_kwargs
         )
         collection.set_array(data.ravel())
 
