@@ -31,6 +31,15 @@ def test_inspect():
     assert isinstance(ax, Axes)
 
 
+def test_plot_data_hexes():
+    geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
+        sample_xfel_geom, QUAD_POS
+    )
+    # Smoketest
+    ax = geom.plot_data_hexes(np.zeros((16, 128, 512)), colorbar=True)
+    assert isinstance(ax, Axes)
+
+
 def test_snap_assemble_data():
     geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
         sample_xfel_geom, QUAD_POS
