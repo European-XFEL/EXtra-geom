@@ -1423,6 +1423,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         collection.set_array(data.ravel())
 
         ax.add_collection(collection)
+        ax.set_facecolor('0.25')
 
         if isinstance(colorbar, dict) or colorbar is True:
             if isinstance(colorbar, bool):
