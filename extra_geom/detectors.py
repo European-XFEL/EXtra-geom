@@ -1417,7 +1417,8 @@ class DSSC_1MGeometry(DetectorGeometryBase):
             [self._pixel_corners[::-1].T * self.pixel_size],
             offsets=self.get_pixel_positions(centre=False)[..., :2].reshape(-1, 2),
             transOffset=IdentityTransform(),
-            offset_position="data"
+            offset_position="data",
+            cmap=_cmap,
         )
         collection.set_array(data.ravel())
 
