@@ -1,5 +1,6 @@
 """Detector geometry handling."""
 import warnings
+from copy import copy
 from itertools import product
 from typing import List, Tuple
 
@@ -1387,6 +1388,58 @@ class DSSC_1MGeometry(DetectorGeometryBase):
             # Squash image to physically equal aspect ratio, so a circle projected
             # on the detector looks like a circle on screen.
             ax.set_aspect(204/236.)
+        return ax
+
+    def plot_data_hexes(
+            self, data, *, frontview=True, ax=None, figsize=None, colorbar=False,
+    ):
+        import matplotlib.pyplot as plt
+        from matplotlib.cm import viridis
+        from matplotlib.collections import PolyCollection
+        from matplotlib.transforms import IdentityTransform
+
+        px_offsets = self.get_pixel_positions(centre=False)[..., :2].reshape(-1, 2)
+
+        min_x, min_y = px_offsets.min(axis=0)
+        max_x, max_y = px_offsets.max(axis=0)
+
+        cross_size = 20 * self.pixel_size
+
+        # Use a dark grey for missing data
+        _cmap = copy(viridis)
+        _cmap.set_bad('0.25', 1.0)
+
+        if ax is None:
+            fig = plt.figure(figsize=figsize or (10, 10))
+            ax = fig.add_subplot(1, 1, 1)
+
+        collection = PolyCollection(
+            [self._pixel_corners[::-1].T * self.pixel_size],
+            offsets=self.get_pixel_positions(centre=False)[..., :2].reshape(-1, 2),
+            transOffset=IdentityTransform(),
+            offset_position="data"
+        )
+        collection.set_array(data.ravel())
+
+        ax.add_collection(collection)
+
+        if isinstance(colorbar, dict) or colorbar is True:
+            if isinstance(colorbar, bool):
+                colorbar = {}
+            colorbar = plt.colorbar(collection, ax=ax, **colorbar)
+
+        ax.set_xlabel('metres')
+        ax.set_ylabel('metres')
+
+        margin = 3 * self.pixel_size
+        ax.set_xlim(min_x - margin, max_x + margin)
+        ax.set_ylim(min_y - margin, max_y - margin)
+        if frontview:
+            ax.invert_xaxis()
+
+        # Draw a cross at the centre
+        ax.hlines(0, -cross_size, +cross_size, colors='w', linewidths=1)
+        ax.vlines(0, -cross_size, +cross_size, colors='w', linewidths=1)
         return ax
 
     @classmethod
