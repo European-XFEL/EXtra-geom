@@ -1394,6 +1394,13 @@ class DSSC_1MGeometry(DetectorGeometryBase):
             self, data, *, frontview=True, ax=None, figsize=None, colorbar=False,
             module=None,
     ):
+        """Plot data from the detector showing hexagonal pixels
+
+        Most of the arguments are like those for :meth:`plot_data`. This method
+        is slower, but sometimes useful to look at small details. It can also
+        plot data for a single module, if you pass a suitable 2D array as *data*
+        and a module number as *module*.
+        """
         import matplotlib.pyplot as plt
         from matplotlib.cm import viridis
         from matplotlib.collections import PolyCollection

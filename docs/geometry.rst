@@ -220,6 +220,8 @@ approximately half a pixel width from their true position.
 
    .. automethod:: plot_data
 
+   .. automethod:: plot_data_hexes
+
    .. automethod:: position_modules
 
    .. automethod:: output_array_for_position
