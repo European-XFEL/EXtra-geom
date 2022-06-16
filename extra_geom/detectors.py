@@ -1392,12 +1392,20 @@ class DSSC_1MGeometry(DetectorGeometryBase):
 
     def plot_data_hexes(
             self, data, *, frontview=True, ax=None, figsize=None, colorbar=False,
+            module=None,
     ):
         import matplotlib.pyplot as plt
         from matplotlib.cm import viridis
         from matplotlib.collections import PolyCollection
 
-        px_offsets = self.get_pixel_positions(centre=False)[..., :2].reshape(-1, 2)
+        if module is None:
+            assert data.shape == self.expected_data_shape
+            module = np.s_[:]
+        else:
+            assert data.shape == self.expected_data_shape[1:]
+
+        px_offsets = self.get_pixel_positions(centre=False)[module, ..., :2]\
+                         .reshape(-1, 2)
 
         min_x, min_y = px_offsets.min(axis=0)
         max_x, max_y = px_offsets.max(axis=0)
@@ -1445,6 +1453,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         margin = 3 * self.pixel_size
         ax.set_xlim(min_x - margin, max_x + margin)
         ax.set_ylim(min_y - margin, max_y - margin)
+        ax.set_aspect(1)
         if frontview:
             ax.invert_xaxis()
 
