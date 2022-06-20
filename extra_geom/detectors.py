@@ -1452,6 +1452,9 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         if isinstance(colorbar, dict) or colorbar is True:
             if isinstance(colorbar, bool):
                 colorbar = {}
+            if module is not None:
+                # With single module, horizontal colorbar uses space better
+                colorbar.setdefault('location', 'bottom')
             plt.colorbar(collection, ax=ax, **colorbar)
 
         ax.set_xlabel('metres')
