@@ -1405,11 +1405,12 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         from matplotlib.cm import viridis
         from matplotlib.collections import PolyCollection
 
-        if module is None:
+        single_mod = module is not None
+        if single_mod:
+            assert data.shape == self.expected_data_shape[1:]
+        else:
             assert data.shape == self.expected_data_shape
             module = np.s_[:]
-        else:
-            assert data.shape == self.expected_data_shape[1:]
 
         px_offsets = self.get_pixel_positions(centre=False)[module, ..., :2]\
                          .reshape(-1, 2)
@@ -1424,7 +1425,9 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         _cmap.set_bad('0.25', 1.0)
 
         if ax is None:
-            fig = plt.figure(figsize=figsize or (10, 10))
+            fig = plt.figure(figsize=figsize or (
+                (8, 4) if single_mod else (10, 10)
+            ))
             ax = fig.add_subplot(1, 1, 1)
 
         try:
@@ -1452,7 +1455,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         if isinstance(colorbar, dict) or colorbar is True:
             if isinstance(colorbar, bool):
                 colorbar = {}
-            if not isinstance(module, slice):
+            if single_mod:
                 # With single module, horizontal colorbar uses space better
                 colorbar.setdefault('location', 'bottom')
             plt.colorbar(collection, ax=ax, **colorbar)
