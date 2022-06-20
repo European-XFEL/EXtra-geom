@@ -1392,7 +1392,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
 
     def plot_data_hexes(
             self, data, *, frontview=True, ax=None, figsize=None, colorbar=False,
-            module=None,
+            vmin=None, vmax=None, norm=None, cmap=None, module=None,
     ):
         """Plot data from the detector showing hexagonal pixels
 
@@ -1412,6 +1412,9 @@ class DSSC_1MGeometry(DetectorGeometryBase):
             assert data.shape == self.expected_data_shape
             module = np.s_[:]
 
+        if norm is not None and not (vmax is None and vmin is None):
+            raise ValueError("Pass norm or vmin/vmax, not both")
+
         px_offsets = self.get_pixel_positions(centre=False)[module, ..., :2]\
                          .reshape(-1, 2)
 
@@ -1421,8 +1424,9 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         cross_size = 20 * self.pixel_size
 
         # Use a dark grey for missing data
-        _cmap = copy(viridis)
-        _cmap.set_bad('0.25', 1.0)
+        if cmap is None:
+            cmap = copy(viridis)
+            cmap.set_bad('0.25', 1.0)
 
         if ax is None:
             fig = plt.figure(figsize=figsize or (
@@ -1444,10 +1448,13 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         collection = PolyCollection(
             [self._pixel_corners[::-1].T * self.pixel_size],
             offsets=px_offsets,
-            cmap=_cmap,
+            cmap=cmap,
+            norm=norm,
             **tfm_kwargs
         )
         collection.set_array(data.ravel())
+        if vmin is not None or vmax is not None:
+            collection.set_clim(vmin, vmax)
 
         ax.add_collection(collection)
         ax.set_facecolor('0.25')
