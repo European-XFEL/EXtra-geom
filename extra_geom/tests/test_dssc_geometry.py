@@ -39,6 +39,9 @@ def test_plot_data_hexes():
     ax = geom.plot_data_hexes(np.zeros((16, 128, 512)), colorbar=True)
     assert isinstance(ax, Axes)
 
+    ax = geom.plot_data_hexes(np.zeros((128, 512)), module=4, colorbar=True)
+    assert isinstance(ax, Axes)
+
 
 def test_snap_assemble_data():
     geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
