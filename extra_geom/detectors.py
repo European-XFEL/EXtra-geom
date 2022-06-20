@@ -1426,7 +1426,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
 
         if ax is None:
             fig = plt.figure(figsize=figsize or (
-                (8, 4) if single_mod else (10, 10)
+                (8, 3) if single_mod else (10, 10)
             ))
             ax = fig.add_subplot(1, 1, 1)
 
