@@ -1,5 +1,6 @@
 """Detector geometry handling."""
 import warnings
+from copy import copy
 from itertools import product
 from typing import List, Tuple
 
@@ -1387,6 +1388,98 @@ class DSSC_1MGeometry(DetectorGeometryBase):
             # Squash image to physically equal aspect ratio, so a circle projected
             # on the detector looks like a circle on screen.
             ax.set_aspect(204/236.)
+        return ax
+
+    def plot_data_hexes(
+            self, data, *, frontview=True, ax=None, figsize=None, colorbar=False,
+            vmin=None, vmax=None, norm=None, cmap=None, module=None,
+    ):
+        """Plot data from the detector showing hexagonal pixels
+
+        Most of the arguments are like those for :meth:`plot_data`. This method
+        is slower, but sometimes useful to look at small details. It can also
+        plot data for a single module, if you pass a suitable 2D array as *data*
+        and a module number as *module*.
+        """
+        import matplotlib.pyplot as plt
+        from matplotlib.cm import viridis
+        from matplotlib.collections import PolyCollection
+
+        single_mod = module is not None
+        if single_mod:
+            assert data.shape == self.expected_data_shape[1:]
+        else:
+            assert data.shape == self.expected_data_shape
+            module = np.s_[:]
+
+        if norm is not None and not (vmax is None and vmin is None):
+            raise ValueError("Pass norm or vmin/vmax, not both")
+
+        px_offsets = self.get_pixel_positions(centre=False)[module, ..., :2]\
+                         .reshape(-1, 2)
+
+        min_x, min_y = px_offsets.min(axis=0)
+        max_x, max_y = px_offsets.max(axis=0)
+
+        cross_size = 20 * self.pixel_size
+
+        # Use a dark grey for missing data
+        if cmap is None:
+            cmap = copy(viridis)
+            cmap.set_bad('0.25', 1.0)
+
+        if ax is None:
+            fig = plt.figure(figsize=figsize or (
+                (8, 3) if single_mod else (10, 10)
+            ))
+            ax = fig.add_subplot(1, 1, 1)
+
+        try:
+            # matplotlib 3.3.0 onwards
+            from matplotlib.transforms import AffineDeltaTransform
+            tfm_kwargs = {'transOffset': AffineDeltaTransform(ax.transData)}
+        except ImportError:
+            # Works Up to (& excluding) matplotlib 3.5.0 - offset_position removed
+            from matplotlib.transforms import IdentityTransform
+            tfm_kwargs = {
+                'transOffset': IdentityTransform(), 'offset_position': 'data'
+            }
+
+        collection = PolyCollection(
+            [self._pixel_corners[::-1].T * self.pixel_size],
+            offsets=px_offsets,
+            cmap=cmap,
+            norm=norm,
+            **tfm_kwargs
+        )
+        collection.set_array(data.ravel())
+        if vmin is not None or vmax is not None:
+            collection.set_clim(vmin, vmax)
+
+        ax.add_collection(collection)
+        ax.set_facecolor('0.25')
+
+        if isinstance(colorbar, dict) or colorbar is True:
+            if isinstance(colorbar, bool):
+                colorbar = {}
+            if single_mod and ('location' not in colorbar):
+                # With single module, horizontal colorbar uses space better
+                colorbar.setdefault('orientation', 'horizontal')
+            plt.colorbar(collection, ax=ax, **colorbar)
+
+        ax.set_xlabel('metres')
+        ax.set_ylabel('metres')
+
+        margin = 3 * self.pixel_size
+        ax.set_xlim(min_x - margin, max_x + margin)
+        ax.set_ylim(min_y - margin, max_y - margin)
+        ax.set_aspect(1)
+        if frontview:
+            ax.invert_xaxis()
+
+        # Draw a cross at the centre
+        ax.hlines(0, -cross_size, +cross_size, colors='w', linewidths=1)
+        ax.vlines(0, -cross_size, +cross_size, colors='w', linewidths=1)
         return ax
 
     @classmethod

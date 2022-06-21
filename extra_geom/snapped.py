@@ -219,7 +219,7 @@ class SnappedGeometry:
         if isinstance(colorbar, dict) or colorbar is True:
             if isinstance(colorbar, bool):
                 colorbar = {}
-            colorbar = plt.colorbar(im, ax=ax, **colorbar)
+            plt.colorbar(im, ax=ax, **colorbar)
 
         ax.set_xlabel('metres' if axis_units == 'm' else 'pixels')
         ax.set_ylabel('metres' if axis_units == 'm' else 'pixels')
