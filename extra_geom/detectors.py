@@ -1557,7 +1557,7 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
 
     @classmethod
     def from_module_positions(cls,offsets=((0,0),), orientations=None,
-                              asic_gap=2, unit=pixel_size):
+                              asic_gap=2, unit=pixel_size, stripsel=False):
         """Generate a Jungfrau geometry object from module positions
 
         Parameters
@@ -1587,6 +1587,9 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
           The unit for *offsets* and *asic_gap*, in metres. Defaults to the
           pixel size (75 um).
         """
+        if stripsel:
+            return JUNGFRAUStripselGeometry.from_module_positions(offsets, orientations)
+
         px_conversion = unit / cls.pixel_size
         # fill orientations with defaults to match number of offsets
         if orientations is None:
@@ -1677,6 +1680,159 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         ss_slice = slice(tile_ss_offset, tile_ss_offset + cls.frag_ss_pixels)
         fs_slice = slice(tile_fs_offset, tile_fs_offset + cls.frag_fs_pixels)
         return ss_slice, fs_slice
+
+
+class JUNGFRAUStripselGeometry(DetectorGeometryBase):
+    """Detector layout for flexible JUNGFRAU stripsel arrangements
+
+    The base JUNGFRAU unit (and rigid group) in combined arrangements is the
+    JF-stripsel module, which is an independent detector unit of 1 x 4 ASIC tiles.
+    """
+    detector_type_name = 'JUNGFRAUStripsel'
+    pixel_size = 2.5e-5   # 2.5e-5 metres = 25 micrometer = 0.025 mm
+    frag_ss_pixels = 86  # pixels along slow scan axis within tile
+    frag_fs_pixels = 1024 * 3 + 18  # pixels along fast scan axis within tile
+    expected_data_shape = (0, 256, 1024)  # num modules filled at instantiation
+    n_tiles_per_module = 1
+    #
+    _pixel_shape = np.array([1., 9.], dtype=np.float64) * pixel_size
+
+    def __init__(self, modules, filename='No file', metadata=None):
+        super().__init__(modules, filename, metadata)
+        self.expected_data_shape = (len(modules), 256, 1024)
+        self.n_modules = len(modules)
+
+    @classmethod
+    def from_module_positions(cls, offsets=((0, 0),), orientations=None):
+        if orientations is None:
+            orientations = [(1, 1)] * len(offsets)
+        assert len(offsets) == len(orientations)
+
+        module_width = cls._pixel_shape[0] * cls.frag_fs_pixels
+        module_height = cls._pixel_shape[1] * cls.frag_ss_pixels
+
+        modules = []
+        for orient, offset in zip(orientations, offsets):
+            dir_x, dir_y = orient
+            x_offset = offset[0] if dir_x == 1 else offset[0] + module_width
+            y_offset = offset[1] if dir_y == 1 else offset[1] + module_height
+
+            corner_y = y_offset
+            corner_x = x_offset
+            tile = GeometryFragment(
+                corner_pos=np.array([corner_x, corner_y, 0.]),
+                fs_vec=np.array([dir_x, 0., 0.]) * cls._pixel_shape[0],
+                ss_vec=np.array([0., dir_y, 0.]) * cls._pixel_shape[1],
+                fs_pixels=cls.frag_fs_pixels,
+                ss_pixels=cls.frag_ss_pixels,
+            )
+            modules.append([tile])
+        return cls(modules)
+
+    @staticmethod
+    def split_tiles(module_data):
+        return [module_data]
+
+    @classmethod
+    def _tile_slice(cls, timeno):
+        return slice(None, None), slice(None, None)
+
+    def inspect(self, axis_units='px', frontview=True):
+        ax = super().inspect(axis_units=axis_units, frontview=frontview)
+        scale = self._get_plot_scale_factor(axis_units)
+
+        for m in range(len(self.modules)):
+            tiles = self.modules[m]
+
+            # Label tiles in the module: A0 to A4
+            for t, tile in enumerate(tiles):
+                s = 'M{M}A{T}'.format(T=t, M=m)
+                cx, cy, _ = tile.centre() * scale
+                ax.text(cx, cy, s, fontweight='bold',
+                        verticalalignment='center',
+                        horizontalalignment='center')
+
+        ax.set_title('Jungfrau stripsel detector geometry ({})'.format(self.filename))
+        print(' Expected data shape:', self.expected_data_shape)
+        return ax
+
+    def _snapped(self):
+        from .base import GridGeometryFragment, SnappedGeometry
+
+        class GridGeometryFragmentStripsel(GridGeometryFragment):
+            def __init__(self, corner_pos, ss_vec, fs_vec, ss_pixels, fs_pixels):
+                self.ss_vec = ss_vec
+                self.fs_vec = fs_vec
+                self.ss_pixels = ss_pixels
+                self.fs_pixels = fs_pixels
+
+                self.pixel_dims = (self.ss_pixels, self.fs_pixels)
+
+                corner_shift = np.array([
+                    min(ss_vec[0], 0) * self.ss_pixels,
+                    min(fs_vec[1], 0) * self.fs_pixels
+                ])
+                self.corner_idx = tuple(corner_pos + corner_shift)
+
+            def transform(self, data):
+                imgout = np.zeros((86, (1024 * 3 + 18)), dtype=np.float32)
+                # 256 not divisible by 3, so we round up
+                # 18 since we have 6 more pixels in H per gap
+                # firs we fill the normal pixels, the gap ones will be overwritten later
+                for yin in range(256) :
+                    for xin in range(1024) :
+                        ichip = int(xin / 256)
+                        xout = (ichip * 774) + (xin % 256) * 3 + yin % 3
+                        # 774 is the chip period, 256*3+6
+                        yout = int(yin / 3)
+                        imgout[..., yout, xout] = data[..., yin, xin]
+                # now the gap pixels...
+                for igap in range(3) :
+                    for yin in range(256):
+                        yout = int(yin / 6) * 2
+                        # first the left side of gap
+                        xin = igap * 256 + 255
+                        xout = igap * 774 + 765 + yin % 6
+                        imgout[..., yout, xout] = data[..., yin, xin]
+                        imgout[..., yout+1, xout] = data[..., yin, xin]
+                        # then the right side is mirrored
+                        xin = igap * 256 + 255 + 1
+                        xout = igap * 774 + 765 + 11 - yin % 6
+                        imgout[..., yout, xout] = data[..., yin, xin]
+                        imgout[..., yout+1, xout] = data[..., yin, xin]
+                    # if we want a proper normalization (the area of those pixels is double, so they see 2x the signal)
+                return imgout
+
+        if self._snapped_cache is None:
+            modules = []
+            for module in self.modules:
+                tiles = []
+                for tile in module:
+                    # Round positions and vectors to integers, drop z dimension
+                    corner_pos = np.around(tile.corner_pos[:2] / self._pixel_shape).astype(np.int32)
+                    ss_vec = np.around(tile.ss_vec[:2] / self._pixel_shape).astype(np.int32)
+                    fs_vec = np.around(tile.fs_vec[:2] / self._pixel_shape).astype(np.int32)
+
+                    # We should have one vector in the x direction and one in y, but
+                    # we don't know which is which.
+                    assert {tuple(np.abs(ss_vec)), tuple(np.abs(fs_vec))} == {(0, 1), (1, 0)}
+
+                    # Convert xy coordinates to yx indexes
+                    snap = GridGeometryFragmentStripsel(
+                        corner_pos[::-1], ss_vec[::-1], fs_vec[::-1], tile.ss_pixels, tile.fs_pixels
+                    )
+                    tiles.append(snap)
+                modules.append(tiles)
+            from itertools import chain
+            centre = -np.min([t.corner_idx for t in chain(*modules)], axis=0)
+
+            # Offset by centre to make all coordinates >= 0
+            modules = [
+                [t.offset(centre) for t in module]
+                for module in modules
+            ]
+            self._snapped_cache = SnappedGeometry(modules, self, centre)
+        return self._snapped_cache
 
 
 class PNCCDGeometry(DetectorGeometryBase):
