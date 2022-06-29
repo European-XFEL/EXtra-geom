@@ -1682,6 +1682,7 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         if isinstance_no_import(data, 'xarray', 'DataArray'):
             # we shift module indices by one as JUNGFRAU labels modules starting from 1..
             # position_modules returns a numpy array so labels disapear anyway.
+            data = data.copy(deep=False)
             data['module'] = data['module'] - 1
         return super().position_modules(data, out=out, threadpool=threadpool)
 
