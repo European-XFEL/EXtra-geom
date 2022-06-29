@@ -1756,6 +1756,21 @@ class JUNGFRAUStripselGeometry(DetectorGeometryBase):
         print(' Expected data shape:', self.expected_data_shape)
         return ax
 
+    def plot_data(self, data, *, axis_units='px', frontview=True, ax=None, figsize=None,
+                  colorbar=False, **kwargs):
+        ax = super().plot_data(data,
+                               axis_units=axis_units,
+                               frontview=frontview,
+                               ax=ax,
+                               figsize=figsize,
+                               colorbar=colorbar,
+                               **kwargs)
+        if axis_units == 'px':
+            # Squash image to physically equal aspect ratio, so a circle projected
+            # on the detector looks like a circle on screen.
+            ax.set_aspect(9)
+        return ax
+
     def _snapped(self):
         from .base import GridGeometryFragment, SnappedGeometry
 
