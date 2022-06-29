@@ -1,7 +1,11 @@
 
+from tempfile import TemporaryDirectory
+
 import numpy as np
 from cfelpyutils.geometry import load_crystfel_geometry
-
+from extra_data import RunDirectory
+from extra_data.components import JUNGFRAU
+from extra_data.tests.make_examples import make_jungfrau_run
 from extra_geom import JUNGFRAUGeometry
 
 from .utils import assert_geom_close
@@ -63,3 +67,14 @@ def test_get_pixel_positions():
     assert 0.09 > px.max() > 0.07
     assert -0.09 < py.min() < -0.07
     assert 0.09 > py.max() > 0.07
+
+
+def test_position_modules_with_labelled_array():
+    geom = jf4m_geometry()
+
+    with TemporaryDirectory() as td:
+        make_jungfrau_run(td)
+        run = RunDirectory(td).select_trains(np.s_[:5])
+        jf = JUNGFRAU(run)
+        data = jf.get_array('data.adc')
+        positioned, centre = geom.position_modules(data)

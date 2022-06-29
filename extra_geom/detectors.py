@@ -8,7 +8,7 @@ import h5py
 import numpy as np
 
 from .base import DetectorGeometryBase, GeometryFragment
-
+from .snapped import isinstance_no_import
 
 class GenericGeometry(DetectorGeometryBase):
     """A generic detector layout based either on the CrystFEL geom file or on a set of parameters.
@@ -1677,6 +1677,14 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         ss_slice = slice(tile_ss_offset, tile_ss_offset + cls.frag_ss_pixels)
         fs_slice = slice(tile_fs_offset, tile_fs_offset + cls.frag_fs_pixels)
         return ss_slice, fs_slice
+
+    def position_modules(self, data, out=None, threadpool=None):
+        if isinstance_no_import(data, 'xarray', 'DataArray'):
+            # we shift module indices by one as JUNGFRAU labels modules starting from 1..
+            # position_modules returns a numpy array so labels disapear anyway.
+            data = data.copy(deep=False)
+            data['module'] = data['module'] - 1
+        return super().position_modules(data, out=out, threadpool=threadpool)
 
 
 class PNCCDGeometry(DetectorGeometryBase):
