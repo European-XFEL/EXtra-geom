@@ -7,6 +7,7 @@ from typing import List, Tuple
 import h5py
 import numpy as np
 
+from .dssc_hexagonal_utils import hex2cart
 from .base import DetectorGeometryBase, GeometryFragment
 from .snapped import isinstance_no_import
 
@@ -1523,6 +1524,137 @@ class DSSC_1MGeometry(DetectorGeometryBase):
             # beyond the start of the next row.
             ss_coords += 2/3
             fs_coords += 0.5
+
+class DSSC_1MGeometryCartesian(DSSC_1MGeometry):
+    """Detector layout for DSSC-1M, for square-pixel support
+
+    The coordinates used in this class are 3D (x, y, z), and represent metres.
+
+    You won't normally instantiate this class directly:
+    use one of the constructor class methods to create or load a geometry.
+    """
+    detector_type_name = 'DSSC-1M'
+    pixel_size = 236e-6
+    frag_ss_pixels = 120
+    frag_fs_pixels = 276
+    n_quads = 4
+    n_modules = 16
+    n_tiles_per_module = 2
+    expected_data_shape = (16, 120, 551)
+
+    _pixel_shape = np.array([1, 1], dtype=np.float64) * pixel_size
+    _pixel_corners = DetectorGeometryBase._pixel_corners
+
+    _adjust_pixel_coords = DetectorGeometryBase._adjust_pixel_coords
+
+    @classmethod
+    def from_quad_positions(cls, quad_pos, *, unit=1e-3, asic_gap=None,
+                            panel_gap=None):
+        """Generate a DSSC-1M geometry from quadrant positions.
+
+        This produces an idealised geometry, assuming all modules are perfectly
+        flat, aligned and equally spaced within their quadrant.
+
+        The position given should refer to the bottom right (looking
+        along the beam) corner of the quadrant.
+
+        The origin of the coordinates is in the centre of the detector.
+        Coordinates increase upwards and to the left (looking along the beam).
+
+        Parameters
+        ----------
+        quad_pos: list of 2-tuples
+          (x, y) coordinates of the last corner (the one by module 4) of each
+          quadrant.
+        unit: float, optional
+          The conversion factor to put the coordinates into metres.
+          The default 1e-3 means the numbers are in millimetres.
+        asic_gap: float, optional
+          The gap between adjacent tiles/ASICs. The default is 2 mm.
+        panel_gap: float, optional
+          The gap between adjacent modules/panels. The default is 4 mm.
+        """
+        assert len(quad_pos) == 4
+        asic_gap_m = 2e-3 if (asic_gap is None) else asic_gap * unit
+        panel_gap_m = 4e-3 if (panel_gap is None) else panel_gap * unit
+
+        quads_x_orientation = [-1, -1, 1, 1]
+        quads_y_orientation = [1, 1, -1, -1]
+
+        frag_width = cls._pixel_shape[0] * cls.frag_fs_pixels
+        frag_height = cls._pixel_shape[1] * cls.frag_ss_pixels
+        module_width = (2 * frag_width) + asic_gap_m
+        quad_height = (4 * frag_height) + (3 * panel_gap_m)
+
+        module_step_vec = np.array([0, frag_height + panel_gap_m, 0])
+        tile_step_vec = np.array([frag_width + asic_gap_m, 0, 0])
+
+        modules = []
+
+        for p in range(cls.n_modules):
+            Q = p // 4
+            x_orient = quads_x_orientation[Q]
+            y_orient = quads_y_orientation[Q]
+            quad_corner_x = quad_pos[Q][0] * unit
+            quad_corner_y = quad_pos[Q][1] * unit
+
+            p_in_quad = p % 4
+
+            ss_vec = np.array([0, y_orient, 0]) * cls.pixel_size
+            fs_vec = np.array([x_orient, 0, 0]) * cls.pixel_size
+
+            # Corner position is measured at low-x, low-y corner (bottom
+            # right as plotted). We want the position of the corner
+            # with the first pixel, which is either high-x low-y or
+            # low-x high-y.
+            if x_orient == -1:
+                quad_start_x = quad_corner_x + module_width
+                quad_start_y = quad_corner_y
+            else:  # y_orient == -1
+                quad_start_x = quad_corner_x
+                quad_start_y = quad_corner_y + quad_height
+
+            quad_start = np.array([quad_start_x, quad_start_y, 0.])
+            module_start = quad_start + (y_orient * p_in_quad * module_step_vec)
+
+            modules.append([
+                GeometryFragment(
+                    corner_pos=module_start + (x_orient * t * tile_step_vec),
+                    ss_vec=ss_vec,
+                    fs_vec=fs_vec,
+                    ss_pixels=cls.frag_ss_pixels,
+                    fs_pixels=cls.frag_fs_pixels,
+                ) for t in range(cls.n_tiles_per_module)
+            ])
+
+        return cls(modules)
+
+    @staticmethod
+    def split_tiles(module_data):
+        # Note: the returned tiles are not of equal size. One will be (120, 276)
+        # and the other (120, 275).
+        return [module_data[..., :276], module_data[..., 276:]]
+
+    def transform(self, data):
+        return np.array([hex2cart(data[i]) for i in range(data.shape[0])])
+
+    def position_modules_fast(self, data):
+        return self._snapped().position_modules(self.transform(data))
+
+    def plot_data_fast(self, data,
+                       axis_units='px',
+                       frontview=True,
+                       ax=None,
+                       figsize=None,
+                       colorbar=False,
+                       **kwargs):
+        return super().plot_data_fast(self.transform(data),
+                                      axis_units=axis_units,
+                                      frontview=frontview,
+                                      ax=ax,
+                                      figsize=figsize,
+                                      colorbar=colorbar,
+                                      **kwargs)
 
 
 class DSSC_Geometry(DSSC_1MGeometry):

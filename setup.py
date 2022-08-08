@@ -38,6 +38,7 @@ setup(name="EXtra-geom",
       },
       install_requires=[
           'cfelpyutils>=2.0, <3.0',
+          'Cython',
           'h5py>=2.7.1',
           'matplotlib',
           'numpy',

@@ -144,12 +144,16 @@ class SnappedGeometry:
         if threadpool is not None:
             def copy_data(pair):
                 dst, src = pair
-                dst[:] = src
+                dst[:, :src.shape[1]] = src
             # concurrent.futures map() is async, so call list() to wait for it
             list(threadpool.map(copy_data, copy_pairs))
         else:
             for dst, src in copy_pairs:
-                dst[:] = src
+                # Only copy as much data as is available from src. This is
+                # because the cartesian-transformed shape of the DSSCs modules
+                # is (120, 551), which means that a module cannot be split into
+                # two equally sized tiles.
+                dst[:, :src.shape[1]] = src
 
         return out, self.centre
 
