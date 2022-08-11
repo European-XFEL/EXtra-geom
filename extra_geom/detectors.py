@@ -1390,8 +1390,8 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         return self._cartesian_geom_cached
 
     def position_modules_cartesian(self, data, out=None, threadpool=None):
-        cart_data = self._cartesian_geom_cached.transform_data(data)
-        return self._cartesian_geom_cached.position_modules(
+        cart_data = self._cartesian_geom.transform_data(data)
+        return self._cartesian_geom.position_modules(
             cart_data, out=out, threadpool=threadpool
         )
 
