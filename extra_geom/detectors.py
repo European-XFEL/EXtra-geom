@@ -1390,6 +1390,11 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         return self._cartesian_geom_cached
 
     def position_modules_cartesian(self, data, out=None, threadpool=None):
+        """Assemble DSSC data on a square pixel grid
+
+        This converts the data from DSSC's hexagonal pixels to a similar number
+        of pixels on a square grid, and displays the image.
+        """
         cart_data = self._cartesian_geom.transform_data(data)
         return self._cartesian_geom.position_modules(
             cart_data, out=out, threadpool=threadpool
@@ -1510,6 +1515,13 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         return ax
 
     def plot_data_cartesian(self, data, **kwargs):
+        """Plot the given data converted to square pixels
+
+        This converts the data from DSSC's hexagonal pixels to a similar number
+        of pixels on a square grid, and displays the image.
+
+        It accepts all the same keyword arguments as :meth:`plot_data`.
+        """
         cart_data = self._cartesian_geom.transform_data(data)
         return self._cartesian_geom.plot_data(cart_data, **kwargs)
 
@@ -1591,6 +1603,10 @@ class DSSC_1MGeometryCartesian(DetectorGeometryBase):
 
     @staticmethod
     def transform_data(data):
+        """Convert data taken by DSSC onto a cartesian grid
+
+        This requires the separate condat_gridconv package.
+        """
         from condat_gridconv import hex2cart
 
         assert data.shape[-2:] == (128, 512)
