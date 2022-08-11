@@ -1599,7 +1599,7 @@ class DSSC_1MGeometryCartesian(DetectorGeometryBase):
         for module in modules:
             cart_modules.append(np.concatenate([
                 hex2cart(tile) for tile in DSSC_1MGeometry.split_tiles(module)
-            ]))
+            ], axis=-1))
         return np.stack(cart_modules).reshape(data.shape[:-2] + (119, 550))
 
 
