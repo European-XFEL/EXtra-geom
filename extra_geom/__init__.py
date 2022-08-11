@@ -35,7 +35,7 @@ program. If not, see <https://opensource.org/licenses/BSD-3-Clause>
 
 __version__ = "1.7.1"
 
-from .detectors import (AGIPD_1MGeometry, AGIPD_500K2GGeometry, DSSC_1MGeometry, DSSC_1MGeometryCartesian,
+from .detectors import (AGIPD_1MGeometry, AGIPD_500K2GGeometry, DSSC_1MGeometry,
                         Epix10KGeometry, Epix100Geometry, GenericGeometry, JUNGFRAUGeometry, LPD_1MGeometry,
                         PNCCDGeometry, agipd_asic_seams)
 
@@ -45,7 +45,6 @@ __all__ = [
     'agipd_asic_seams',
     'GenericGeometry',
     'DSSC_1MGeometry',
-    'DSSC_1MGeometryCartesian',
     'JUNGFRAUGeometry',
     'LPD_1MGeometry',
     'PNCCDGeometry',

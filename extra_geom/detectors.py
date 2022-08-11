@@ -7,7 +7,6 @@ from typing import List, Tuple
 import h5py
 import numpy as np
 
-from .dssc_hexagonal_utils import hex2cart
 from .base import DetectorGeometryBase, GeometryFragment
 from .snapped import isinstance_no_import
 
@@ -1050,6 +1049,8 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         [0.5, 1, 1, 0.5, 0, 0]
     ])
 
+    _cartesian_geom_cached = None
+
     @classmethod
     def from_quad_positions(cls, quad_pos, *, unit=1e-3, asic_gap=None,
                             panel_gap=None):
@@ -1369,6 +1370,31 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         # This simple slicing is faster than np.split().
         return [module_data[..., :256], module_data[..., 256:]]
 
+    @property
+    def _cartesian_geom(self):
+        if self._cartesian_geom_cached is None:
+            conversion_const = 2 ** 0.5 / 3 ** 0.25
+            new_modules = []
+            for module in self.modules:
+                new_modules.append([
+                    GeometryFragment(
+                        corner_pos=tile.corner_pos,
+                        ss_vec=tile.ss_vec / conversion_const,
+                        fs_vec=tile.fs_vec * conversion_const,
+                        ss_pixels=DSSC_1MGeometryCartesian.frag_ss_pixels,
+                        fs_pixels=DSSC_1MGeometryCartesian.frag_fs_pixels,
+                    ) for tile in module
+                ])
+            self._cartesian_geom_cached = DSSC_1MGeometryCartesian(new_modules)
+
+        return self._cartesian_geom_cached
+
+    def position_modules_cartesian(self, data, out=None, threadpool=None):
+        cart_data = self._cartesian_geom_cached.transform_data(data)
+        return self._cartesian_geom_cached.position_modules(
+            cart_data, out=out, threadpool=threadpool
+        )
+
     def plot_data(self,
                   data, *,
                   axis_units='px',
@@ -1483,6 +1509,10 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         ax.vlines(0, -cross_size, +cross_size, colors='w', linewidths=1)
         return ax
 
+    def plot_data_cartesian(self, data, **kwargs):
+        cart_data = self._cartesian_geom.transform_data(data)
+        return self._cartesian_geom(cart_data, **kwargs)
+
     @classmethod
     def _tile_slice(cls, tileno):
         tile_offset = tileno * cls.frag_fs_pixels
@@ -1525,136 +1555,52 @@ class DSSC_1MGeometry(DetectorGeometryBase):
             ss_coords += 2/3
             fs_coords += 0.5
 
-class DSSC_1MGeometryCartesian(DSSC_1MGeometry):
+class DSSC_1MGeometryCartesian(DetectorGeometryBase):
     """Detector layout for DSSC-1M, for square-pixel support
 
     The coordinates used in this class are 3D (x, y, z), and represent metres.
 
-    You won't normally instantiate this class directly:
-    use one of the constructor class methods to create or load a geometry.
+    You won't normally use this class directly: use the
+    position_modules_cartesian or plot_data_cartesian methods on the main
+    DSSC_1MGeometry class instead.
     """
     detector_type_name = 'DSSC-1M'
-    pixel_size = 236e-6
-    frag_ss_pixels = 120
-    frag_fs_pixels = 276
+    pixel_size = 236e-6 * (3 ** 0.25) / (2 ** 0.5)  # ~220 um
+    frag_ss_pixels = 119
+    frag_fs_pixels = 275
     n_quads = 4
     n_modules = 16
     n_tiles_per_module = 2
-    expected_data_shape = (16, 120, 551)
-
-    _pixel_shape = np.array([1, 1], dtype=np.float64) * pixel_size
-    _pixel_corners = DetectorGeometryBase._pixel_corners
-
-    _adjust_pixel_coords = DetectorGeometryBase._adjust_pixel_coords
-
-    @classmethod
-    def from_quad_positions(cls, quad_pos, *, unit=1e-3, asic_gap=None,
-                            panel_gap=None):
-        """Generate a DSSC-1M geometry from quadrant positions.
-
-        This produces an idealised geometry, assuming all modules are perfectly
-        flat, aligned and equally spaced within their quadrant.
-
-        The position given should refer to the bottom right (looking
-        along the beam) corner of the quadrant.
-
-        The origin of the coordinates is in the centre of the detector.
-        Coordinates increase upwards and to the left (looking along the beam).
-
-        Parameters
-        ----------
-        quad_pos: list of 2-tuples
-          (x, y) coordinates of the last corner (the one by module 4) of each
-          quadrant.
-        unit: float, optional
-          The conversion factor to put the coordinates into metres.
-          The default 1e-3 means the numbers are in millimetres.
-        asic_gap: float, optional
-          The gap between adjacent tiles/ASICs. The default is 2 mm.
-        panel_gap: float, optional
-          The gap between adjacent modules/panels. The default is 4 mm.
-        """
-        assert len(quad_pos) == 4
-        asic_gap_m = 2e-3 if (asic_gap is None) else asic_gap * unit
-        panel_gap_m = 4e-3 if (panel_gap is None) else panel_gap * unit
-
-        quads_x_orientation = [-1, -1, 1, 1]
-        quads_y_orientation = [1, 1, -1, -1]
-
-        frag_width = cls._pixel_shape[0] * cls.frag_fs_pixels
-        frag_height = cls._pixel_shape[1] * cls.frag_ss_pixels
-        module_width = (2 * frag_width) + asic_gap_m
-        quad_height = (4 * frag_height) + (3 * panel_gap_m)
-
-        module_step_vec = np.array([0, frag_height + panel_gap_m, 0])
-        tile_step_vec = np.array([frag_width + asic_gap_m, 0, 0])
-
-        modules = []
-
-        for p in range(cls.n_modules):
-            Q = p // 4
-            x_orient = quads_x_orientation[Q]
-            y_orient = quads_y_orientation[Q]
-            quad_corner_x = quad_pos[Q][0] * unit
-            quad_corner_y = quad_pos[Q][1] * unit
-
-            p_in_quad = p % 4
-
-            ss_vec = np.array([0, y_orient, 0]) * cls.pixel_size
-            fs_vec = np.array([x_orient, 0, 0]) * cls.pixel_size
-
-            # Corner position is measured at low-x, low-y corner (bottom
-            # right as plotted). We want the position of the corner
-            # with the first pixel, which is either high-x low-y or
-            # low-x high-y.
-            if x_orient == -1:
-                quad_start_x = quad_corner_x + module_width
-                quad_start_y = quad_corner_y
-            else:  # y_orient == -1
-                quad_start_x = quad_corner_x
-                quad_start_y = quad_corner_y + quad_height
-
-            quad_start = np.array([quad_start_x, quad_start_y, 0.])
-            module_start = quad_start + (y_orient * p_in_quad * module_step_vec)
-
-            modules.append([
-                GeometryFragment(
-                    corner_pos=module_start + (x_orient * t * tile_step_vec),
-                    ss_vec=ss_vec,
-                    fs_vec=fs_vec,
-                    ss_pixels=cls.frag_ss_pixels,
-                    fs_pixels=cls.frag_fs_pixels,
-                ) for t in range(cls.n_tiles_per_module)
-            ])
-
-        return cls(modules)
+    expected_data_shape = (16, 119, 550)
 
     @staticmethod
     def split_tiles(module_data):
-        # Note: the returned tiles are not of equal size. One will be (120, 276)
-        # and the other (120, 275).
-        return [module_data[..., :276], module_data[..., 276:]]
+        return [module_data[..., :275], module_data[..., 275:]]
 
-    def transform(self, data):
-        return np.array([hex2cart(data[i]) for i in range(data.shape[0])])
+    @classmethod
+    def _tile_slice(cls, tileno):
+        tile_offset = tileno * cls.frag_fs_pixels
+        fs_slice = slice(tile_offset, tile_offset + cls.frag_fs_pixels)
+        ss_slice = slice(0, cls.frag_ss_pixels)  # Every tile covers the full pixel range
+        return ss_slice, fs_slice
 
-    def position_modules_fast(self, data):
-        return self._snapped().position_modules(self.transform(data))
+    @classmethod
+    def _module_coords_to_tile(cls, slow_scan, fast_scan):
+        tileno, tile_fs = np.divmod(fast_scan, cls.frag_fs_pixels)
+        return tileno.astype(np.int16), slow_scan, tile_fs
 
-    def plot_data_fast(self, data,
-                       axis_units='px',
-                       frontview=True,
-                       ax=None,
-                       figsize=None,
-                       colorbar=False,
-                       **kwargs):
-        return super().plot_data_fast(self.transform(data),
-                                      axis_units=axis_units,
-                                      frontview=frontview,
-                                      ax=ax,
-                                      figsize=figsize,
-                                      colorbar=colorbar,
-                                      **kwargs)
+    @staticmethod
+    def transform_data(data):
+        from condat_gridconv import hex2cart
+
+        assert data.shape[-2:] == (128, 512)
+        modules = data.reshape(-1, 128, 512)
+        cart_modules = []
+        for module in modules:
+            cart_modules.append(np.concatenate([
+                hex2cart(tile) for tile in DSSC_1MGeometry.split_tiles(module)
+            ]))
+        return np.stack(cart_modules).reshape(data.shape[:-2] + (119, 550))
 
 
 class DSSC_Geometry(DSSC_1MGeometry):
