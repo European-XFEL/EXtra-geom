@@ -1511,7 +1511,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
 
     def plot_data_cartesian(self, data, **kwargs):
         cart_data = self._cartesian_geom.transform_data(data)
-        return self._cartesian_geom(cart_data, **kwargs)
+        return self._cartesian_geom.plot_data(cart_data, **kwargs)
 
     @classmethod
     def _tile_slice(cls, tileno):
