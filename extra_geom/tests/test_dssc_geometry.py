@@ -42,6 +42,14 @@ def test_plot_data_hexes():
     ax = geom.plot_data_hexes(np.zeros((128, 512)), module=4, colorbar=True)
     assert isinstance(ax, Axes)
 
+def test_plot_data_cartesian():
+    geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
+        sample_xfel_geom, QUAD_POS
+    )
+    # Smoketest
+    ax = geom.plot_data_cartesian(np.zeros((16, 128, 512)), colorbar=True)
+    assert isinstance(ax, Axes)
+
 
 def test_snap_assemble_data():
     geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
@@ -54,6 +62,20 @@ def test_snap_assemble_data():
     assert tuple(centre) == (656, 552)
     assert np.isnan(img[0, 0])
     assert img[50, 50] == 0
+
+
+def test_assemble_data_cartesian():
+    geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
+        sample_xfel_geom, QUAD_POS
+    )
+
+    stacked_data = np.zeros((16, 128, 512))
+    img, centre = geom.position_modules_cartesian(stacked_data)
+    assert img.shape == (1192, 1180)
+    assert tuple(centre) == (610, 593)
+    assert np.isnan(img[0, 0])
+    assert img[50, 50] == 0
+
 
 def test_to_distortion_array():
     geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
