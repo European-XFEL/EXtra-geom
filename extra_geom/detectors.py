@@ -1557,7 +1557,7 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
 
     @classmethod
     def from_module_positions(cls,offsets=((0,0),), orientations=None,
-                              asic_gap=2, unit=pixel_size, stripsel=False):
+                              asic_gap=2, unit=pixel_size, strixel=False):
         """Generate a Jungfrau geometry object from module positions
 
         Parameters
@@ -1587,8 +1587,8 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
           The unit for *offsets* and *asic_gap*, in metres. Defaults to the
           pixel size (75 um).
         """
-        if stripsel:
-            return JUNGFRAUStripselGeometry.from_module_positions(offsets, orientations)
+        if strixel:
+            return JUNGFRAUStrixelGeometry.from_module_positions(offsets, orientations)
 
         px_conversion = unit / cls.pixel_size
         # fill orientations with defaults to match number of offsets
@@ -1682,24 +1682,24 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         return ss_slice, fs_slice
 
 
-class JUNGFRAUStripselGeometry(DetectorGeometryBase):
-    """Detector layout for flexible JUNGFRAU stripsel arrangements
+class JUNGFRAUStrixelGeometry(DetectorGeometryBase):
+    """Detector layout for flexible JUNGFRAU strixel arrangements
 
     The base JUNGFRAU unit (and rigid group) in combined arrangements is the
-    JF-stripsel module, which is an independent detector unit of 1 x 4 ASIC tiles.
+    JF-strixel module, which is an independent detector unit of 1 x 4 ASIC tiles.
     """
-    detector_type_name = 'JUNGFRAUStripsel'
+    detector_type_name = 'JUNGFRAUStrixel'
     pixel_size = 2.5e-5   # 2.5e-5 metres = 25 micrometer = 0.025 mm
     frag_ss_pixels = 86  # pixels along slow scan axis within tile
     frag_fs_pixels = 1024 * 3 + 18  # pixels along fast scan axis within tile
-    expected_data_shape = (0, 256, 1024)  # num modules filled at instantiation
+    expected_data_shape = (0, 512, 1024)  # num modules filled at instantiation
     n_tiles_per_module = 1
     #
     _pixel_shape = np.array([1., 9.], dtype=np.float64) * pixel_size
 
     def __init__(self, modules, filename='No file', metadata=None):
         super().__init__(modules, filename, metadata)
-        self.expected_data_shape = (len(modules), 256, 1024)
+        self.expected_data_shape = (len(modules), 512, 1024)
         self.n_modules = len(modules)
 
     @classmethod
@@ -1752,7 +1752,7 @@ class JUNGFRAUStripselGeometry(DetectorGeometryBase):
                         verticalalignment='center',
                         horizontalalignment='center')
 
-        ax.set_title('Jungfrau stripsel detector geometry ({})'.format(self.filename))
+        ax.set_title('Jungfrau strixel detector geometry ({})'.format(self.filename))
         print(' Expected data shape:', self.expected_data_shape)
         return ax
 
@@ -1774,7 +1774,7 @@ class JUNGFRAUStripselGeometry(DetectorGeometryBase):
     def _snapped(self):
         from .base import GridGeometryFragment, SnappedGeometry
 
-        class GridGeometryFragmentStripsel(GridGeometryFragment):
+        class GridGeometryFragmentStrixel(GridGeometryFragment):
             def __init__(self, corner_pos, ss_vec, fs_vec, ss_pixels, fs_pixels):
                 self.ss_vec = ss_vec
                 self.fs_vec = fs_vec
@@ -1833,7 +1833,7 @@ class JUNGFRAUStripselGeometry(DetectorGeometryBase):
                     assert {tuple(np.abs(ss_vec)), tuple(np.abs(fs_vec))} == {(0, 1), (1, 0)}
 
                     # Convert xy coordinates to yx indexes
-                    snap = GridGeometryFragmentStripsel(
+                    snap = GridGeometryFragmentStrixel(
                         corner_pos[::-1], ss_vec[::-1], fs_vec[::-1], tile.ss_pixels, tile.fs_pixels
                     )
                     tiles.append(snap)
