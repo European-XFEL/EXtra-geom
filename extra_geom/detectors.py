@@ -309,7 +309,7 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
         ax.set_title('AGIPD-1M detector geometry ({})'.format(self.filename))
         return ax
 
-    def position_modules_interpolate(self, data):
+    def position_modules_interpolate(self, data, scale=1.0):
         """Assemble data from this detector according to where the pixels are.
 
         This performs interpolation, which is very slow.
@@ -320,8 +320,10 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
         ----------
 
         data : ndarray
-          The three dimensions should be channelno, pixel_ss, pixel_fs
+          The three dimensions should be channel_no, pixel_ss, pixel_fs
           (lengths 16, 512, 128). ss/fs are slow-scan and fast-scan.
+        scale : float
+          A factor by which to scale the output image array. By default 1.0.
 
         Returns
         -------
@@ -333,7 +335,13 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
         """
         from scipy.ndimage import affine_transform
         assert data.shape == (16, 512, 128)
+
+        scale_matrix = np.array([[scale, 0], [0, scale]])
         size_yx, centre = self._get_dimensions()
+        size_arr = np.rint(np.dot(scale_matrix, np.array(size_yx)) + 0.5)
+        size_yx = tuple(size_arr.astype(np.int32))
+        centre = np.rint(np.dot(scale_matrix, centre)).astype(np.int32)
+
         tmp = np.empty((16 * 8,) + size_yx, dtype=data.dtype)
 
         for i, (module, mod_data) in enumerate(zip(self.modules, data)):
@@ -341,19 +349,21 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
             for j, (tile, tile_data) in enumerate(zip(module, tiles_data)):
                 # We store (x, y, z), but numpy indexing, and hence affine_transform,
                 # work like [y, x]. Rearrange the numbers:
-                fs_vec_yx = tile.fs_vec[:2][::-1]
-                ss_vec_yx = tile.ss_vec[:2][::-1]
+                fs_vec_yx = tile.fs_vec[:2][::-1] / self.pixel_size
+                ss_vec_yx = tile.ss_vec[:2][::-1] / self.pixel_size
 
                 # Offset by centre to make all coordinates positive
-                corner_pos_yx = tile.corner_pos[:2][::-1] + centre
+                corner_pos_yx_orig = tile.corner_pos[:2][::-1] / self.pixel_size
+                corner_pos_yx = np.dot(scale_matrix, corner_pos_yx_orig) + centre
 
-                # Make the rotation matrix
+                # Make the rotation and scale matrix
                 rotn = np.stack((ss_vec_yx, fs_vec_yx), axis=-1)
+                rotn_scale = np.dot(rotn, scale_matrix)
 
                 # affine_transform takes a mapping from *output* to *input*.
                 # So we reverse the forward transformation.
-                transform = np.linalg.inv(rotn)
-                offset = np.dot(rotn, corner_pos_yx)  # this seems to work, but is it right?
+                transform = np.linalg.inv(rotn_scale)
+                offset = np.dot(transform, -corner_pos_yx)
 
                 affine_transform(
                     tile_data,
