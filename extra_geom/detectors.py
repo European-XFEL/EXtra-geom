@@ -1647,7 +1647,7 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         for i, m in enumerate(self.modules):
             cx, cy, _ = m[1].centre() * scale
             module_text = module_names[i] if module_names else f'JNGFR{i+1:02d}'
-            ax.text(cx, cy, module_text, fontweight='heavy',
+            ax.text(cx, cy, module_text, fontweight='bold',
                     size='x-large',
                     verticalalignment='center',
                     horizontalalignment='center')
@@ -1656,7 +1656,8 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
 
             # Label tiles in the module: A0 to A8
             for t, tile in enumerate(tiles):
-                if t == 1:
+                # Remove the tiles' text around the module name
+                if t in [0, 1, 2]:
                     continue
                 s = 'M{M}A{T}'.format(T=t, M=i)
                 cx, cy, _ = tile.centre() * scale
