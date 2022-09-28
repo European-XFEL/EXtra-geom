@@ -1644,23 +1644,18 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         ax = super().inspect(axis_units=axis_units, frontview=frontview)
         scale = self._get_plot_scale_factor(axis_units)
 
-        for i, m in enumerate(self.modules):
-            cx, cy, _ = m[1].centre() * scale
+        for i, tiles in enumerate(self.modules):
+            cx, cy, _ = tiles[2].centre() * scale
             module_text = module_names[i] if module_names else f'JNGFR{i+1:02d}'
             ax.text(cx, cy, module_text, fontweight='bold',
                     size='x-large',
                     verticalalignment='center',
                     horizontalalignment='center')
 
-            tiles = self.modules[i]
-
-            # Label tiles in the module: A0 to A8
-            for t, tile in enumerate(tiles):
-                # Remove the tiles' text around the module name
-                if t in [0, 1, 2]:
-                    continue
-                s = 'M{M}A{T}'.format(T=t, M=i)
-                cx, cy, _ = tile.centre() * scale
+            # Label tiles in the module for 1st and last ASICs only.
+            for t in [0, 7]:
+                s = 'A{T}'.format(T=t)
+                cx, cy, _ = tiles[t].centre() * scale
                 ax.text(cx, cy, s,
                         verticalalignment='center',
                         horizontalalignment='center')
