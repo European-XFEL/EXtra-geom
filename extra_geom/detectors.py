@@ -1653,7 +1653,7 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
                     horizontalalignment='center')
 
             # Label tiles in the module for 1st and last ASICs only.
-            for t in [0, 7]:
+            for t in [0, 4, 7]:
                 s = 'A{T}'.format(T=t)
                 cx, cy, _ = tiles[t].centre() * scale
                 ax.text(cx, cy, s,
