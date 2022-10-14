@@ -1627,7 +1627,7 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
             modules.append(tiles)
         return cls(modules)
 
-    def inspect(self, axis_units='px', frontview=True):
+    def inspect(self, axis_units='px', frontview=True, module_names=[]):
         """Plot the 2D layout of this detector geometry.
 
         Returns a matplotlib Axes object.
@@ -1644,14 +1644,19 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         ax = super().inspect(axis_units=axis_units, frontview=frontview)
         scale = self._get_plot_scale_factor(axis_units)
 
-        for m in range(len(self.modules)):
-            tiles = self.modules[m]
+        for i, tiles in enumerate(self.modules):
+            cx, cy, _ = tiles[2].centre() * scale
+            module_text = module_names[i] if module_names else f'JNGFR{i+1:02d}'
+            ax.text(cx, cy, module_text, fontweight='bold',
+                    size='x-large',
+                    verticalalignment='center',
+                    horizontalalignment='center')
 
-            # Label tiles in the module: A0 to A8
-            for t, tile in enumerate(tiles):
-                s = 'M{M}A{T}'.format(T=t, M=m)
-                cx, cy, _ = tile.centre() * scale
-                ax.text(cx, cy, s, fontweight='bold',
+            # Label tiles in the module for 1st and last ASICs only.
+            for t in [0, 4, 7]:
+                s = 'A{T}'.format(T=t)
+                cx, cy, _ = tiles[t].centre() * scale
+                ax.text(cx, cy, s,
                         verticalalignment='center',
                         horizontalalignment='center')
 
