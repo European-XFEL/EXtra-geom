@@ -1,14 +1,33 @@
 Release Notes
 =============
 
+1.8
+---
+
+2022-10-18
+
+- New method :meth:`.DSSC_1MGeometry.plot_data_hexes` to plot DSSC data, drawing
+  a hexagon for each pixel. This is slower than regular plotting, but more
+  accurately represents what the detector 'saw' (:ghpull:`167`).
+- More useful labels, and an option to supply custom module labels, for JUNGFRAU
+  geometry in :meth:`~.JUNGFRAUGeometry.inspect` (:ghpull:`177`).
+- Fix assembling JUNGFRAU images from labelled array with module numbers
+  starting from 1 (:ghpull:`169`).
+- Fix a bug writing some geometry objects to CrystFEL format ``.geom``
+  files (:ghpull:`163`)
+
 1.7.1
 -----
+
+2022-05-19
 
 - Fix the pattern of hexagonal pixels in the DSSC detector (:ghpull:`160`).
   Thanks to Loïc le Guyader for identifying and investigating this issue.
 
 1.7
 ---
+
+2022-03-02
 
 - New method :meth:`~.DSSC_1MGeometry.to_pyfai_detector` for AGIPD, DSSC and LPD
   to make a PyFAI detector object (:ghpull:`139`). See :doc:`pyfai` for an example.
@@ -22,6 +41,8 @@ Release Notes
 1.6
 ---
 
+2021-09-22
+
 - Store and read (with new :meth:`~.LPD_1MGeometry.from_h5_file` method)
   quadrant positions in EuXFEL HDF5 format geometry files (:ghpull:`92`).
 - Read some metadata from CrystFEL format ``.geom`` files and use it as defaults
@@ -34,6 +55,8 @@ Release Notes
 1.5
 ---
 
+2021-08-30
+
 - Add method to make geometry from ASIC pairs positions for ePix100 detector and method
   to normalize ePix data (:ghpull:`97`). See :ref:`det-EPIX`.
 - Make scipy an optional dependency (:ghpull:`90`).
@@ -43,6 +66,8 @@ Release Notes
 
 1.4
 ---
+
+2021-06-16
 
 - Added support for ePix100 & ePix10k detectors (:ghpull:`73`). See
   :doc:`epix_geometry` (example) and :ref:`det-EPIX` (reference).
@@ -58,6 +83,8 @@ Release Notes
 1.3
 ---
 
+2021-05-20
+
 - A new :class:`.GenericGeometry` class allows describing the layout of an unknown
   detector, with the user specifying details such as pixel size and number of
   modules (:ghpull:`72`). See :doc:`generic_geometry` for an introduction.
@@ -67,10 +94,14 @@ Release Notes
 1.2.1
 -----
 
+2021-04-20
+
 - Fix assembling images from an ``extra_data`` StackView object (:ghpull:`67`).
 
 1.2
 ---
+
+2021-04-16
 
 - JUNGFRAU geometry can now be saved to and loaded from CrystFEL format
   ``.geom`` files - see the :doc:`JUNGFRAU example <jungfrau_geometry>`,
@@ -88,10 +119,14 @@ Release Notes
 1.1.1
 -----
 
+2020-12-17
+
 - Fix module orientation for AGIPD 500k detector (:ghpull:`41`).
 
 1.1
 ---
+
+2020-12-04
 
 - New :meth:`~.AGIPD_1MGeometry.position_modules_symmetric` method to assemble
   data with the detector centre at the midpoint of the output array
@@ -107,6 +142,8 @@ Release Notes
 1.0
 ---
 
+2020-10-01
+
 - Added support for AGIPD 'mini-half' detector (8 modules) - see
   :ref:`det-AGIPD-500K2G` (:ghpull:`26`).
 - Added methods to write XFEL HDF5 geometry files and get quadrant positions
@@ -119,10 +156,14 @@ Release Notes
 0.10
 ----
 
+2020-06-24
+
 - Added support for pnCCD detector (:ghpull:`13`).
 
 0.9
 ---
+
+2020-03-24
 
 - Initial support for :ref:`det-JUNGFRAU` detectors (:ghpull:`6`).
 - Fix :meth:`~.AGIPD_1MGeometry.compare` method to draw arrows the right size
@@ -133,6 +174,8 @@ Release Notes
 
 0.8
 ---
+
+2019-11-18
 
 First separated version. No functional changes from karabo_data 0.7.
 
