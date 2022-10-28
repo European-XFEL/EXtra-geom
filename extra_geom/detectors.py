@@ -1394,6 +1394,7 @@ class DSSC_1MGeometry(DetectorGeometryBase):
 
         This converts the data from DSSC's hexagonal pixels to a similar number
         of pixels on a square grid, and displays the image.
+        The arguments are the same as for :meth:`position_modules`.
         """
         cart_data = self._cartesian_geom.transform_data(data)
         return self._cartesian_geom.position_modules(
@@ -1519,7 +1520,6 @@ class DSSC_1MGeometry(DetectorGeometryBase):
 
         This converts the data from DSSC's hexagonal pixels to a similar number
         of pixels on a square grid, and displays the image.
-
         It accepts all the same keyword arguments as :meth:`plot_data`.
         """
         cart_data = self._cartesian_geom.transform_data(data)

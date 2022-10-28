@@ -220,9 +220,13 @@ approximately half a pixel width from their true position.
 
    .. automethod:: plot_data
 
+   .. automethod:: plot_data_cartesian
+
    .. automethod:: plot_data_hexes
 
    .. automethod:: position_modules
+
+   .. automethod:: position_modules_cartesian
 
    .. automethod:: output_array_for_position
 
