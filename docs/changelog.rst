@@ -1,6 +1,15 @@
 Release Notes
 =============
 
+1.9
+---
+
+2022-10-28
+
+- New methods to assemble DSSC data and convert the hexagonal pixels onto a
+  square grid: :meth:`~.DSSC_1MGeometry.position_modules_cartesian` and
+  :meth:`~.DSSC_1MGeometry.plot_data_cartesian` (:ghpull:`174`).
+
 1.8
 ---
 
