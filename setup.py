@@ -62,6 +62,7 @@ setup(name="EXtra-geom",
               'xarray',
               'EXtra-data',
               'pyFAI',
+              'condat_gridconv',
           ]
       },
       python_requires='>=3.6',

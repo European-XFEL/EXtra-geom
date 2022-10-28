@@ -1049,6 +1049,8 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         [0.5, 1, 1, 0.5, 0, 0]
     ])
 
+    _cartesian_geom_cached = None
+
     @classmethod
     def from_quad_positions(cls, quad_pos, *, unit=1e-3, asic_gap=None,
                             panel_gap=None):
@@ -1368,6 +1370,37 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         # This simple slicing is faster than np.split().
         return [module_data[..., :256], module_data[..., 256:]]
 
+    @property
+    def _cartesian_geom(self):
+        if self._cartesian_geom_cached is None:
+            conversion_const = 2 ** 0.5 / 3 ** 0.25
+            new_modules = []
+            for module in self.modules:
+                new_modules.append([
+                    GeometryFragment(
+                        corner_pos=tile.corner_pos,
+                        ss_vec=tile.ss_vec / conversion_const,
+                        fs_vec=tile.fs_vec * conversion_const,
+                        ss_pixels=DSSC_1MGeometryCartesian.frag_ss_pixels,
+                        fs_pixels=DSSC_1MGeometryCartesian.frag_fs_pixels,
+                    ) for tile in module
+                ])
+            self._cartesian_geom_cached = DSSC_1MGeometryCartesian(new_modules)
+
+        return self._cartesian_geom_cached
+
+    def position_modules_cartesian(self, data, out=None, threadpool=None):
+        """Assemble DSSC data on a square pixel grid
+
+        This converts the data from DSSC's hexagonal pixels to a similar number
+        of pixels on a square grid, and displays the image.
+        The arguments are the same as for :meth:`position_modules`.
+        """
+        cart_data = self._cartesian_geom.transform_data(data)
+        return self._cartesian_geom.position_modules(
+            cart_data, out=out, threadpool=threadpool
+        )
+
     def plot_data(self,
                   data, *,
                   axis_units='px',
@@ -1482,6 +1515,16 @@ class DSSC_1MGeometry(DetectorGeometryBase):
         ax.vlines(0, -cross_size, +cross_size, colors='w', linewidths=1)
         return ax
 
+    def plot_data_cartesian(self, data, **kwargs):
+        """Plot the given data converted to square pixels
+
+        This converts the data from DSSC's hexagonal pixels to a similar number
+        of pixels on a square grid, and displays the image.
+        It accepts all the same keyword arguments as :meth:`plot_data`.
+        """
+        cart_data = self._cartesian_geom.transform_data(data)
+        return self._cartesian_geom.plot_data(cart_data, **kwargs)
+
     @classmethod
     def _tile_slice(cls, tileno):
         tile_offset = tileno * cls.frag_fs_pixels
@@ -1523,6 +1566,57 @@ class DSSC_1MGeometry(DetectorGeometryBase):
             # beyond the start of the next row.
             ss_coords += 2/3
             fs_coords += 0.5
+
+class DSSC_1MGeometryCartesian(DetectorGeometryBase):
+    """Detector layout for DSSC-1M, for square-pixel support
+
+    The coordinates used in this class are 3D (x, y, z), and represent metres.
+
+    You won't normally use this class directly: use the
+    position_modules_cartesian or plot_data_cartesian methods on the main
+    DSSC_1MGeometry class instead.
+    """
+    detector_type_name = 'DSSC-1M'
+    pixel_size = 236e-6 * (3 ** 0.25) / (2 ** 0.5)  # ~220 um
+    frag_ss_pixels = 119
+    frag_fs_pixels = 275
+    n_quads = 4
+    n_modules = 16
+    n_tiles_per_module = 2
+    expected_data_shape = (16, 119, 550)
+
+    @staticmethod
+    def split_tiles(module_data):
+        return [module_data[..., :275], module_data[..., 275:]]
+
+    @classmethod
+    def _tile_slice(cls, tileno):
+        tile_offset = tileno * cls.frag_fs_pixels
+        fs_slice = slice(tile_offset, tile_offset + cls.frag_fs_pixels)
+        ss_slice = slice(0, cls.frag_ss_pixels)  # Every tile covers the full pixel range
+        return ss_slice, fs_slice
+
+    @classmethod
+    def _module_coords_to_tile(cls, slow_scan, fast_scan):
+        tileno, tile_fs = np.divmod(fast_scan, cls.frag_fs_pixels)
+        return tileno.astype(np.int16), slow_scan, tile_fs
+
+    @staticmethod
+    def transform_data(data):
+        """Convert data taken by DSSC onto a cartesian grid
+
+        This requires the separate condat_gridconv package.
+        """
+        from condat_gridconv import hex2cart
+
+        assert data.shape[-2:] == (128, 512)
+        modules = data.reshape(-1, 128, 512)
+        cart_modules = []
+        for module in modules:
+            cart_modules.append(np.concatenate([
+                hex2cart(tile) for tile in DSSC_1MGeometry.split_tiles(module)
+            ], axis=-1))
+        return np.stack(cart_modules).reshape(data.shape[:-2] + (119, 550))
 
 
 class DSSC_Geometry(DSSC_1MGeometry):
