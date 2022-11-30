@@ -608,7 +608,81 @@ def agipd_asic_seams():
     return arr
 
 
-class LPD_1MGeometry(DetectorGeometryBase):
+class LPDGeometryBase(DetectorGeometryBase):
+    """Base class for LPD detector geometry. Subclassed for specific detectors.
+
+    The coordinates used in this class are 3D (x, y, z), and represent metres.
+    """
+    pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
+    frag_ss_pixels = 32
+    frag_fs_pixels = 128
+    n_tiles_per_module = 16
+    _draw_first_px_on_tile = 8  # The first pixel in stored data is on tile 8
+
+    def to_distortion_array(self, allow_negative_xy=False):
+        """Return distortion matrix for LPD detector, suitable for pyFAI.
+
+        Parameters
+        ----------
+
+        allow_negative_xy: bool
+          If False (default), shift the origin so no x or y coordinates are
+          negative. If True, the origin is the detector centre.
+
+        Returns
+        -------
+        out: ndarray
+            Array of float 32 with shape (4096, 256, 4, 3).
+            The dimensions mean:
+
+            - 4096 = 16 modules * 256 pixels (slow scan axis)
+            - 256 pixels (fast scan axis)
+            - 4 corners of each pixel
+            - 3 numbers for z, y, x
+        """
+        # Overridden only for docstring
+        return super().to_distortion_array(allow_negative_xy)
+
+    @staticmethod
+    def split_tiles(module_data):
+        # This slicing is faster than using np.split()
+        return [
+            # Tiles 1-8 numbered top to bottom. Data starts at bottom, so
+            # count backwards through them.
+            module_data[..., y-32:y, :128] for y in range(256, 0, -32)
+        ] + [
+            # Tiles 9-16 numbered bottom to top.
+            module_data[..., y:y+32, 128:] for y in range(0, 256, 32)
+        ]
+
+    @classmethod
+    def _tile_slice(cls, tileno):
+        # Which part of the array is this tile?
+        if tileno < 8:  # First half of module (0 <= t <= 7)
+            fs_slice = slice(0, 128)
+            tiles_up = 7 - tileno
+        else:  # Second half of module (8 <= t <= 15)
+            fs_slice = slice(128, 256)
+            tiles_up = tileno - 8
+        tile_offset = tiles_up * 32
+        ss_slice = slice(tile_offset, tile_offset + cls.frag_ss_pixels)
+        return ss_slice, fs_slice
+
+    @classmethod
+    def _module_coords_to_tile(cls, slow_scan, fast_scan):
+        tiles_across, tile_fs = np.divmod(fast_scan, cls.frag_fs_pixels)
+        tiles_up, tile_ss = np.divmod(slow_scan, cls.frag_ss_pixels)
+
+        # Each tiles_across is 0 or 1. To avoid iterating over the array with a
+        # conditional, multiply the number we want by 1 and the other by 0.
+        tileno = (
+            (1 - tiles_across) * (7 - tiles_up)  # tileno 0-7
+            + tiles_across * (tiles_up + 8)      # tileno 8-15
+        )
+        return tileno.astype(np.int16), tile_ss, tile_fs
+
+
+class LPD_1MGeometry(LPDGeometryBase):
     """Detector layout for LPD-1M
 
     The coordinates used in this class are 3D (x, y, z), and represent metres.
@@ -617,14 +691,10 @@ class LPD_1MGeometry(DetectorGeometryBase):
     use one of the constructor class methods to create or load a geometry.
     """
     detector_type_name = 'LPD-1M'
-    pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
-    frag_ss_pixels = 32
-    frag_fs_pixels = 128
     n_quads = 4
     n_modules = 16
-    n_tiles_per_module = 16
     expected_data_shape = (16, 256, 256)
-    _draw_first_px_on_tile = 8  # The first pixel in stored data is on tile 8
+    pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
     _pyfai_cls_name = 'LPD1M'
 
     @classmethod
@@ -930,67 +1000,102 @@ class LPD_1MGeometry(DetectorGeometryBase):
         ax.set_title('LPD-1M detector geometry ({})'.format(self.filename))
         return ax
 
-    @staticmethod
-    def split_tiles(module_data):
-        # This slicing is faster than using np.split()
-        return [
-            # Tiles 1-8 numbered top to bottom. Data starts at bottom, so
-            # count backwards through them.
-            module_data[..., y-32:y, :128] for y in range(256, 0, -32)
-        ] + [
-            # Tiles 9-16 numbered bottom to top.
-            module_data[..., y:y+32, 128:] for y in range(0, 256, 32)
-        ]
+
+class LPD_MiniGeometry(LPDGeometryBase):
+    """Detector Layout for LPD Mini.
+
+    The coordinates used in this class are 3D (x, y, z), and represent metres.
+
+    You won't normally instantiate this class directly:
+    use one of the constructor class methods to create or load a geometry.
+    """
+    detector_type_name = 'LPD-Mini'
+    n_quads = 1
+    n_modules = 1
+    pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
+    expected_data_shape = (1, 256, 256)
+    _pyfai_cls_name = 'LPDMINI'
 
     @classmethod
-    def _tile_slice(cls, tileno):
-        # Which part of the array is this tile?
-        if tileno < 8:  # First half of module (0 <= t <= 7)
-            fs_slice = slice(0, 128)
-            tiles_up = 7 - tileno
-        else:  # Second half of module (8 <= t <= 15)
-            fs_slice = slice(128, 256)
-            tiles_up = tileno - 8
-        tile_offset = tiles_up * 32
-        ss_slice = slice(tile_offset, tile_offset + cls.frag_ss_pixels)
-        return ss_slice, fs_slice
+    def from_origin(cls, origin=(0, 0), asic_gap=4, unit=pixel_size):
+        """Generate an LPD-Mini geometry from origin position.
 
-    @classmethod
-    def _module_coords_to_tile(cls, slow_scan, fast_scan):
-        tiles_across, tile_fs = np.divmod(fast_scan, cls.frag_fs_pixels)
-        tiles_up, tile_ss = np.divmod(slow_scan, cls.frag_ss_pixels)
+        This produces an idealised geometry, assuming all modules are perfectly
+        flat, aligned and equally spaced within the detector.
 
-        # Each tiles_across is 0 or 1. To avoid iterating over the array with a
-        # conditional, multiply the number we want by 1 and the other by 0.
-        tileno = (
-            (1 - tiles_across) * (7 - tiles_up)  # tileno 0-7
-            + tiles_across * (tiles_up + 8)      # tileno 8-15
-        )
-        return tileno.astype(np.int16), tile_ss, tile_fs
+        The default origin (0, 0) of the coordinates is the top-left corner
+        of the detector. If another coordinate is given as the origin, it is
+        relative to the top-left corner. Coordinates increase downwards and
+        to the right (looking along the beam).
 
-    def to_distortion_array(self, allow_negative_xy=False):
-        """Return distortion matrix for LPD detector, suitable for pyFAI.
+        To give positions in units other than pixels, pass the *unit* parameter
+        as the length of the unit in metres. E.g. ``unit=1e-3`` means the
+        coordinates are in millimetres.
+        """
+
+        # How much space does one tile take up, including gaps to its neighbours?
+        tile_width = (cls.frag_fs_pixels + asic_gap) * unit
+        tile_height = (cls.frag_ss_pixels + asic_gap) * unit
+
+        # Size of a tile from corner to corner, excluding gaps
+        tile_size = np.array([cls.frag_fs_pixels, cls.frag_ss_pixels, 0]) * cls.pixel_size
+
+        # Apply the provided origin
+        panel_corner_y = -(origin[0] * unit)
+        panel_corner_x = -(origin[1] * unit)
+
+        tiles = []
+        for a in range(cls.n_tiles_per_module):
+            if a < 8:
+                up = -a
+                across = -1
+            else:
+                up = -(15 - a)
+                across = 0
+
+            tile_last_corner = (
+                np.array([panel_corner_x, panel_corner_y, 0.0])
+                + np.array([across, 0, 0]) * tile_width
+                + np.array([0, up, 0]) * tile_height
+            )
+            tile_first_corner = tile_last_corner - tile_size
+
+            tiles.append(GeometryFragment(
+                corner_pos=tile_first_corner,
+                ss_vec=np.array([0, 1, 0]) * cls.pixel_size,
+                fs_vec=np.array([1, 0, 0]) * cls.pixel_size,
+                ss_pixels=cls.frag_ss_pixels,
+                fs_pixels=cls.frag_fs_pixels,
+            ))
+
+        return cls([tiles])
+
+    def inspect(self, axis_units='px', frontview=True):
+        """Plot the 2D layout of this detector geometry.
+
+        Returns a matplotlib Axes object.
 
         Parameters
         ----------
 
-        allow_negative_xy: bool
-          If False (default), shift the origin so no x or y coordinates are
-          negative. If True, the origin is the detector centre.
-
-        Returns
-        -------
-        out: ndarray
-            Array of float 32 with shape (4096, 256, 4, 3).
-            The dimensions mean:
-
-            - 4096 = 16 modules * 256 pixels (slow scan axis)
-            - 256 pixels (fast scan axis)
-            - 4 corners of each pixel
-            - 3 numbers for z, y, x
+        axis_units : str
+          Show the detector scale in pixels ('px') or metres ('m').
+        frontview : bool
+          If True (the default), x increases to the left, as if you were looking
+          along the beam. False gives a 'looking into the beam' view.
         """
-        # Overridden only for docstring
-        return super().to_distortion_array(allow_negative_xy)
+        ax = super().inspect(axis_units=axis_units, frontview=frontview)
+        scale = self._get_plot_scale_factor(axis_units)
+
+        module, = self.modules
+        for t in [0, 7, 8, 15]:
+            cx, cy, _ = module[t].centre() * scale
+            ax.text(cx, cy, 'T{}'.format(t + 1),
+                    verticalalignment='center',
+                    horizontalalignment='center')
+
+        ax.set_title('LPD Mini detector geometry')
+        return ax
 
 
 def invert_xfel_lpd_geom(path_in, path_out):

@@ -172,6 +172,46 @@ which this geometry code can position independently.
 
    .. automethod:: data_coords_to_positions
 
+.. _det-LPD-Mini:
+
+LPD-Mini
+--------
+
+LPD-Mini consists of 16 sensor tiles, of a total of 256x256 pixels.
+which this geometry code can position independently.
+
+.. figure:: _static/lpd_mini_layout.png
+
+   The approximate layout of LPD-Mini, in a front view (looking along the beam).
+
+.. autoclass:: LPD_MiniGeometry
+
+   ..authomethod:: from_origin
+
+   .. automethod:: offset
+
+   .. automethod:: rotate
+
+   .. automethod:: write_crystfel_geom
+
+   .. automethod:: get_pixel_positions
+
+   .. automethod:: to_distortion_array
+
+   .. automethod:: to_pyfai_detector
+
+   .. automethod:: plot_data
+
+   .. automethod:: output_array_for_position
+
+   .. automethod:: position_modules_symmetric
+
+   .. automethod:: inspect
+
+   .. automethod:: compare
+
+   .. automethod:: data_coords_to_positions
+
 .. _det-DSSC-1M:
 
 DSSC-1M
