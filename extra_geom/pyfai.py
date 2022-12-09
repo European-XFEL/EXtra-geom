@@ -38,7 +38,7 @@ class DSSC1M(Detector):
 class LPD1M(Detector):
     IS_CONTIGUOUS = False
     MAX_SHAPE = (16*256, 256)
-    aliases = ["DSSC 1M"]
+    aliases = ["LPD 1M"]
 
     def __init__(self, pixel1=5e-4, pixel2=5e-4, **kwargs):
         super().__init__(pixel1, pixel2, **kwargs)
