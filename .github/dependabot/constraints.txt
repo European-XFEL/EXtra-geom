@@ -9,7 +9,7 @@ matplotlib<3.7.0
 nbval==0.10.0
 numpy<1.25.0
 Pillow==9.4.0
-pyFAI==0.21.3
+pyFAI==2023.1.0
 pyparsing==3.0.9
 pytest<7.3.0
 pytest-cov==4.0.0
