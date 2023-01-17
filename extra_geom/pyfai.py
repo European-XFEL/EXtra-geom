@@ -42,3 +42,13 @@ class LPD1M(Detector):
 
     def __init__(self, pixel1=5e-4, pixel2=5e-4, **kwargs):
         super().__init__(pixel1, pixel2, **kwargs)
+
+
+class JUNGFRAU(Detector):
+    IS_CONTIGUOUS = False
+    MAX_SHAPE = (0, 256)  # num modules filled at instantiation
+    aliases = ["JUNGFRAU"]
+
+    def __init__(self, pixel1=7.5e-5, pixel2=7.5e-5, n_modules=None, **kwargs):
+        self.MAX_SHAPE = (n_modules*256, 256)
+        super().__init__(pixel1, pixel2, **kwargs)
