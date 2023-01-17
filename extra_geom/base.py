@@ -659,7 +659,10 @@ class DetectorGeometryBase:
             raise NotImplementedError
 
         from . import pyfai
-        det = getattr(pyfai, self._pyfai_cls_name)(n_modules=self.n_modules)
+        if 'JUNGFRAU' in self.detector_type_name:
+            det = getattr(pyfai, self._pyfai_cls_name)(n_modules=self.n_modules)
+        else:
+            det = getattr(pyfai, self._pyfai_cls_name)()
         det.set_pixel_corners(self.to_distortion_array(allow_negative_xy=True))
         return det
 
