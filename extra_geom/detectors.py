@@ -1678,6 +1678,25 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         fs_slice = slice(tile_fs_offset, tile_fs_offset + cls.frag_fs_pixels)
         return ss_slice, fs_slice
 
+    def plot_data(
+        self, data, *, axis_units='px', frontview=True,
+        ax=None, figsize=None, colorbar=True, **kwargs,
+    ):
+        if isinstance_no_import(data, 'xarray', 'DataArray'):
+            # we shift module indices by one as JUNGFRAU labels
+            # modules start from 1-..
+            data = data.copy(deep=False)
+            data['module'] = data['module'] - 1
+        return super().plot_data(
+            data,
+            axis_units=axis_units,
+            frontview=frontview,
+            ax=ax,
+            figsize=figsize,
+            colorbar=colorbar,
+            **kwargs,
+        )
+
     def position_modules(self, data, out=None, threadpool=None):
         if isinstance_no_import(data, 'xarray', 'DataArray'):
             # we shift module indices by one as JUNGFRAU labels modules starting from 1..
