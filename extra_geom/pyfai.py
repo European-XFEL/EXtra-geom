@@ -46,7 +46,6 @@ class LPD1M(Detector):
 
 class JUNGFRAU_EuXFEL(Detector):
     IS_CONTIGUOUS = False
-    MAX_SHAPE = (0, 256)  # num modules filled at instantiation
 
     def __init__(self, pixel1=7.5e-5, pixel2=7.5e-5, n_modules=None, **kwargs):
         self.MAX_SHAPE = (n_modules*256, 256)
