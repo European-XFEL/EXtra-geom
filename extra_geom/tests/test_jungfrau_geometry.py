@@ -85,3 +85,4 @@ def test_to_pyfai_detector():
     geom = jf4m_geometry()
     jf4m_pyfai = geom.to_pyfai_detector()
     assert isinstance(jf4m_pyfai, pyFAI.detectors.Detector)
+    assert jf4m_pyfai.MAX_SHAPE == (8*512, 1024)
