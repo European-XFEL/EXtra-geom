@@ -1643,7 +1643,7 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
     frag_fs_pixels = 256  # pixels along fast scan axis within tile
     expected_data_shape = (0, 512, 1024)  # num modules filled at instantiation
     n_tiles_per_module = 8
-    _pyfai_cls_name = 'JUNGFRAU'
+    _pyfai_cls_name = 'JUNGFRAU_EuXFEL'
 
     def __init__(self, modules, filename='No file', metadata=None):
         super().__init__(modules, filename, metadata)
