@@ -1643,6 +1643,7 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
     frag_fs_pixels = 256  # pixels along fast scan axis within tile
     expected_data_shape = (0, 512, 1024)  # num modules filled at instantiation
     n_tiles_per_module = 8
+    _pyfai_cls_name = 'JUNGFRAU_EuXFEL'
 
     def __init__(self, modules, filename='No file', metadata=None):
         super().__init__(modules, filename, metadata)
@@ -1803,6 +1804,18 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
             data = data.copy(deep=False)
             data['module'] = data['module'] - 1
         return super().position_modules(data, out=out, threadpool=threadpool)
+
+    def to_pyfai_detector(self):
+        """Make a PyFAI detector object for JUNGFRAU detector.
+
+        You can use PyFAI to azimuthally integrate detector images around
+        the centre point of the geometry. The detector object holds the
+        positions of all the pixels. See the examples for how to use this.
+        """
+        from . import pyfai
+        det = getattr(pyfai, self._pyfai_cls_name)(n_modules=self.n_modules)
+        det.set_pixel_corners(self.to_distortion_array(allow_negative_xy=True))
+        return det
 
 
 class PNCCDGeometry(DetectorGeometryBase):
