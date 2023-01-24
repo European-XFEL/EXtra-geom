@@ -426,7 +426,7 @@ class DetectorGeometryBase:
 
         tile_corners = [t.corner_pos[:2] for t in
                         chain.from_iterable(self.modules)]
-        return np.abs(np.min(tile_corners, axis=0))[::-1] / self.pixel_size
+        return -np.min(tile_corners, axis=0)[::-1] / self.pixel_size
 
     @staticmethod
     def split_tiles(module_data):
