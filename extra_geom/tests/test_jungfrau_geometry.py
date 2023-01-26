@@ -2,6 +2,7 @@
 from tempfile import TemporaryDirectory
 
 import numpy as np
+import pyFAI.detectors
 from cfelpyutils.geometry import load_crystfel_geometry
 from extra_data import RunDirectory
 from extra_data.components import JUNGFRAU
@@ -78,3 +79,10 @@ def test_position_modules_with_labelled_array():
         jf = JUNGFRAU(run)
         data = jf.get_array('data.adc')
         positioned, centre = geom.position_modules(data)
+
+
+def test_to_pyfai_detector():
+    geom = jf4m_geometry()
+    jf4m_pyfai = geom.to_pyfai_detector()
+    assert isinstance(jf4m_pyfai, pyFAI.detectors.Detector)
+    assert jf4m_pyfai.MAX_SHAPE == (8*512, 1024)
