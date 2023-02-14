@@ -1,7 +1,5 @@
 from os.path import abspath, dirname
-from os.path import join as pjoin
 
-import h5py
 import numpy as np
 import pyFAI.detectors
 import pytest
@@ -9,24 +7,16 @@ from cfelpyutils.geometry import load_crystfel_geometry
 from matplotlib.axes import Axes
 
 from extra_geom import LPD_MiniGeometry
-from extra_geom.detectors import invert_xfel_lpd_geom
 
 
 tests_dir = dirname(abspath(__file__))
 
 
 def test_write_read_crystfel_file(tmpdir):
-    geom = LPD_MiniGeometry.from_origin()
+    geom = LPD_MiniGeometry.from_module_positions([(0, 0)])
     path = str(tmpdir / 'test.geom')
-    geom.write_crystfel_geom(filename=path)
+    geom.write_crystfel_geom(filename=path, clen=0.119, adu_per_ev=0.0075)
 
-    with open(path, 'r') as f:
-        contents = f.read()
-    with open(path, 'w') as f:
-        f.write('clen = 0.119\n')
-        f.write('adu_per_eV = 0.0075\n')
-
-        f.write(contents)
     # Load the geometry file with cfelpyutils and test the ridget groups
     loaded = LPD_MiniGeometry.from_crystfel_geom(path)
     np.testing.assert_allclose(
@@ -34,18 +24,12 @@ def test_write_read_crystfel_file(tmpdir):
     )
     np.testing.assert_allclose(loaded.modules[0][0].fs_vec, geom.modules[0][0].fs_vec)
 
-
     geom_dict = load_crystfel_geometry(path).detector
-    print(geom_dict['rigid_groups'].keys())
-    quad_gr0 = ['p0a0', 'p0a1', 'p0a2', 'p0a3', 'p0a4', 'p0a5', 'p0a6', 'p0a7',
-                'p0a8', 'p0a9', 'p0a10','p0a11', 'p0a12', 'p0a13', 'p0a14',
-                'p0a15']
-    assert geom_dict['rigid_groups']['p0'] == quad_gr0[:16]
-    assert geom_dict['rigid_groups']['q0'] == quad_gr0
+    assert geom_dict['rigid_groups']['p0'] == ['p0a0', 'p0a1']
 
 
 def test_offset():
-    geom = LPD_MiniGeometry.from_origin()
+    geom = LPD_MiniGeometry.from_module_positions([(0, 0)])
     y_orig = np.array([m[0].corner_pos[1] for m in geom.modules])
 
     # Shift module, all tiles
@@ -54,22 +38,18 @@ def test_offset():
     np.testing.assert_allclose(y1, y_orig + 1e-3)
 
     # Per-tile shift
-    shift = np.zeros((1, 16, 3), dtype=np.float64)
-    shift[0, 5, 1] = 3e-3  # Shift T6 in y dimension
-    t2_shifted = geom.offset(shift)
-    y_t1 = np.array([m[0].corner_pos[1] for m in t2_shifted.modules])
-    np.testing.assert_allclose(y_t1, y_orig)
-    y_t6 = np.array([m[5].corner_pos[1] for m in t2_shifted.modules])
-    y_t6_orig = np.array([m[5].corner_pos[1] for m in geom.modules])
-    np.testing.assert_allclose(y_t6[4:8], y_t6_orig[4:8] + 3e-3)
+    shift = np.zeros((1, 2, 3), dtype=np.float64)
+    shift[0, 1, 1] = 3e-3  # Shift T1 in y dimension
+    t1_shifted = geom.offset(shift)
+    y_t0 = np.array([m[0].corner_pos[1] for m in t1_shifted.modules])
+    np.testing.assert_allclose(y_t0, y_orig)
+    y_t1 = np.array([m[1].corner_pos[1] for m in t1_shifted.modules])
+    y_t1_orig = np.array([m[1].corner_pos[1] for m in geom.modules])
+    np.testing.assert_allclose(y_t1, y_t1_orig + 3e-3)
 
     # Wrong number of modules
     with pytest.raises(ValueError):
         geom.offset(np.zeros((15, 2)))
-
-    # Offsets for 16 modules, but only 4 selected
-    with pytest.raises(ValueError):
-        geom.offset(np.zeros((16, 16, 3)), modules=np.s_[:4])
 
     # Coordinates must be 2D or 3D
     with pytest.raises(ValueError):
@@ -77,7 +57,7 @@ def test_offset():
 
 
 def test_rotate():
-    geom = LPD_MiniGeometry.from_origin()
+    geom = LPD_MiniGeometry.from_module_positions([(0, 0)])
 
     # Uniform rotation for all modules, all tiles
     all_rotated = geom.rotate((90, 0, 0))
@@ -97,13 +77,13 @@ def test_rotate():
     np.testing.assert_allclose(y, 1)
 
     # Per-tile rotation
-    rot = np.zeros((1, 16, 3), dtype=np.float64)
-    rot[:, 5, :] = (0, 0, 180)  # rotate T6 of each module
+    rot = np.zeros((1, 2, 3), dtype=np.float64)
+    rot[:, 1, :] = (0, 0, 180)  # rotate T1 of each module
     rotated = geom.rotate(rot)
-    for mod_rot, mod_ref in zip(rotated.modules[4:8], geom.modules[4:8]):
+    for mod_rot, mod_ref in zip(rotated.modules, geom.modules):
         np.testing.assert_array_almost_equal(
-            mod_rot[5].corners(),
-            np.roll(mod_ref[5].corners(), 2, 0)
+            mod_rot[1].corners(),
+            np.roll(mod_ref[1].corners(), 2, 0)
         )
 
     # Wrong number of modules
@@ -124,77 +104,68 @@ def test_rotate():
 
 
 def test_inspect():
-    geom = LPD_MiniGeometry.from_origin((11.4, 299))
+    geom = LPD_MiniGeometry.from_module_positions([(0, 0)])
     # Smoketest
     ax = geom.inspect()
     assert isinstance(ax, Axes)
 
 
 def test_snap_assemble_data():
-    geom = LPD_MiniGeometry.from_origin()
+    geom = LPD_MiniGeometry.from_module_positions([(0, 0)])
 
-    stacked_data = np.zeros((1, 256, 256))
+    stacked_data = np.zeros((1, 32, 256))
     img, centre = geom.position_modules_fast(stacked_data)
-    assert img.shape == (284, 260)
-    assert tuple(centre) == (284, 260)
+    assert img.shape == (68, 128)
+    assert tuple(centre) == (0, 128)
     assert img[50, 50] == 0
+    assert np.isnan(img[34, 50])  # Gap between modules
 
 
 def test_to_distortion_array():
-    geom = LPD_MiniGeometry.from_origin()
+    geom = LPD_MiniGeometry.from_module_positions([(0, 0)])
     # Smoketest
     distortion = geom.to_distortion_array()
     assert isinstance(distortion, np.ndarray)
-    assert distortion.shape == (256, 256, 4, 3)
+    assert distortion.shape == (32, 256, 4, 3)
 
-    # Coordinates in m, origin at corner; max x & y should be ~ 50cm
-    assert 0.12 < distortion[..., 1].max() < 0.70
-    assert 0.12 < distortion[..., 2].max() < 0.70
+    # Coordinates in m, origin at corner; max x & y should be ~ 63mm and 32mm
+    assert 0.032 < distortion[..., 1].max() < 0.036
+    assert 0.06 < distortion[..., 2].max() < 0.065
     assert 0.0 <= distortion[..., 1].min() < 0.01
     assert 0.0 <= distortion[..., 2].min() < 0.01
 
 
 def test_data_coords_to_positions():
-    geom = LPD_MiniGeometry.from_origin()
+    geom = LPD_MiniGeometry.from_module_positions([(0, 0)])
 
-    module_no = np.zeros(16, dtype=np.int16)
-    # Points near the centre of each tile
-    slow_scan = np.tile(np.linspace(16, 240, num=8, dtype=np.float32), 2)
-    fast_scan = np.array([64, 192], dtype=np.float32).repeat(8)
+    module_no = np.zeros(4, dtype=np.int16)
+    slow_scan = np.array([12, 24, 12, 24])
+    fast_scan = np.array([30, 100, 158, 228])
 
     tileno, tile_ss, tile_fs = geom._module_coords_to_tile(slow_scan, fast_scan)
-    np.testing.assert_allclose(tileno,
-                       [7, 6, 5, 4, 3, 2, 1, 0, 8, 9, 10, 11, 12, 13, 14, 15])
-    np.testing.assert_allclose(tile_ss, 16)
-    np.testing.assert_allclose(tile_fs, 64)
+    np.testing.assert_allclose(tileno, [0, 0, 1, 1])
+    np.testing.assert_allclose(tile_ss, [12, 24, 12, 24])
+    np.testing.assert_allclose(tile_fs, [30, 100, 30, 100])
 
     res = geom.data_coords_to_positions(module_no, slow_scan, fast_scan)
 
-    assert res.shape == (16, 3)
+    assert res.shape == (4, 3)
 
     resx, resy, resz = res.T
 
     np.testing.assert_allclose(resz, 0)
 
-    assert (np.diff(resy[:8]) > 0).all()  # T1-T8 Monotonically increasing
-    assert (np.diff(resy[9:]) > 0).all()  # T9-T16 Monotonically increasing
-    assert -0.031 > resx.max() > resx.min() > -0.099
-
-
-def test_invert_xfel_lpd_geom(tmpdir):
-    src_file = pjoin(tests_dir, 'lpd_mar_18.h5')
-    dst_file = pjoin(str(tmpdir), 'lpd_inverted.h5')
-    invert_xfel_lpd_geom(src_file, dst_file)
-    with h5py.File(src_file, 'r') as fsrc, h5py.File(dst_file, 'r') as fdst:
-        np.testing.assert_array_equal(
-            fsrc['Q1/M1/Position'][:], -1 * fdst['Q1/M1/Position'][:]
-        )
-        np.testing.assert_array_equal(
-            fsrc['Q1/M1/T07/Position'][:], -1 * fdst['Q1/M1/T07/Position'][:]
-        )
+    # T0 is read in the opposite direction to our coordinate axes, i.e.
+    # top to bottom and left to right (viewed from the front)
+    np.testing.assert_allclose(resx[1] - resx[0], -35e-3)
+    np.testing.assert_allclose(resy[1] - resy[0], -6e-3)
+    # And T1 is the opposite, read matching our coordinate directions.
+    np.testing.assert_allclose(resx[3] - resx[2], 35e-3)
+    np.testing.assert_allclose(resy[3] - resy[2], 6e-3)
+    assert 0.001 > resx.max() > resx.min() > -0.065
 
 
 def test_to_pyfai_detector():
-    geom = LPD_MiniGeometry.from_origin()
+    geom = LPD_MiniGeometry.from_module_positions([(0, 0)])
     agipd_pyfai = geom.to_pyfai_detector()
     assert isinstance(agipd_pyfai, pyFAI.detectors.Detector)

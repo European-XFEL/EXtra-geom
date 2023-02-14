@@ -616,8 +616,6 @@ class LPDGeometryBase(DetectorGeometryBase):
     pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
     frag_ss_pixels = 32
     frag_fs_pixels = 128
-    n_tiles_per_module = 16
-    _draw_first_px_on_tile = 8  # The first pixel in stored data is on tile 8
 
     def to_distortion_array(self, allow_negative_xy=False):
         """Return distortion matrix for LPD detector, suitable for pyFAI.
@@ -693,9 +691,11 @@ class LPD_1MGeometry(LPDGeometryBase):
     detector_type_name = 'LPD-1M'
     n_quads = 4
     n_modules = 16
+    n_tiles_per_module = 16
     expected_data_shape = (16, 256, 256)
     pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
     _pyfai_cls_name = 'LPD1M'
+    _draw_first_px_on_tile = 8  # The first pixel in stored data is on tile 8
 
     @classmethod
     def from_quad_positions(cls, quad_pos, *, unit=1e-3, asic_gap=None,
@@ -1010,65 +1010,79 @@ class LPD_MiniGeometry(LPDGeometryBase):
     use one of the constructor class methods to create or load a geometry.
     """
     detector_type_name = 'LPD-Mini'
-    n_quads = 1
-    n_modules = 1
     pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
-    expected_data_shape = (1, 256, 256)
+    n_tiles_per_module = 2
+    expected_data_shape = (0, 32, 256)
     _pyfai_cls_name = 'LPDMINI'
 
+    def __init__(self, modules, filename='No file', metadata=None):
+        super().__init__(modules, filename, metadata)
+        self.expected_data_shape = (len(modules), 32, 256)
+        self.n_modules = len(modules)
+
     @classmethod
-    def from_origin(cls, origin=(0, 0), asic_gap=4, unit=pixel_size):
-        """Generate an LPD-Mini geometry from origin position.
+    def from_module_positions(cls, positions, rotations=None, asic_gap=None, unit=1e-3):
+        """Generate a geometry for one or more LPD mini modules
 
-        This produces an idealised geometry, assuming all modules are perfectly
-        flat, aligned and equally spaced within the detector.
+        Pass a list of (x, y) corner positions. In the default orientation, they
+        refer to the bottom left corner, looking at the module from in front
+        of the sensor.
 
-        The default origin (0, 0) of the coordinates is the top-left corner
-        of the detector. If another coordinate is given as the origin, it is
-        relative to the top-left corner. Coordinates increase downwards and
-        to the right (looking along the beam).
+        You can also pass a list of rotations, in degrees. The default (0)
+        orientation has the longer axis (128 pixels) horizontal, with the first
+        tile on the bottom. Each angle rotates the relevant module clockwise,
+        as viewed from in front of the sensor, so an angle of 90 puts the 'top'
+        side of the module on the right, seen from the front.
 
-        To give positions in units other than pixels, pass the *unit* parameter
-        as the length of the unit in metres. E.g. ``unit=1e-3`` means the
-        coordinates are in millimetres.
+        *asic_gap* specifies the gap between the two tiles in each module.
+        The default is 2mm.
+
+        The default units of *positions* and *asic_gap* are millimetres. Other
+        units may be used by specifying *unit* as a length in metres.
         """
+        if rotations is None:
+            rotations = [0] * len(positions)
+        elif len(positions) != len(rotations):
+            raise ValueError("Number of rotations specified must match positions")
 
-        # How much space does one tile take up, including gaps to its neighbours?
-        tile_width = (cls.frag_fs_pixels + asic_gap) * unit
-        tile_height = (cls.frag_ss_pixels + asic_gap) * unit
+        if asic_gap is None:
+            asic_gap_m = 2e-3
+        else:
+            asic_gap_m = asic_gap * unit
 
-        # Size of a tile from corner to corner, excluding gaps
-        tile_size = np.array([cls.frag_fs_pixels, cls.frag_ss_pixels, 0]) * cls.pixel_size
+        # How much space does one tile take up, not including gaps
+        tile_width = cls.frag_fs_pixels * cls.pixel_size
+        tile_height = cls.frag_ss_pixels * cls.pixel_size
 
-        # Apply the provided origin
-        panel_corner_y = -(origin[0] * unit)
-        panel_corner_x = -(origin[1] * unit)
+        modules = []
+        for corner_position, rotation in zip(positions, rotations):
+            if len(corner_position) == 2:
+                corner_position = tuple(corner_position) + (0,)
+            corner = np.array(corner_position) * unit
+            sin, cos = np.sin(np.radians(rotation)), np.cos(np.radians(rotation))
+            ss_direction = np.array([-sin, cos, 0])
+            fs_direction = np.array([cos, sin, 0])
 
-        tiles = []
-        for a in range(cls.n_tiles_per_module):
-            if a < 8:
-                up = -a
-                across = -1
-            else:
-                up = -(15 - a)
-                across = 0
+            t0_x_offset = -tile_height * sin
+            t0_y_offset = tile_height * cos
+            t1_x_offset = (-tile_width * cos) - ((tile_height + asic_gap_m) * sin)
+            t1_y_offset = (-tile_width * sin) + ((tile_height + asic_gap_m) * cos)
 
-            tile_last_corner = (
-                np.array([panel_corner_x, panel_corner_y, 0.0])
-                + np.array([across, 0, 0]) * tile_width
-                + np.array([0, up, 0]) * tile_height
-            )
-            tile_first_corner = tile_last_corner - tile_size
-
-            tiles.append(GeometryFragment(
-                corner_pos=tile_first_corner,
-                ss_vec=np.array([0, 1, 0]) * cls.pixel_size,
-                fs_vec=np.array([1, 0, 0]) * cls.pixel_size,
+            modules.append([GeometryFragment(
+                corner_pos=(corner + np.array([t0_x_offset, t0_y_offset, 0])),
+                ss_vec=-ss_direction * cls.pixel_size,
+                fs_vec=-fs_direction * cls.pixel_size,
                 ss_pixels=cls.frag_ss_pixels,
                 fs_pixels=cls.frag_fs_pixels,
-            ))
+            ), GeometryFragment(
+                corner_pos=(corner + np.array([t1_x_offset, t1_y_offset, 0])),
+                ss_vec=ss_direction * cls.pixel_size,
+                fs_vec=fs_direction * cls.pixel_size,
+                ss_pixels=cls.frag_ss_pixels,
+                fs_pixels=cls.frag_fs_pixels,
+            )])
 
-        return cls([tiles])
+        return cls(modules)
 
     def inspect(self, axis_units='px', frontview=True):
         """Plot the 2D layout of this detector geometry.
@@ -1087,15 +1101,49 @@ class LPD_MiniGeometry(LPDGeometryBase):
         ax = super().inspect(axis_units=axis_units, frontview=frontview)
         scale = self._get_plot_scale_factor(axis_units)
 
-        module, = self.modules
-        for t in [0, 7, 8, 15]:
-            cx, cy, _ = module[t].centre() * scale
-            ax.text(cx, cy, 'T{}'.format(t + 1),
+        for M, module in enumerate(self.modules):
+            cx, cy, _ = module[1].centre() * scale
+            ax.text(cx, cy, f'M{M}', fontweight='bold',
+                    verticalalignment='center',
+                    horizontalalignment='center')
+
+            cx, cy, _ = module[0].centre() * scale
+            ax.text(cx, cy, 'T0',
                     verticalalignment='center',
                     horizontalalignment='center')
 
         ax.set_title('LPD Mini detector geometry')
         return ax
+
+    @staticmethod
+    def split_tiles(module_data):
+        # This slicing is faster than using np.split()
+        return [module_data[..., :128], module_data[..., 128:]]
+
+    @classmethod
+    def _tile_slice(cls, tileno):
+        # Which part of the array is this tile?
+        ss_slice = slice(0, cls.frag_ss_pixels)
+        fs_start = cls.frag_fs_pixels * tileno
+        fs_slice = slice(fs_start, fs_start + cls.frag_fs_pixels)
+        return ss_slice, fs_slice
+
+    @classmethod
+    def _module_coords_to_tile(cls, slow_scan, fast_scan):
+        tileno, tile_fs = np.divmod(fast_scan, cls.frag_fs_pixels)
+        return tileno.astype(np.int16), slow_scan, tile_fs
+
+    def to_pyfai_detector(self):
+        """Make a PyFAI detector object for JUNGFRAU detector.
+
+        You can use PyFAI to azimuthally integrate detector images around
+        the centre point of the geometry. The detector object holds the
+        positions of all the pixels. See the examples for how to use this.
+        """
+        from . import pyfai
+        det = getattr(pyfai, self._pyfai_cls_name)(n_modules=self.n_modules)
+        det.set_pixel_corners(self.to_distortion_array(allow_negative_xy=True))
+        return det
 
 
 def invert_xfel_lpd_geom(path_in, path_out):

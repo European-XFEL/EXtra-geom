@@ -186,7 +186,7 @@ which this geometry code can position independently.
 
 .. autoclass:: LPD_MiniGeometry
 
-   ..authomethod:: from_origin
+   .. authomethod:: from_module_positions
 
    .. automethod:: offset
 

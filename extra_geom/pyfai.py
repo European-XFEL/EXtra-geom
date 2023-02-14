@@ -46,10 +46,10 @@ class LPD1M(Detector):
 
 class LPDMINI(Detector):
     IS_CONTIGUOUS = False
-    MAX_SHAPE = (256, 256)
     aliases = ["LPD Mini"]
 
-    def __init__(self, pixel1=5e-4, pixel2=5e-4, **kwargs):
+    def __init__(self, pixel1=5e-4, pixel2=5e-4, n_modules=None, **kwargs):
+        self.MAX_SHAPE = (n_modules*32, 256)
         super().__init__(pixel1, pixel2, **kwargs)
 
 
