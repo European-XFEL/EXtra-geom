@@ -610,74 +610,10 @@ def agipd_asic_seams():
 
 class LPDGeometryBase(DetectorGeometryBase):
     """Base class for LPD detector geometry. Subclassed for specific detectors.
-
-    The coordinates used in this class are 3D (x, y, z), and represent metres.
     """
     pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
     frag_ss_pixels = 32
     frag_fs_pixels = 128
-
-    def to_distortion_array(self, allow_negative_xy=False):
-        """Return distortion matrix for LPD detector, suitable for pyFAI.
-
-        Parameters
-        ----------
-
-        allow_negative_xy: bool
-          If False (default), shift the origin so no x or y coordinates are
-          negative. If True, the origin is the detector centre.
-
-        Returns
-        -------
-        out: ndarray
-            Array of float 32 with shape (4096, 256, 4, 3).
-            The dimensions mean:
-
-            - 4096 = 16 modules * 256 pixels (slow scan axis)
-            - 256 pixels (fast scan axis)
-            - 4 corners of each pixel
-            - 3 numbers for z, y, x
-        """
-        # Overridden only for docstring
-        return super().to_distortion_array(allow_negative_xy)
-
-    @staticmethod
-    def split_tiles(module_data):
-        # This slicing is faster than using np.split()
-        return [
-            # Tiles 1-8 numbered top to bottom. Data starts at bottom, so
-            # count backwards through them.
-            module_data[..., y-32:y, :128] for y in range(256, 0, -32)
-        ] + [
-            # Tiles 9-16 numbered bottom to top.
-            module_data[..., y:y+32, 128:] for y in range(0, 256, 32)
-        ]
-
-    @classmethod
-    def _tile_slice(cls, tileno):
-        # Which part of the array is this tile?
-        if tileno < 8:  # First half of module (0 <= t <= 7)
-            fs_slice = slice(0, 128)
-            tiles_up = 7 - tileno
-        else:  # Second half of module (8 <= t <= 15)
-            fs_slice = slice(128, 256)
-            tiles_up = tileno - 8
-        tile_offset = tiles_up * 32
-        ss_slice = slice(tile_offset, tile_offset + cls.frag_ss_pixels)
-        return ss_slice, fs_slice
-
-    @classmethod
-    def _module_coords_to_tile(cls, slow_scan, fast_scan):
-        tiles_across, tile_fs = np.divmod(fast_scan, cls.frag_fs_pixels)
-        tiles_up, tile_ss = np.divmod(slow_scan, cls.frag_ss_pixels)
-
-        # Each tiles_across is 0 or 1. To avoid iterating over the array with a
-        # conditional, multiply the number we want by 1 and the other by 0.
-        tileno = (
-            (1 - tiles_across) * (7 - tiles_up)  # tileno 0-7
-            + tiles_across * (tiles_up + 8)      # tileno 8-15
-        )
-        return tileno.astype(np.int16), tile_ss, tile_fs
 
 
 class LPD_1MGeometry(LPDGeometryBase):
@@ -999,6 +935,68 @@ class LPD_1MGeometry(LPDGeometryBase):
 
         ax.set_title('LPD-1M detector geometry ({})'.format(self.filename))
         return ax
+
+    @staticmethod
+    def split_tiles(module_data):
+        # This slicing is faster than using np.split()
+        return [
+            # Tiles 1-8 numbered top to bottom. Data starts at bottom, so
+            # count backwards through them.
+            module_data[..., y - 32:y, :128] for y in range(256, 0, -32)
+        ] + [
+            # Tiles 9-16 numbered bottom to top.
+            module_data[..., y:y + 32, 128:] for y in range(0, 256, 32)
+        ]
+
+    @classmethod
+    def _tile_slice(cls, tileno):
+        # Which part of the array is this tile?
+        if tileno < 8:  # First half of module (0 <= t <= 7)
+            fs_slice = slice(0, 128)
+            tiles_up = 7 - tileno
+        else:  # Second half of module (8 <= t <= 15)
+            fs_slice = slice(128, 256)
+            tiles_up = tileno - 8
+        tile_offset = tiles_up * 32
+        ss_slice = slice(tile_offset, tile_offset + cls.frag_ss_pixels)
+        return ss_slice, fs_slice
+
+    @classmethod
+    def _module_coords_to_tile(cls, slow_scan, fast_scan):
+        tiles_across, tile_fs = np.divmod(fast_scan, cls.frag_fs_pixels)
+        tiles_up, tile_ss = np.divmod(slow_scan, cls.frag_ss_pixels)
+
+        # Each tiles_across is 0 or 1. To avoid iterating over the array with a
+        # conditional, multiply the number we want by 1 and the other by 0.
+        tileno = (
+                (1 - tiles_across) * (7 - tiles_up)  # tileno 0-7
+                + tiles_across * (tiles_up + 8)  # tileno 8-15
+        )
+        return tileno.astype(np.int16), tile_ss, tile_fs
+
+    def to_distortion_array(self, allow_negative_xy=False):
+        """Return distortion matrix for LPD detector, suitable for pyFAI.
+
+        Parameters
+        ----------
+
+        allow_negative_xy: bool
+          If False (default), shift the origin so no x or y coordinates are
+          negative. If True, the origin is the detector centre.
+
+        Returns
+        -------
+        out: ndarray
+            Array of float 32 with shape (4096, 256, 4, 3).
+            The dimensions mean:
+
+            - 4096 = 16 modules * 256 pixels (slow scan axis)
+            - 256 pixels (fast scan axis)
+            - 4 corners of each pixel
+            - 3 numbers for z, y, x
+        """
+        # Overridden only for docstring
+        return super().to_distortion_array(allow_negative_xy)
 
 
 class LPD_MiniGeometry(LPDGeometryBase):
