@@ -174,15 +174,15 @@ which this geometry code can position independently.
 
 .. _det-LPD-Mini:
 
-LPD-Mini
+LPD Mini
 --------
 
-LPD-Mini consists of 16 sensor tiles, of a total of 256x256 pixels.
-which this geometry code can position independently.
+LPD Mini consists of one or more modules, each with 64×128 pixels, made up of
+two 32×128 tiles.
 
 .. figure:: _static/lpd_mini_layout.png
 
-   The approximate layout of LPD-Mini, in a front view (looking along the beam).
+   The approximate layout of one LPD Mini module, in a front view (looking along the beam).
 
 .. autoclass:: LPD_MiniGeometry
 
