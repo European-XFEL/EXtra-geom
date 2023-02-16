@@ -1783,10 +1783,17 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         ax=None, figsize=None, colorbar=True, **kwargs,
     ):
         if isinstance_no_import(data, 'xarray', 'DataArray'):
+            # Jungfrau detector can have a module with a label higher than 1.
+            # e.g. FXE_XAD_JF500K has channel JNGFR03.
+            if self.n_modules == 1:
+                # A workaround to set data['module'] to 0
+                # as indexes are immutable for xarray.
+                data['module'] = data['module'] - data['module']
             # we shift module indices by one as JUNGFRAU labels
             # modules start from 1-..
-            data = data.copy(deep=False)
-            data['module'] = data['module'] - 1
+            else:
+                data['module'] = data['module'] - 1
+
         return super().plot_data(
             data,
             axis_units=axis_units,
