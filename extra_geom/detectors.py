@@ -1630,7 +1630,7 @@ class DSSC_1MGeometryCartesian(DetectorGeometryBase):
             return DataArray(
                 cart_arr,
                 dims=data.dims,
-                coords=[data.coords[d] for d in data.dims[:-2]]
+                coords={d: data.coords[d] for d in data.dims[:-2]}
             )
         return cart_arr
 
