@@ -1609,14 +1609,30 @@ class DSSC_1MGeometryCartesian(DetectorGeometryBase):
         """
         from condat_gridconv import hex2cart
 
+        if isinstance_no_import(data, 'xarray', 'DataArray'):
+            rewrap_xarray = True
+            data_np = data.values
+        else:
+            # Input is a numpy array (or similar unlabelled array)
+            rewrap_xarray = False
+            data_np = data
+
         assert data.shape[-2:] == (128, 512)
-        modules = data.reshape(-1, 128, 512)
+        modules = data_np.reshape(-1, 128, 512)
         cart_modules = []
         for module in modules:
             cart_modules.append(np.concatenate([
                 hex2cart(tile) for tile in DSSC_1MGeometry.split_tiles(module)
             ], axis=-1))
-        return np.stack(cart_modules).reshape(data.shape[:-2] + (119, 550))
+        cart_arr = np.stack(cart_modules).reshape(data.shape[:-2] + (119, 550))
+        if rewrap_xarray:
+            from xarray import DataArray
+            return DataArray(
+                cart_arr,
+                dims=data.dims,
+                coords=[data.coords[d] for d in data.dims[:-2]]
+            )
+        return cart_arr
 
 
 class DSSC_Geometry(DSSC_1MGeometry):
