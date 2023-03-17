@@ -794,6 +794,65 @@ class DetectorGeometryBase:
             + (np.expand_dims(tile_ss, -1) * coords_ss_vec) \
             + (np.expand_dims(tile_fs, -1) * coords_fs_vec)
 
+    def positions_to_data_coords(self, positions, unit=0.0002):
+        """Convert assembled positions to data array coordinates
+
+        Data array coordinates are how you might refer to a pixel in an array of
+        detector data: module number, and indices in the slow-scan and fast-scan
+        directions. But coordinates in the two pixel dimensions aren't necessarily
+        integers, e.g. if they refer to the centre of a peak.
+
+        module_no, fast_scan and slow_scan should all be numpy arrays of the same shape.
+        module_no should hold integers, starting from 0, so 0: Q1M1, 1: Q1M2, etc.
+
+        positions is a 2D array (n, 2) describing (y, x) positions of points within an
+        assembled detector image. The may hold floats for sub-pixel positions.
+        
+        Limitations:
+
+        * The positions are relative to the first pixel in the assembled array, not to
+          the centre of the geometry
+        * This uses an assembly limited to snapping pixel to a regular grid, so any
+          subpixel offset of tile or rotation in your geometry will be ignored.
+
+        Returns 4 array of similar length for module, slow scan and fast scan
+        coordinates and a sub-array of the input data excluding invalid coordinates.
+        note: invalid coordinates are coordinates either outside the assembled image, or
+        between detector tiles.
+        """
+        pos = np.rint(np.asarray(positions) * unit / self.pixel_size).astype(int)
+
+        xx, yy = np.meshgrid(
+            np.arange(self.frag_fs_pixels),
+            np.arange(self.n_modules * self.n_tiles_per_module * self.frag_ss_pixels),
+            indexing='xy'
+        )
+        pxx = self.position_modules(xx.reshape(self.expected_data_shape).astype(float))[0]
+        pyy = self.position_modules(yy.reshape(self.expected_data_shape).astype(float))[0]
+        h, w = pxx.shape
+
+        # select only the valid points, exlude points outside the detector area
+        valid = np.where((pos[:, 0] < h) & (pos[:, 0] > 0) &
+                         (pos[:, 1] < w) & (pos[:, 1] > 0))
+        pos = pos[valid]
+
+        data_coords_fs = pxx[pos[:, 0], pos[:, 1]]
+        data_coords_ss = pyy[pos[:, 0], pos[:, 1]]
+        # exlude nans (points between tiles)
+        valid_fs = np.where(~np.isnan(data_coords_fs))[0]
+        valid_ss = np.where(~np.isnan(data_coords_fs))[0]
+        on_tile = sorted(set(valid_fs).intersection(valid_ss))
+        data_coords_fs = data_coords_fs[on_tile]
+        data_coords_ss = data_coords_ss[on_tile]
+
+        data_coords_module, data_coords_ss = np.divmod(data_coords_ss, 512)
+        return (
+            data_coords_module.astype(int),
+            data_coords_ss.astype(int),
+            data_coords_fs.astype(int),
+            positions[valid][on_tile]
+        )
+
     def offset(self, shift, *, modules=np.s_[:], tiles=np.s_[:]):
         """Move part or all of the detector, making a new geometry.
 
