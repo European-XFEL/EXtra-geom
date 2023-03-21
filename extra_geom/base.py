@@ -833,8 +833,8 @@ class DetectorGeometryBase:
         pos = np.rint(np.asarray(positions) * unit / self.pixel_size + origin).astype(int)
 
         xx, yy = np.meshgrid(
-            np.arange(self.frag_fs_pixels),
-            np.arange(self.n_modules * self.n_tiles_per_module * self.frag_ss_pixels),
+            np.arange(self.expected_data_shape[-1]),
+            np.arange(np.prod(self.expected_data_shape[:-1])),
             indexing='xy'
         )
         pxx = self.position_modules(xx.reshape(self.expected_data_shape).astype(float))[0]
@@ -856,7 +856,7 @@ class DetectorGeometryBase:
         data_coords_ss = data_coords_ss[on_tile]
 
         data_coords_module, data_coords_ss = np.divmod(
-            data_coords_ss, self.n_tiles_per_module * self.frag_ss_pixels
+            data_coords_ss, self.expected_data_shape[-2]
         )
         return (
             data_coords_module.astype(int),
