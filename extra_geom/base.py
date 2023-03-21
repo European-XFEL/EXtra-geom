@@ -825,7 +825,11 @@ class DetectorGeometryBase:
         positions = np.asarray(positions)
 
         unit = unit or self.pixel_size
-        origin = np.asarray(origin or self._snapped().centre[::-1]) * unit / self.pixel_size
+        if origin is None:
+            origin = self._snapped().centre[::-1]
+        else:
+            origin = np.asarray(origin) * unit / self.pixel_size
+
         pos = np.rint(np.asarray(positions) * unit / self.pixel_size + origin).astype(int)
 
         xx, yy = np.meshgrid(
