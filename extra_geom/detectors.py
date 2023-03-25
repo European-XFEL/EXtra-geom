@@ -469,8 +469,10 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
         To give positions in units other than pixels, pass the *unit* parameter
         as the length of the unit in metres. E.g. ``unit=1e-3`` means the
         coordinates are in millimetres.
+        *unit* only applies to the *origin* argument, *asic_gap* and *panel_gap*
+        are always given in pixel.
         """
-        asic_gap_px = asic_gap * unit / cls.pixel_size
+        origin = np.asarray(origin) * unit
         panel_gap_x = panel_gap[0] * cls.pixel_size
         panel_gap_y = panel_gap[1] * cls.pixel_size
 
@@ -479,17 +481,17 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
         # In the y dimension, 128 px
         module_height = cls.frag_fs_pixels * cls.pixel_size
         # In x, 64 px + gap between tiles (asics)
-        tile_width = (cls.frag_ss_pixels + asic_gap_px) * cls.pixel_size
-        module_width = 8 * tile_width - asic_gap_px * cls.pixel_size  # 8 tiles + 7 gaps
+        tile_width = (cls.frag_ss_pixels + asic_gap) * cls.pixel_size
+        module_width = 8 * tile_width - asic_gap * cls.pixel_size  # 8 tiles + 7 gaps
 
         # coordinates relative to the first pixel of the first module
         # detector's bottom-right corner
         ref = (
             - module_width,  # x
-            - (3 * (cls.frag_fs_pixels + panel_gap[1]) * unit)  # y
+            - (3 * (cls.frag_fs_pixels + panel_gap[1]) * cls.pixel_size)  # y
         )
         # origin
-        ref = (- (origin[0] * unit + ref[0]), - (origin[1] * unit + ref[1]))
+        ref = (- (origin[0] + ref[0]), - (origin[1] + ref[1]))
 
         modules = []
         for p in range(cls.n_modules):
@@ -504,8 +506,8 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
 
                 tiles.append(GeometryFragment(
                     corner_pos=np.array([corner_x, panel_corner_y, 0.]),
-                    ss_vec=np.array([-1, 0, 0]) * unit,
-                    fs_vec=np.array([0, 1, 0]) * unit,
+                    ss_vec=np.array([-1, 0, 0]) * cls.pixel_size,
+                    fs_vec=np.array([0, 1, 0]) * cls.pixel_size,
                     ss_pixels=cls.frag_ss_pixels,
                     fs_pixels=cls.frag_fs_pixels,
                 ))
