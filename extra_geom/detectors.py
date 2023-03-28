@@ -454,25 +454,30 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
     _pyfai_cls_name = 'AGIPD500K'
 
     @classmethod
-    def from_origin(cls, origin=(0, 0), asic_gap=2, panel_gap=(16, 30),
+    def from_origin(cls, origin=(0, 0), asic_gap=None, panel_gap=None,
                     unit=pixel_size):
         """Generate an AGIPD-500K2G geometry from origin position.
 
-        This produces an idealised geometry, assuming all modules are perfectly
-        flat, aligned and equally spaced within the detector.
+        This produces an idealised geometry, assuming all modules are perfectly flat,
+        aligned and equally spaced within the detector.
 
-        The default origin (0, 0) of the coordinates is the bottom-right corner
-        of the detector. If another coordinate is given as the origin, it is
-        relative to the bottom-right corner. Coordinates increase upwards and
-        to the left (looking along the beam).
+        The default origin (0, 0) of the coordinates is the bottom-right corner of the
+        detector. If another coordinate is given as the origin, it is relative to the
+        bottom-right corner. Coordinates increase upwards and to the left (looking along
+        the beam).
 
-        To give positions in units other than pixels, pass the *unit* parameter
-        as the length of the unit in metres. E.g. ``unit=1e-3`` means the
-        coordinates are in millimetres.
-        *unit* only applies to the *origin* argument, *asic_gap* and *panel_gap*
-        are always given in pixel.
+        The default gaps (when set to None) are: *asic_gap=2* and *panel_gap=(16, 30)*
+        pixels.
+
+        To give positions in units other than pixels, pass the *unit* parameter as the
+        length of the unit in metres. E.g. ``unit=1e-3`` means the coordinates are in
+        millimetres.
         """
         origin = np.asarray(origin) * unit
+        px_conversion = unit / cls.pixel_size
+        asic_gap = 2 if (asic_gap is None) else asic_gap * px_conversion 
+        panel_gap = (16, 30) if (panel_gap is None) else panel_gap * px_conversion 
+
         panel_gap_x = panel_gap[0] * cls.pixel_size
         panel_gap_y = panel_gap[1] * cls.pixel_size
 
