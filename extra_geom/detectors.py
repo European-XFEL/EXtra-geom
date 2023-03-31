@@ -476,7 +476,7 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
         origin = np.asarray(origin) * unit
         px_conversion = unit / cls.pixel_size
         asic_gap = 2 if (asic_gap is None) else asic_gap * px_conversion 
-        panel_gap = (16, 30) if (panel_gap is None) else panel_gap * px_conversion 
+        panel_gap = (16, 30) if (panel_gap is None) else np.asarray(panel_gap) * px_conversion 
 
         panel_gap_x = panel_gap[0] * cls.pixel_size
         panel_gap_y = panel_gap[1] * cls.pixel_size
