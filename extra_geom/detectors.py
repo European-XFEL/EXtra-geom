@@ -454,23 +454,30 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
     _pyfai_cls_name = 'AGIPD500K'
 
     @classmethod
-    def from_origin(cls, origin=(0, 0), asic_gap=2, panel_gap=(16, 30),
+    def from_origin(cls, origin=(0, 0), asic_gap=None, panel_gap=None,
                     unit=pixel_size):
         """Generate an AGIPD-500K2G geometry from origin position.
 
-        This produces an idealised geometry, assuming all modules are perfectly
-        flat, aligned and equally spaced within the detector.
+        This produces an idealised geometry, assuming all modules are perfectly flat,
+        aligned and equally spaced within the detector.
 
-        The default origin (0, 0) of the coordinates is the bottom-right corner
-        of the detector. If another coordinate is given as the origin, it is
-        relative to the bottom-right corner. Coordinates increase upwards and
-        to the left (looking along the beam).
+        The default origin (0, 0) of the coordinates is the bottom-right corner of the
+        detector. If another coordinate is given as the origin, it is relative to the
+        bottom-right corner. Coordinates increase upwards and to the left (looking along
+        the beam).
 
-        To give positions in units other than pixels, pass the *unit* parameter
-        as the length of the unit in metres. E.g. ``unit=1e-3`` means the
-        coordinates are in millimetres.
+        The default gaps (when set to None) are: *asic_gap=2* and *panel_gap=(16, 30)*
+        pixels.
+
+        To give positions in units other than pixels, pass the *unit* parameter as the
+        length of the unit in metres. E.g. ``unit=1e-3`` means the coordinates are in
+        millimetres.
         """
-        asic_gap_px = asic_gap * unit / cls.pixel_size
+        origin = np.asarray(origin) * unit
+        px_conversion = unit / cls.pixel_size
+        asic_gap = 2 if (asic_gap is None) else asic_gap * px_conversion 
+        panel_gap = (16, 30) if (panel_gap is None) else np.asarray(panel_gap) * px_conversion 
+
         panel_gap_x = panel_gap[0] * cls.pixel_size
         panel_gap_y = panel_gap[1] * cls.pixel_size
 
@@ -479,17 +486,17 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
         # In the y dimension, 128 px
         module_height = cls.frag_fs_pixels * cls.pixel_size
         # In x, 64 px + gap between tiles (asics)
-        tile_width = (cls.frag_ss_pixels + asic_gap_px) * cls.pixel_size
-        module_width = 8 * tile_width - asic_gap_px * cls.pixel_size  # 8 tiles + 7 gaps
+        tile_width = (cls.frag_ss_pixels + asic_gap) * cls.pixel_size
+        module_width = 8 * tile_width - asic_gap * cls.pixel_size  # 8 tiles + 7 gaps
 
         # coordinates relative to the first pixel of the first module
         # detector's bottom-right corner
         ref = (
             - module_width,  # x
-            - (3 * (cls.frag_fs_pixels + panel_gap[1]) * unit)  # y
+            - (3 * (cls.frag_fs_pixels + panel_gap[1]) * cls.pixel_size)  # y
         )
         # origin
-        ref = (- (origin[0] * unit + ref[0]), - (origin[1] * unit + ref[1]))
+        ref = (- (origin[0] + ref[0]), - (origin[1] + ref[1]))
 
         modules = []
         for p in range(cls.n_modules):
@@ -504,8 +511,8 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
 
                 tiles.append(GeometryFragment(
                     corner_pos=np.array([corner_x, panel_corner_y, 0.]),
-                    ss_vec=np.array([-1, 0, 0]) * unit,
-                    fs_vec=np.array([0, 1, 0]) * unit,
+                    ss_vec=np.array([-1, 0, 0]) * cls.pixel_size,
+                    fs_vec=np.array([0, 1, 0]) * cls.pixel_size,
                     ss_pixels=cls.frag_ss_pixels,
                     fs_pixels=cls.frag_fs_pixels,
                 ))

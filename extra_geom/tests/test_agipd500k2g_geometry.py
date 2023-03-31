@@ -187,3 +187,26 @@ def test_to_pyfai_detector():
     geom = AGIPD_500K2GGeometry.from_origin()
     agipd_pyfai = geom.to_pyfai_detector()
     assert isinstance(agipd_pyfai, pyFAI.detectors.Detector)
+
+
+def test_from_origin():
+
+    def check_result(img, centre):
+        assert img.shape == (602, 1068)
+        assert tuple(centre) == (-100, -100)
+        assert np.isnan(img[0, 535])
+        assert img[50, 50] == 0
+
+    geom = AGIPD_500K2GGeometry.from_origin((-100, -100))
+
+    stacked_data = np.zeros((8, 512, 128))
+    img, centre = geom.position_modules_fast(stacked_data)
+    check_result(img, centre)
+
+    # unit in meter
+    px_size = AGIPD_500K2GGeometry.pixel_size
+    geom = AGIPD_500K2GGeometry.from_origin((-100 * px_size, -100 * px_size), unit=1)
+
+    stacked_data = np.zeros((8, 512, 128))
+    img, centre = geom.position_modules_fast(stacked_data)
+    check_result(img, centre)
