@@ -2337,3 +2337,13 @@ class Epix10KGeometry(EpixGeometryBase):
         2 * frag_ss_pixels,
         2 * frag_fs_pixels
     )
+
+class Epix10K2M(Epix10KGeometry):
+    """! Detector layout for the ePix10K2M in use at LCLS."""
+    _pyfai_cls_name = 'EPIX10K2M'
+    detector_type_name = 'ePix10K2M'
+    pixel_size = 100e-6
+    frag_ss_pixels = 176
+    frag_fs_pixels = 192
+    n_modules = 16
+    expected_data_shape = (n_modules, 2*frag_ss_pixels, 2*frag_fs_pixels)

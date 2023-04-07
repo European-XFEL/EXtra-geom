@@ -50,3 +50,10 @@ class JUNGFRAU_EuXFEL(Detector):
     def __init__(self, pixel1=7.5e-5, pixel2=7.5e-5, n_modules=None, **kwargs):
         self.MAX_SHAPE = (n_modules*512, 1024)
         super().__init__(pixel1, pixel2, **kwargs)
+
+def EPIX10K2M(Detector):
+    IS_CONTIGUOUS = FALSE
+    MAX_SHAPE = (16*352, 384)
+
+    def __init__(self, pixel1=100e-6, pixel2=100e-6, **kwargs):
+        super().__init__(pixel1, pixel2, **kwargs)
