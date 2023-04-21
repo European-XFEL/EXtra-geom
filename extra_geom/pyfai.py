@@ -44,9 +44,18 @@ class LPD1M(Detector):
         super().__init__(pixel1, pixel2, **kwargs)
 
 
+class LPDMINI(Detector):
+    IS_CONTIGUOUS = False
+    aliases = ["LPD Mini"]
+
+    def __init__(self, pixel1=5e-4, pixel2=5e-4, n_modules=1, **kwargs):
+        self.MAX_SHAPE = (n_modules*32, 256)
+        super().__init__(pixel1, pixel2, **kwargs)
+
+
 class JUNGFRAU_EuXFEL(Detector):
     IS_CONTIGUOUS = False
 
-    def __init__(self, pixel1=7.5e-5, pixel2=7.5e-5, n_modules=None, **kwargs):
+    def __init__(self, pixel1=7.5e-5, pixel2=7.5e-5, n_modules=1, **kwargs):
         self.MAX_SHAPE = (n_modules*512, 1024)
         super().__init__(pixel1, pixel2, **kwargs)

@@ -615,7 +615,15 @@ def agipd_asic_seams():
     return arr
 
 
-class LPD_1MGeometry(DetectorGeometryBase):
+class LPDGeometryBase(DetectorGeometryBase):
+    """Base class for LPD detector geometry. Subclassed for specific detectors.
+    """
+    pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
+    frag_ss_pixels = 32
+    frag_fs_pixels = 128
+
+
+class LPD_1MGeometry(LPDGeometryBase):
     """Detector layout for LPD-1M
 
     The coordinates used in this class are 3D (x, y, z), and represent metres.
@@ -624,15 +632,13 @@ class LPD_1MGeometry(DetectorGeometryBase):
     use one of the constructor class methods to create or load a geometry.
     """
     detector_type_name = 'LPD-1M'
-    pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
-    frag_ss_pixels = 32
-    frag_fs_pixels = 128
     n_quads = 4
     n_modules = 16
     n_tiles_per_module = 16
     expected_data_shape = (16, 256, 256)
-    _draw_first_px_on_tile = 8  # The first pixel in stored data is on tile 8
+    pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
     _pyfai_cls_name = 'LPD1M'
+    _draw_first_px_on_tile = 8  # The first pixel in stored data is on tile 8
 
     @classmethod
     def from_quad_positions(cls, quad_pos, *, unit=1e-3, asic_gap=None,
@@ -943,10 +949,10 @@ class LPD_1MGeometry(DetectorGeometryBase):
         return [
             # Tiles 1-8 numbered top to bottom. Data starts at bottom, so
             # count backwards through them.
-            module_data[..., y-32:y, :128] for y in range(256, 0, -32)
+            module_data[..., y - 32:y, :128] for y in range(256, 0, -32)
         ] + [
             # Tiles 9-16 numbered bottom to top.
-            module_data[..., y:y+32, 128:] for y in range(0, 256, 32)
+            module_data[..., y:y + 32, 128:] for y in range(0, 256, 32)
         ]
 
     @classmethod
@@ -970,8 +976,8 @@ class LPD_1MGeometry(DetectorGeometryBase):
         # Each tiles_across is 0 or 1. To avoid iterating over the array with a
         # conditional, multiply the number we want by 1 and the other by 0.
         tileno = (
-            (1 - tiles_across) * (7 - tiles_up)  # tileno 0-7
-            + tiles_across * (tiles_up + 8)      # tileno 8-15
+                (1 - tiles_across) * (7 - tiles_up)  # tileno 0-7
+                + tiles_across * (tiles_up + 8)  # tileno 8-15
         )
         return tileno.astype(np.int16), tile_ss, tile_fs
 
@@ -998,6 +1004,151 @@ class LPD_1MGeometry(DetectorGeometryBase):
         """
         # Overridden only for docstring
         return super().to_distortion_array(allow_negative_xy)
+
+
+class LPD_MiniGeometry(LPDGeometryBase):
+    """Detector Layout for LPD Mini.
+
+    The coordinates used in this class are 3D (x, y, z), and represent metres.
+
+    You won't normally instantiate this class directly:
+    use one of the constructor class methods to create or load a geometry.
+    """
+    detector_type_name = 'LPD-Mini'
+    pixel_size = 5e-4  # 5e-4 metres == 0.5 mm
+    n_tiles_per_module = 2
+    expected_data_shape = (0, 32, 256)
+    _pyfai_cls_name = 'LPDMINI'
+
+    def __init__(self, modules, filename='No file', metadata=None):
+        super().__init__(modules, filename, metadata)
+        self.expected_data_shape = (len(modules), 32, 256)
+        self.n_modules = len(modules)
+
+    @classmethod
+    def from_module_positions(cls, positions, rotations=None, asic_gap=None, unit=1e-3):
+        """Generate a geometry for one or more LPD mini modules
+
+        Pass a list of (x, y) corner positions. In the default orientation, they
+        refer to the bottom left corner, looking at the module from in front
+        of the sensor.
+
+        You can also pass a list of rotations, in degrees. The default (0)
+        orientation has the longer axis (128 pixels) horizontal, with the first
+        tile on the bottom. Each angle rotates the relevant module clockwise,
+        as viewed from in front of the sensor, so an angle of 90 puts the 'top'
+        side of the module on the right, seen from the front.
+
+        *asic_gap* specifies the gap between the two tiles in each module.
+        The default is 2mm.
+
+        The default units of *positions* and *asic_gap* are millimetres. Other
+        units may be used by specifying *unit* as a length in metres.
+        """
+        if rotations is None:
+            rotations = [0] * len(positions)
+        elif len(positions) != len(rotations):
+            raise ValueError("Number of rotations specified must match positions")
+
+        if asic_gap is None:
+            asic_gap_m = 2e-3
+        else:
+            asic_gap_m = asic_gap * unit
+
+        # How much space does one tile take up, not including gaps
+        tile_width = cls.frag_fs_pixels * cls.pixel_size
+        tile_height = cls.frag_ss_pixels * cls.pixel_size
+
+        modules = []
+        for corner_position, rotation in zip(positions, rotations):
+            if len(corner_position) == 2:
+                corner_position = tuple(corner_position) + (0,)
+            corner = np.array(corner_position) * unit
+            sin, cos = np.sin(np.radians(rotation)), np.cos(np.radians(rotation))
+            ss_direction = np.array([-sin, cos, 0])
+            fs_direction = np.array([cos, sin, 0])
+
+            t0_x_offset = -tile_height * sin
+            t0_y_offset = tile_height * cos
+            t1_x_offset = (-tile_width * cos) - ((tile_height + asic_gap_m) * sin)
+            t1_y_offset = (-tile_width * sin) + ((tile_height + asic_gap_m) * cos)
+
+            modules.append([GeometryFragment(
+                corner_pos=(corner + np.array([t0_x_offset, t0_y_offset, 0])),
+                ss_vec=-ss_direction * cls.pixel_size,
+                fs_vec=-fs_direction * cls.pixel_size,
+                ss_pixels=cls.frag_ss_pixels,
+                fs_pixels=cls.frag_fs_pixels,
+            ), GeometryFragment(
+                corner_pos=(corner + np.array([t1_x_offset, t1_y_offset, 0])),
+                ss_vec=ss_direction * cls.pixel_size,
+                fs_vec=fs_direction * cls.pixel_size,
+                ss_pixels=cls.frag_ss_pixels,
+                fs_pixels=cls.frag_fs_pixels,
+            )])
+
+        return cls(modules)
+
+    def inspect(self, axis_units='px', frontview=True):
+        """Plot the 2D layout of this detector geometry.
+
+        Returns a matplotlib Axes object.
+
+        Parameters
+        ----------
+
+        axis_units : str
+          Show the detector scale in pixels ('px') or metres ('m').
+        frontview : bool
+          If True (the default), x increases to the left, as if you were looking
+          along the beam. False gives a 'looking into the beam' view.
+        """
+        ax = super().inspect(axis_units=axis_units, frontview=frontview)
+        scale = self._get_plot_scale_factor(axis_units)
+
+        for M, module in enumerate(self.modules):
+            cx, cy, _ = module[1].centre() * scale
+            ax.text(cx, cy, f'M{M}', fontweight='bold',
+                    verticalalignment='center',
+                    horizontalalignment='center')
+
+            cx, cy, _ = module[0].centre() * scale
+            ax.text(cx, cy, 'T0',
+                    verticalalignment='center',
+                    horizontalalignment='center')
+
+        ax.set_title('LPD Mini detector geometry')
+        return ax
+
+    @staticmethod
+    def split_tiles(module_data):
+        # This slicing is faster than using np.split()
+        return [module_data[..., :128], module_data[..., 128:]]
+
+    @classmethod
+    def _tile_slice(cls, tileno):
+        # Which part of the array is this tile?
+        ss_slice = slice(0, cls.frag_ss_pixels)
+        fs_start = cls.frag_fs_pixels * tileno
+        fs_slice = slice(fs_start, fs_start + cls.frag_fs_pixels)
+        return ss_slice, fs_slice
+
+    @classmethod
+    def _module_coords_to_tile(cls, slow_scan, fast_scan):
+        tileno, tile_fs = np.divmod(fast_scan, cls.frag_fs_pixels)
+        return tileno.astype(np.int16), slow_scan, tile_fs
+
+    def to_pyfai_detector(self):
+        """Make a PyFAI detector object for JUNGFRAU detector.
+
+        You can use PyFAI to azimuthally integrate detector images around
+        the centre point of the geometry. The detector object holds the
+        positions of all the pixels. See the examples for how to use this.
+        """
+        from . import pyfai
+        det = getattr(pyfai, self._pyfai_cls_name)(n_modules=self.n_modules)
+        det.set_pixel_corners(self.to_distortion_array(allow_negative_xy=True))
+        return det
 
 
 def invert_xfel_lpd_geom(path_in, path_out):
