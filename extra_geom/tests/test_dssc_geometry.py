@@ -3,6 +3,7 @@ from os.path import join as pjoin
 
 import numpy as np
 import pyFAI.detectors
+import xarray as xr
 from matplotlib.axes import Axes
 from testpath import assert_isfile
 
@@ -70,6 +71,24 @@ def test_assemble_data_cartesian():
     )
 
     stacked_data = np.zeros((16, 128, 512))
+    img, centre = geom.position_modules_cartesian(stacked_data)
+    assert img.shape == (1192, 1180)
+    assert tuple(centre) == (610, 593)
+    assert np.isnan(img[0, 0])
+    assert img[50, 50] == 0
+
+
+def test_assemble_data_cartesian_xarray():
+    geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
+        sample_xfel_geom, QUAD_POS
+    )
+
+    # Simulate data with 1 module missing
+    stacked_data = xr.DataArray(
+        np.zeros((15, 128, 512)),
+        dims=('module', 'slow_scan', 'fast_scan'),
+        coords={'module': [0, 1] + list(range(3, 16))}
+    )
     img, centre = geom.position_modules_cartesian(stacked_data)
     assert img.shape == (1192, 1180)
     assert tuple(centre) == (610, 593)
