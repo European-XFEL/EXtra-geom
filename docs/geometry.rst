@@ -186,7 +186,7 @@ two 32×128 tiles.
 
 .. autoclass:: LPD_MiniGeometry
 
-   .. authomethod:: from_module_positions
+   .. automethod:: from_module_positions
 
    .. automethod:: offset
 

@@ -1,6 +1,24 @@
 Release Notes
 =============
 
+1.10
+----
+
+2023-04-21
+
+- Support for LPD Mini detectors (:ghpull:`187`).
+- Add :meth:`~.JUNGFRAUGeometry.to_pyfai_detector` for JUNGFRAU detectors
+  (:ghpull:`197`)
+- Fix :meth:`.AGIPD_500K2GGeometry.from_origin` with non-default units
+  (:ghpull:`213`).
+- Fix :meth:`~.JUNGFRAUGeometry.plot_data` with labelled data arrays
+  (:ghpull:`198`).
+- Fix DSSC's :meth:`~.DSSC_1MGeometry.position_modules_cartesian` and
+  :meth:`~.DSSC_1MGeometry.plot_data_cartesian` to accept Xarray labelled array
+  objects (:ghpull:`207`).
+- Fix alias for LPD PyFAI detector class (:ghpull:`190`).
+
+
 1.9
 ---
 
