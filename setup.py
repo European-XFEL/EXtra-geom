@@ -45,7 +45,7 @@ setup(name="EXtra-geom",
       extras_require={
           'interpolate': ['scipy'],
           'docs': [
-              'sphinx',
+              'sphinx >=4.3',  # Minimum version for Python 3.10
               'nbsphinx',
               'ipython',  # For nbsphinx syntax highlighting
               'sphinxcontrib_github_alt',
