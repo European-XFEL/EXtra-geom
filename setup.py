@@ -49,7 +49,7 @@ setup(name="EXtra-geom",
               'nbsphinx',
               'ipython',  # For nbsphinx syntax highlighting
               'sphinxcontrib_github_alt',
-              'sphinx-rtd-theme',
+              'sphinx-rtd-theme >=1.2',
               # Pin Jinja2 until https://github.com/jupyter/nbconvert/issues/1736 fixed
               'Jinja2<3.1.0'
           ],
