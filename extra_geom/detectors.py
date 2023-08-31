@@ -2298,7 +2298,7 @@ class EpixGeometryBase(DetectorGeometryBase):
 
     @classmethod
     def from_origin(cls, origin=(0, 0), asic_gap=None, unit=None):
-        """Generate an ePix100 geometry from origin position.
+        """Generate a geometry from origin position.
 
         This produces an idealised geometry, assuming all modules are perfectly
         flat, aligned and equally spaced within the detector.
@@ -2311,19 +2311,6 @@ class EpixGeometryBase(DetectorGeometryBase):
         To give positions in units other than pixels, pass the *unit* parameter
         as the length of the unit in metres. E.g. ``unit=1e-3`` means the
         coordinates are in millimetres.
-
-        .. note::
-
-            ePix100 has 2 different geometry layout:
-
-            - A single monolithic sensor with a 2x2 array of four ASICs bonded to it.
-              These would have no dead gaps but would have large pixels in the central
-              cross. This is the current default gap implementation.
-            - A pair of sensors with each sensor being bonded to two ASICs.
-              These would have a dead gap equal to twice the guard ring width (~450-500um)
-              plus a mechanical gap of about 200-300 microns. This would result in a total
-              dead gap of about 1.25 millimeters.
-              For this case see :meth:`from_relative_positions`
         """
         if unit is None:
             unit = cls.pixel_size
@@ -2498,6 +2485,19 @@ class Epix100Geometry(EpixGeometryBase):
     They have the same electronics as normal pixels but aren't wired
     to the sensor. They are two first and two last rows in the raw data
     array. This class assumes that calibration rows are cut.
+
+    .. note::
+
+        The ePix100 has 2 different geometry layouts:
+
+        - A single monolithic sensor with a 2x2 array of four ASICs bonded to it.
+          These would have no dead gaps but would have large pixels in the central
+          cross. Use :meth:`Epix10KGeometry.monolithic_geometry` to generate this geometry.
+        - A pair of sensors with each sensor being bonded to two ASICs.
+          These would have a dead gap equal to twice the guard ring width (~450-500um)
+          plus a mechanical gap of about 200-300 microns. This would result in a total
+          dead gap of about 1.25 millimeters. For this case use
+          :meth:`pair_geometry`.
     """
     detector_type_name = 'ePix100'
     pixel_size = 50e-6
@@ -2514,25 +2514,7 @@ class Epix100Geometry(EpixGeometryBase):
     @classmethod
     def from_relative_positions(cls, asic_gap=None, unit=None, top=(0., 0., 0.),
                                 bottom=(0., 0., 0.)):
-        """Generate an ePix100 geometry from relative Asics-pair positions.
-
-        ePix100 has 2 assemblies:
-
-        - a single monolithic sensor with a 2x2 array of four ASICs bonded to it. These
-          would have no dead gaps but would have large pixels in the central cross.
-          Use :meth:`from_origin` if your detector has this layout.
-        - A pair of sensors with each sensor being bonded to two ASICs. These would have
-          a dead gap equal to twice the guard ring width (~450-500um) plus a mechanical
-          gap of about 200-300 microns. This would result in a total dead gap of about
-          1.25 millimeters.
-
-        For the later case, one can determine determine the exact gap existing between
-        the 2 (top and bottom) asic pair. A rough estimation of the gap has been seen at
-        ~25 pixels. This can be generated with::
-
-            geom = Epix100Geometry.from_relative_positions(
-                top=[386.5, 364.5, 0.], bottom=[386.5, -12.5, 0.]
-            )
+        """Generate an ePix100 geometry from relative ASICS-pair positions.
 
         Parameters
         ----------
