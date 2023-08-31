@@ -188,3 +188,10 @@ def test_ensure_shape(args, shape):
            epix.frag_fs_pixels * 2 + epix.asic_gap)
     )
     np.testing.assert_allclose(img.shape, expected_img_shape, atol=1)
+
+def test_default_geometries():
+    # Smoke tests
+    Epix100Geometry.pair_geometry()
+    Epix10KGeometry.monolithic_geometry()
+    Epix100Geometry.example()
+    Epix10KGeometry.example()

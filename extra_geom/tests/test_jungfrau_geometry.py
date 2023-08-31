@@ -3,6 +3,7 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 import pyFAI.detectors
+from matplotlib.axes import Axes
 from cfelpyutils.geometry import load_crystfel_geometry
 from extra_data import RunDirectory
 from extra_data.components import JUNGFRAU
@@ -86,3 +87,13 @@ def test_to_pyfai_detector():
     jf4m_pyfai = geom.to_pyfai_detector()
     assert isinstance(jf4m_pyfai, pyFAI.detectors.Detector)
     assert jf4m_pyfai.MAX_SHAPE == (8*512, 1024)
+
+
+def test_inspect():
+    # Smoke test
+    geom = JUNGFRAUGeometry.example(n_modules=8)
+
+    # Smoketest
+    ax = geom.inspect()
+    assert isinstance(ax, Axes)
+

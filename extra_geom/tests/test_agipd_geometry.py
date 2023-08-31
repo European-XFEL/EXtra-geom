@@ -163,9 +163,7 @@ def test_quad_positions():
 
 
 def test_inspect():
-    geom = AGIPD_1MGeometry.from_quad_positions(
-        quad_pos=[(-525, 625), (-550, -10), (520, -160), (542.5, 475)]
-    )
+    geom = AGIPD_1MGeometry.example()
     # Smoketest
     ax = geom.inspect()
     assert isinstance(ax, Axes)
