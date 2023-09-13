@@ -24,9 +24,7 @@ QUAD_POS = [
 
 
 def test_inspect():
-    geom = DSSC_1MGeometry.from_h5_file_and_quad_positions(
-        sample_xfel_geom, QUAD_POS
-    )
+    geom = DSSC_1MGeometry.example()
     # Smoketest
     ax = geom.inspect()
     assert isinstance(ax, Axes)

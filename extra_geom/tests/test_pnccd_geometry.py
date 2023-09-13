@@ -53,7 +53,7 @@ def test_snap_assemble_data(shape):
     assert img[50, 50] == 0
 
 def test_inspect():
-    geom = PNCCDGeometry.from_relative_positions()
+    geom = PNCCDGeometry.example()
 
     # Smoketest
     ax = geom.inspect()

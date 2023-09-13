@@ -265,6 +265,16 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
                 ))
         return cls(modules)
 
+    @classmethod
+    def example(cls):
+        """Create an example geometry (useful for quick visualization)."""
+        return cls.from_quad_positions([
+            (-525, 625),
+            (-550, -10),
+            (520, -160),
+            (542.5, 475)
+        ])
+
     def quad_positions(self):
         """Retrieve the coordinates of the first pixel in each quadrant
 
@@ -518,6 +528,11 @@ class AGIPD_500K2GGeometry(DetectorGeometryBase):
                 ))
 
         return cls(modules)
+
+    @classmethod
+    def example(cls):
+        """Create an example geometry (useful for quick visualization)."""
+        return cls.from_origin()
 
     def inspect(self, axis_units='px', frontview=True):
         """Plot the 2D layout of this detector geometry.
@@ -818,6 +833,16 @@ class LPD_1MGeometry(LPDGeometryBase):
 
         return cls.from_h5_file_and_quad_positions(path, quadpos)
 
+    @classmethod
+    def example(cls):
+        """Create an example geometry (useful for quick visualization)."""
+        return cls.from_quad_positions([
+            (11.4, 299),
+            (-11.5, 8),
+            (254.5, -16),
+            (278.5, 275)
+        ])
+
     def to_h5_file_and_quad_positions(self, path):
         """Write this geometry to an XFEL HDF5 format geometry file
 
@@ -1087,6 +1112,20 @@ class LPD_MiniGeometry(LPDGeometryBase):
             )])
 
         return cls(modules)
+
+    @classmethod
+    def example(cls, n_modules=1):
+        """Create an example geometry (useful for quick visualization)."""
+        asic_gap = 4
+        module_gap_y = 5
+        mod_height = cls.n_tiles_per_module * 32 + asic_gap
+
+        module_positions = []
+        for i in range(n_modules):
+            y = (mod_height / 2) * i + (i * module_gap_y)
+            module_positions.append((0, y))
+
+        return cls.from_module_positions(module_positions)
 
     def inspect(self, axis_units='px', frontview=True):
         """Plot the 2D layout of this detector geometry.
@@ -1398,6 +1437,16 @@ class DSSC_1MGeometry(DetectorGeometryBase):
                 )
 
         return cls.from_h5_file_and_quad_positions(path, quadpos)
+
+    @classmethod
+    def example(cls):
+        """Create an example geometry (useful for quick visualization)."""
+        return cls.from_quad_positions([
+            (-130, 5),
+            (-130, -125),
+            (5, -125),
+            (5, 5)
+        ])
 
     def to_h5_file_and_quad_positions(self, path):
         """Write this geometry to an XFEL HDF5 format geometry file
@@ -1895,6 +1944,31 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
             modules.append(tiles)
         return cls(modules)
 
+    @classmethod
+    def example(cls, n_modules=1):
+        """Create an example geometry (useful for quick visualization)."""
+        asic_gap = 2
+        module_gap_x = 100
+        module_gap_y = 20
+        cols = 2
+
+        tiles_per_row = cls.expected_data_shape[2] // cls.frag_fs_pixels
+        tiles_per_col = cls.expected_data_shape[1] // cls.frag_ss_pixels
+        mod_width = (cls.frag_fs_pixels * tiles_per_row) + (asic_gap * (tiles_per_row - 1))
+        mod_height = (cls.frag_ss_pixels * tiles_per_col) + (asic_gap * (tiles_per_col - 1))
+
+        module_positions = []
+        x_start = -mod_width
+
+        for i in range(n_modules):
+            row = i // cols
+            col = i - (row * cols)
+            x = x_start - mod_width * col - (col * module_gap_x)
+            y = mod_height * row + (row * module_gap_y)
+            module_positions.append((x, y))
+
+        return cls.from_module_positions(module_positions)
+
     def inspect(self, axis_units='px', frontview=True, module_names=[]):
         """Plot the 2D layout of this detector geometry.
 
@@ -2086,6 +2160,11 @@ class PNCCDGeometry(DetectorGeometryBase):
                     [GeometryFragment(np.array(bottom), *args)]])
 
     @classmethod
+    def example(cls):
+        """Create an example geometry (useful for quick visualization)."""
+        return cls.from_relative_positions()
+
+    @classmethod
     def _ensure_shape(cls, data):
         """Ensure image data has the proper shape.
 
@@ -2219,7 +2298,7 @@ class EpixGeometryBase(DetectorGeometryBase):
 
     @classmethod
     def from_origin(cls, origin=(0, 0), asic_gap=None, unit=None):
-        """Generate an ePix100 geometry from origin position.
+        """Generate a geometry from origin position.
 
         This produces an idealised geometry, assuming all modules are perfectly
         flat, aligned and equally spaced within the detector.
@@ -2232,19 +2311,6 @@ class EpixGeometryBase(DetectorGeometryBase):
         To give positions in units other than pixels, pass the *unit* parameter
         as the length of the unit in metres. E.g. ``unit=1e-3`` means the
         coordinates are in millimetres.
-
-        .. note::
-
-            ePix100 has 2 different geometry layout:
-
-            - A single monolithic sensor with a 2x2 array of four ASICs bonded to it.
-              These would have no dead gaps but would have large pixels in the central
-              cross. This is the current default gap implementation.
-            - A pair of sensors with each sensor being bonded to two ASICs.
-              These would have a dead gap equal to twice the guard ring width (~450-500um)
-              plus a mechanical gap of about 200-300 microns. This would result in a total
-              dead gap of about 1.25 millimeters.
-              For this case see :meth:`from_relative_positions`
         """
         if unit is None:
             unit = cls.pixel_size
@@ -2269,6 +2335,11 @@ class EpixGeometryBase(DetectorGeometryBase):
                 fs_pixels=cls.frag_fs_pixels,
             ))
         return cls([tiles])
+
+    @classmethod
+    def monolithic_geometry(cls):
+        """Return the geometry for an ePix100/ePix10K with a single monolithic sensor."""
+        return cls.from_origin([0, 0])
 
     @classmethod
     def _module_coords_to_tile(cls, slow_scan, fast_scan):
@@ -2414,6 +2485,19 @@ class Epix100Geometry(EpixGeometryBase):
     They have the same electronics as normal pixels but aren't wired
     to the sensor. They are two first and two last rows in the raw data
     array. This class assumes that calibration rows are cut.
+
+    .. note::
+
+        The ePix100 has 2 different geometry layouts:
+
+        - A single monolithic sensor with a 2x2 array of four ASICs bonded to it.
+          These would have no dead gaps but would have large pixels in the central
+          cross. Use :meth:`Epix10KGeometry.monolithic_geometry` to generate this geometry.
+        - A pair of sensors with each sensor being bonded to two ASICs.
+          These would have a dead gap equal to twice the guard ring width (~450-500um)
+          plus a mechanical gap of about 200-300 microns. This would result in a total
+          dead gap of about 1.25 millimeters. For this case use
+          :meth:`pair_geometry`.
     """
     detector_type_name = 'ePix100'
     pixel_size = 50e-6
@@ -2430,25 +2514,7 @@ class Epix100Geometry(EpixGeometryBase):
     @classmethod
     def from_relative_positions(cls, asic_gap=None, unit=None, top=(0., 0., 0.),
                                 bottom=(0., 0., 0.)):
-        """Generate an ePix100 geometry from relative Asics-pair positions.
-
-        ePix100 has 2 assemblies:
-
-        - a single monolithic sensor with a 2x2 array of four ASICs bonded to it. These
-          would have no dead gaps but would have large pixels in the central cross.
-          Use :meth:`from_origin` if your detector has this layout.
-        - A pair of sensors with each sensor being bonded to two ASICs. These would have
-          a dead gap equal to twice the guard ring width (~450-500um) plus a mechanical
-          gap of about 200-300 microns. This would result in a total dead gap of about
-          1.25 millimeters.
-
-        For the later case, one can determine determine the exact gap existing between
-        the 2 (top and bottom) asic pair. A rough estimation of the gap has been seen at
-        ~25 pixels. This can be generated with::
-
-            geom = Epix100Geometry.from_relative_positions(
-                top=[386.5, 364.5, 0.], bottom=[386.5, -12.5, 0.]
-            )
+        """Generate an ePix100 geometry from relative ASICS-pair positions.
 
         Parameters
         ----------
@@ -2475,6 +2541,24 @@ class Epix100Geometry(EpixGeometryBase):
             tile.offset(pos * unit - ref)
             for tile, pos, ref in zip(geom.modules[0], position, reference)
         ]])
+
+    @classmethod
+    def pair_geometry(cls):
+        """Return the geometry for an ePix100 with a pair of sensors.
+
+        One can determine the exact gap existing between the 2 (top and bottom)
+        ASIC pairs. A rough estimation of the gap has been seen at ~25
+        pixels, which is what this method will generate a geometry with.
+        """
+        return cls.from_relative_positions(
+            top=[386.5, 364.5, 0],
+            bottom=[386.5, -12.5, 0]
+        )
+
+    @classmethod
+    def example(cls):
+        """Create an example geometry (useful for quick visualization)."""
+        return cls.monolithic_geometry()
 
 
 class Epix10KGeometry(EpixGeometryBase):
@@ -2503,3 +2587,8 @@ class Epix10KGeometry(EpixGeometryBase):
         2 * frag_ss_pixels,
         2 * frag_fs_pixels
     )
+
+    @classmethod
+    def example(cls):
+        """Create an example geometry (useful for quick visualization)."""
+        return cls.monolithic_geometry()

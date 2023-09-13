@@ -120,7 +120,7 @@ def test_write_read_crystfel_file_2d(tmpdir):
 
 
 def test_inspect():
-    geom = AGIPD_500K2GGeometry.from_origin()
+    geom = AGIPD_500K2GGeometry.example()
     # Smoketest
     ax = geom.inspect()
     assert isinstance(ax, Axes)

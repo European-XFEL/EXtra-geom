@@ -245,9 +245,7 @@ def test_rotate():
 
 
 def test_inspect():
-    geom = LPD_1MGeometry.from_quad_positions(
-        [(11.4, 299), (-11.5, 8), (254.5, -16), (278.5, 275)]
-    )
+    geom = LPD_1MGeometry.example()
     # Smoketest
     ax = geom.inspect()
     assert isinstance(ax, Axes)

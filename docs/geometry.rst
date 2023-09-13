@@ -41,6 +41,8 @@ but this geometry code works with a position for each tile.
 
    .. automethod:: from_crystfel_geom
 
+   .. automethod:: example
+
    .. automethod:: offset
 
    .. automethod:: rotate
@@ -97,6 +99,8 @@ but this geometry code works with a position for each tile.
 
    .. automethod:: write_crystfel_geom
 
+   .. automethod:: example
+
    .. automethod:: get_pixel_positions
 
    .. automethod:: to_distortion_array
@@ -141,6 +145,8 @@ which this geometry code can position independently.
    .. automethod:: from_h5_file
 
    .. automethod:: from_crystfel_geom
+
+   .. automethod:: example
 
    .. automethod:: offset
 
@@ -187,6 +193,8 @@ two 32×128 tiles.
 .. autoclass:: LPD_MiniGeometry
 
    .. automethod:: from_module_positions
+
+   .. automethod:: example
 
    .. automethod:: offset
 
@@ -244,6 +252,8 @@ approximately half a pixel width from their true position.
 
    .. automethod:: from_h5_file
 
+   .. automethod:: example
+
    .. automethod:: offset
 
    .. automethod:: rotate
@@ -290,6 +300,8 @@ Each module is further subdivided into 8 sensor tiles.
 
    .. automethod:: from_crystfel_geom
 
+   .. automethod:: example
+
    .. automethod:: write_crystfel_geom
 
    .. automethod:: get_pixel_positions
@@ -322,6 +334,8 @@ single tile.
 
    .. automethod:: from_absolute_positions
 
+   .. automethod:: example
+
    .. automethod:: plot_data
 
    .. automethod:: position_modules
@@ -341,15 +355,25 @@ ePix100 detectors have one module of 704 × 768 pixels. Module built from 4 ASIC
 
 ePix10K detectors have one module of 352 × 384 pixels. Module built from 4 ASICs with 176 rows and 192 columns of pixels with wide pixes on inner edges. Normal pixels are 100 × 100 um.
 
-.. note:: References are given for :class:`Epix100Geometry` providing ePix100 layout. For ePix10K, use :class:`Epix10KGeometry` with the same interface.
+.. note:: Only methods unique to the :class:`Epix100Geometry` class are
+          documented, but it otherwise has the same interface as
+          :class:`Epix10KGeometry`.
 
 .. autoclass:: Epix100Geometry
 
-   .. automethod:: from_origin
-
    .. automethod:: from_relative_positions
 
+   .. automethod:: pair_geometry
+
+.. autoclass:: Epix10KGeometry
+
+   .. automethod:: from_origin
+
    .. automethod:: from_crystfel_geom
+
+   .. automethod:: monolithic_geometry
+
+   .. automethod:: example
 
    .. automethod:: write_crystfel_geom
 

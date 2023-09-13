@@ -104,7 +104,7 @@ def test_rotate():
 
 
 def test_inspect():
-    geom = LPD_MiniGeometry.from_module_positions([(0, 0)])
+    geom = LPD_MiniGeometry.example(4)
     # Smoketest
     ax = geom.inspect()
     assert isinstance(ax, Axes)
