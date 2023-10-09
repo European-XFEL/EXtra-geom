@@ -1,6 +1,6 @@
 cfelpyutils==2.0.6
 coverage<7.4
-cycler==0.11.0
+cycler==0.12.1
 extra_data==1.14.0
 future==0.18.3
 h5py<3.10.0
