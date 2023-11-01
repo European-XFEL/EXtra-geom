@@ -1,6 +1,20 @@
 Release Notes
 =============
 
+1.11
+----
+
+2023-11-01
+
+- Add an ``example()`` class method for each detector type to create a sample
+  geometry, and helper class methods ``monolithic_geometry()`` and ``pair_geometry()``
+  for Epix detectors  (:ghpull:`243`). The ``example()`` methods make it easier to look at the data when you
+  have no specific information about its geometry, but it may be quite different
+  from the real positions of modules in a given experiment. For some detector
+  types, you need to pass the number of modules in your detector.
+- Modules in :class:`.AGIPD_500K2GGeometry` are now labelled M0 - M7 by
+  :meth:`~.AGIPD_500K2GGeometry.inspect` (:ghpull:`226`).
+
 1.10
 ----
 
