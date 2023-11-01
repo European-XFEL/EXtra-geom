@@ -7,7 +7,8 @@ Release Notes
 2023-11-01
 
 - Add an ``example()`` class method for each detector type to create a sample
-  geometry (:ghpull:`243`). This makes it easier to look at the data when you
+  geometry, and helper class methods ``monolithic_geometry()`` and ``pair_geometry()``
+  for Epix detectors  (:ghpull:`243`). The ``example()`` methods make it easier to look at the data when you
   have no specific information about its geometry, but it may be quite different
   from the real positions of modules in a given experiment. For some detector
   types, you need to pass the number of modules in your detector.
