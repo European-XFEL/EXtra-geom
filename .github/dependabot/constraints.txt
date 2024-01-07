@@ -1,5 +1,5 @@
 cfelpyutils==2.0.6
-coverage<7.4
+coverage<7.5
 cycler<=0.12.1
 extra_data==1.15.1
 future==0.18.3
