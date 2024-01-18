@@ -29,6 +29,7 @@ class AGIPD500K(Detector):
 class DSSC1M(Detector):
     IS_CONTIGUOUS = False
     MAX_SHAPE = (16*128, 512)
+    CORNERS = 6  # Hexagonal pixels
     aliases = ["DSSC 1M"]
 
     def __init__(self, pixel1=236e-6 * 1.5/np.sqrt(3), pixel2=236e-6, **kwargs):
