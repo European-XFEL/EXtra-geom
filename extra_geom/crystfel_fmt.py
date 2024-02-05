@@ -15,6 +15,7 @@ HEADER_TEMPLATE = """\
 ;
 ; See: http://www.desy.de/~twhite/crystfel/manual-crystfel_geometry.html
 
+{motors}
 {paths}
 {frame_dim}
 res = {resolution} ; pixels per metre
@@ -73,11 +74,12 @@ def frag_to_crystfel(fragment, p, a, ss_slice, fs_slice, dims, pixel_size):
         min_fs=fs_slice.start,
         max_fs=fs_slice.stop - 1,
         ss_vec=_crystfel_format_vec(fragment.ss_vec / pixel_size),
-        fs_vec=_crystfel_format_vec(fragment.fs_vec/ pixel_size),
+        fs_vec=_crystfel_format_vec(fragment.fs_vec / pixel_size),
         corner_x=c[0],
         corner_y=c[1],
         coffset=fragment.corner_pos[2],
     )
+
 
 def write_crystfel_geom(
         self, filename, *,
@@ -105,6 +107,11 @@ def write_crystfel_geom(
         photon_energy_str = '; photon_energy = SET ME'
     else:
         photon_energy_str = 'photon_energy = {}'.format(photon_energy)
+
+    if hasattr(self, "motors_to_geom") and callable(self.motors_to_geom):
+        motors = self.motors_to_geom() + "\n"
+    else:
+        motors = ""
 
     # Get the frame dimension
     tile_dims = {}
@@ -151,7 +158,8 @@ def write_crystfel_geom(
             resolution=resolution,
             adu_per_ev=adu_per_ev_str,
             clen=clen_str,
-            photon_energy=photon_energy_str
+            photon_energy=photon_energy_str,
+            motors=motors,
         ))
         f.write(format_bad_regions(
             bad_regions,
@@ -163,12 +171,13 @@ def write_crystfel_geom(
         for chunk in panel_chunks:
             f.write(chunk)
 
+
 def format_bad_regions(bad_regions: dict, mod_ss_pixels: int, layout_2d=False):
     lines = []
     for name, d in bad_regions.items():
         if d['is_fsss']:
             if layout_2d:
-                modno = int(re.match("p(\d+)a\d+", d['panel'])[1])
+                modno = int(re.match(r"p(\d+)a\d+", d['panel'])[1])
                 mod_offset = modno * mod_ss_pixels
                 min_ss = d['min_ss'] + mod_offset
                 max_ss = d['max_ss'] + mod_offset
@@ -191,6 +200,7 @@ def format_bad_regions(bad_regions: dict, mod_ss_pixels: int, layout_2d=False):
                 ""
             ]
     return "\n".join(lines)
+
 
 def get_rigid_groups(geom, nquads=4):
     """Create string for rigid groups definition."""
