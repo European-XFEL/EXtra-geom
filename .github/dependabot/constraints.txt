@@ -1,7 +1,7 @@
 cfelpyutils==2.0.6
 coverage<7.5
 cycler<=0.12.1
-extra_data==1.15.1
+extra_data==1.16.0
 h5py<3.11.0
 kiwisolver==1.4.5
 matplotlib<3.9.0
