@@ -13,7 +13,7 @@ pyFAI==2024.2.0
 pyparsing==3.1.1
 pytest<8.1.0
 pytest-cov==4.1.0
-python-dateutil==2.9.0
+python-dateutil==2.9.0.post0
 six==1.16.0
 testpath==0.6.0
 xarray<2024.3.0
