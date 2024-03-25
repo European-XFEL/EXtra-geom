@@ -81,6 +81,19 @@ def frag_to_crystfel(fragment, p, a, ss_slice, fs_slice, dims, pixel_size):
     )
 
 
+def motors_to_geom(positions):
+    """Prints the motor positions in the text format."""
+    positions = np.array(positions)
+    n_groups, n_motors = positions.shape
+    meta_lines = [f";XGEOM MOTORS={n_groups},{n_motors}"]
+    meta_lines += [
+        f";XGEOM MOTOR_Q{q+1}=" + ",".join(
+            (str(positions[q, m]) for m in range(n_motors))
+        ) for q in range(n_groups)
+    ]
+    return "\n".join(meta_lines) + "\n"
+
+
 def write_crystfel_geom(
         self, filename, *,
         data_path='/entry_1/instrument_1/detector_1/data',
@@ -108,10 +121,11 @@ def write_crystfel_geom(
     else:
         photon_energy_str = 'photon_energy = {}'.format(photon_energy)
 
-    if hasattr(self, "motors_to_geom") and callable(self.motors_to_geom):
-        motors = self.motors_to_geom() + "\n"
-    else:
+    motor_positions = getattr(self, "motor_positions", None)
+    if motor_positions is None:
         motors = ""
+    else:
+        motors = motors_to_geom(motor_positions)
 
     # Get the frame dimension
     tile_dims = {}

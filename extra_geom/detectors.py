@@ -9,7 +9,6 @@ import numpy as np
 
 from .base import DetectorGeometryBase, GeometryFragment
 from .snapped import isinstance_no_import
-from .motors import MotorMixin
 
 
 class GenericGeometry(DetectorGeometryBase):
@@ -193,7 +192,7 @@ class GenericGeometry(DetectorGeometryBase):
         raise NotImplementedError
 
 
-class AGIPD_1MGeometry(MotorMixin, DetectorGeometryBase):
+class AGIPD_1MGeometry(DetectorGeometryBase):
     """Detector layout for AGIPD-1M
 
     The coordinates used in this class are 3D (x, y, z), and represent metres.
@@ -210,20 +209,6 @@ class AGIPD_1MGeometry(MotorMixin, DetectorGeometryBase):
     n_modules = 16
     n_tiles_per_module = 8
     _pyfai_cls_name = 'AGIPD1M'
-
-    # motors related properties
-    n_movable_groups = 4
-    n_motor_per_group = 2
-    movable_groups = [
-        # Q1, Q2, Q3, Q4
-        np.s_[0:4], np.s_[4:8], np.s_[8:12], np.s_[12:16],
-    ]
-    motor_axes = np.array([
-        [[-1, 0], [0, -1]],  # Q1
-        [[-1, 0], [0, +1]],  # Q2
-        [[+1, 0], [0, +1]],  # Q3
-        [[+1, 0], [0, -1]],  # Q4
-    ])
 
     @classmethod
     def from_quad_positions(cls, quad_pos, asic_gap=2, panel_gap=29,
