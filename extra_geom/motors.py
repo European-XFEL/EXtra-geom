@@ -123,8 +123,8 @@ class BaseMotorTracker:
         new_motor_axes = np.array(new_motor_axes, copy=True)
         if new_motor_axes.shape != self.motor_axes_shape:
             raise ValueError(f"Expects array{self.motor_axes_shape}: "
-                             f"{self.n_movable_groups} groups moving by "
-                             f"{self.n_motor_per_group} motor each.")
+                             f"{self.num_groups} groups moving by "
+                             f"{self.num_motors} motor each.")
         self.motor_axes = new_motor_axes
 
     def geom_at(self, motor_positions):
