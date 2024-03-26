@@ -7,6 +7,7 @@ from cfelpyutils.geometry import load_crystfel_geometry
 
 from .crystfel_fmt import write_crystfel_geom
 from .snapped import GridGeometryFragment, SnappedGeometry
+from .motors import read_motors_from_geom
 
 
 class GeometryFragment:
@@ -326,7 +327,16 @@ class DetectorGeometryBase:
 
         metadata['crystfel']['bad'] = adjusted_bad_regions
 
-        return cls(modules, filename=filename, metadata=metadata)
+        geom = cls(modules, filename=filename, metadata=metadata)
+
+        with open(filename, 'r') as f:
+            try:
+                geom.motor_positions = read_motors_from_geom(f)
+            except ValueError:
+                # Motors are not found, ignore
+                pass
+
+        return geom
 
     def write_crystfel_geom(self, filename, *,
                             data_path=None,
