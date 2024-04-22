@@ -49,12 +49,15 @@ class BaseMotorTracker:
     """
     def __init__(self, ref_geom):
         """
+        Creates motor tracker instance.
+
+        This constructor creates the motor tracker instance without
+        reference motor positions.
+
         Parameters
         ----------
         ref_geom: one of `extra_geom.DetectorGeometryBase` implementation
             Geometry
-        ref_motor_positions: array or sequence
-            Reference motor positions
         """
         self.motor_axes = self.default_motor_axes
         self.num_groups, _, self.num_motors = self.motor_axes.shape
@@ -70,6 +73,21 @@ class BaseMotorTracker:
 
     @classmethod
     def with_reference_positions(cls, ref_geom, ref_motor_positions=None):
+        """
+        Creates motor tracker instance with reference motor positions.
+
+        This constructor creates the motor tracker instance with reference
+        motor positions. The reference motor positions may be specified
+        explicitly as parameter (in mm), otherwise must be defined as
+        `motor_position` member of reference geometry.
+
+        Parameters
+        ----------
+        ref_geom: one of `extra_geom.DetectorGeometryBase` implementation
+            Geometry
+        ref_motor_positions: array or sequence
+            Reference motor positions (in mm)
+        """
         tracker = cls(ref_geom)
         if ref_motor_positions is None:
             if hasattr(tracker.ref_geom, "motor_positions"):
@@ -130,14 +148,18 @@ class BaseMotorTracker:
     def geom_at(self, motor_positions):
         """Get geometry for absolute motor positions
 
-        This returns a new geometry according to the given
-        motor positions with respect to the reference motor positions.
+        This returns a new geometry according to the given motor positions
+        (in mm) with respect to the reference motor positions, and set
+        the `motor_positions` member of the generated geometry to the new
+        motor positions.
+
+        If the reference motor positions are not set, raises ValueError.
 
         Parameters
         ----------
         motor_positions: array or list
-            New motor positions as array of the number of movable groups
-            (quadrants) by the number of motor per group.
+            New motor positions (in mm) as array of the number of movable
+            groups (quadrants) by the number of motor per group.
 
         Returns
         -------
@@ -164,13 +186,14 @@ class BaseMotorTracker:
         """Get geometry for changes of motor positions.
 
         This returns a new geometry according to the relative changes
-        of motor positions from the reference geometry.
+        of motor positions (in mm) from the reference geometry.
+        The generated geometry has no `motor_positions` member.
 
         Parameters
         ----------
         motor_diff: array or list
-            Changes of motor positions as array of the number of movable groups
-            (quadrants) by the number of motor per group.
+            Changes of motor positions (in mm) as array of the number of
+            movable groups (quadrants) by the number of motor per group.
 
         Returns
         -------
