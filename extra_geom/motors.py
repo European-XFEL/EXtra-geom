@@ -128,10 +128,10 @@ class BaseMotorTracker:
         self.motor_axes = new_motor_axes
 
     def geom_at(self, motor_positions):
-        """Update geometry according to the motor positions.
+        """Get geometry for absolute motor positions
 
-        This updates the reference geometry according to the given
-        motor positions with respect the reference motor position.
+        This returns a new geometry according to the given
+        motor positions with respect to the reference motor positions.
 
         Parameters
         ----------
@@ -161,10 +161,10 @@ class BaseMotorTracker:
         return new_geom
 
     def move_geom_by(self, motor_diff):
-        """Update geometry according to the changes of motor positions.
+        """Get geometry for changes of motor positions.
 
-        This updates the reference geometry according to the relative changes
-        of motor positions.
+        This returns a new geometry according to the relative changes
+        of motor positions from the reference geometry.
 
         Parameters
         ----------
