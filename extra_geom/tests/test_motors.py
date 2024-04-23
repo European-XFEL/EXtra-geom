@@ -45,20 +45,18 @@ def test_geom_at():
     motor_pos = [[1, -2], [1, -2], [1, -2], [1, -2]]
 
     geom = AGIPD_1MGeometry.from_quad_positions(quad_pos)
-    with pytest.raises(ValueError):
-        AGIPD_1MMotors.with_reference_positions(geom)
 
     tracker = AGIPD_1MMotors(geom)
     with pytest.raises(ValueError):
         tracker.geom_at(motor_pos)
 
-    tracker = AGIPD_1MMotors.with_reference_positions(geom, motor_ref)
+    tracker = AGIPD_1MMotors(geom, motor_ref)
     geom2 = tracker.geom_at(motor_pos)
 
     np.testing.assert_allclose(geom2.quad_positions(), quad_pos_new)
 
     geom.motor_positions = np.array(motor_ref)
-    tracker = AGIPD_1MMotors.with_reference_positions(geom)
+    tracker = AGIPD_1MMotors(geom)
     geom2 = tracker.geom_at(motor_pos)
 
     np.testing.assert_allclose(geom2.quad_positions(), quad_pos_new)
@@ -118,13 +116,13 @@ def test_other_methods():
     with pytest.raises(ValueError):
         InvalidMotorTracker(geom)
 
+    with pytest.raises(ValueError):
+        AGIPD_1MMotors(geom, [[1, -2]] * 3)
+
     tracker = AGIPD_1MMotors(geom)
     with pytest.raises(ValueError):
-        tracker.set_reference_positions([[1, -2]] * 3)
+        tracker.with_motor_axes(InvalidMotorTracker.default_motor_axes)
 
-    with pytest.raises(ValueError):
-        tracker.set_motor_axes(InvalidMotorTracker.default_motor_axes)
-
-    tracker.set_motor_axes(AGIPD_1MMotors.default_motor_axes * -1)
-    geom2 = tracker.move_geom_by(motor_pos)
+    tracker2 = tracker.with_motor_axes(AGIPD_1MMotors.default_motor_axes * -1)
+    geom2 = tracker2.move_geom_by(motor_pos)
     np.testing.assert_allclose(geom2.quad_positions(), quad_pos_new)

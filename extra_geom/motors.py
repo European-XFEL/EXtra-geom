@@ -47,17 +47,22 @@ def read_motors_from_geom(text):
 class BaseMotorTracker:
     """Detector motor tracker updates geometry according to motor positions.
     """
-    def __init__(self, ref_geom):
+    def __init__(self, ref_geom, ref_motor_positions=None):
         """
         Creates motor tracker instance.
 
-        This constructor creates the motor tracker instance without
-        reference motor positions.
+        This constructor creates the motor tracker instance. The reference
+        motor positions may be given explisitly with parameter (in mm).
+        Otherwise they will be taken from reference geometry. If reference
+        geometry has no motor positions as well, the tracker instance is
+        created without reference motor positions.
 
         Parameters
         ----------
         ref_geom: one of `extra_geom.DetectorGeometryBase` implementation
             Geometry
+        ref_motor_positions: array or sequence
+            Reference motor positions (in mm)
         """
         self.motor_axes = self.default_motor_axes
         self.num_groups, _, self.num_motors = self.motor_axes.shape
@@ -68,58 +73,23 @@ class BaseMotorTracker:
         self.motor_position_shape = (self.num_groups, self.num_motors)
         self.motor_axes_shape = self.motor_axes.shape
 
-        self.ref_geom = ref_geom
-        self.ref_motor_positions = None
-
-    @classmethod
-    def with_reference_positions(cls, ref_geom, ref_motor_positions=None):
-        """
-        Creates motor tracker instance with reference motor positions.
-
-        This constructor creates the motor tracker instance with reference
-        motor positions. The reference motor positions may be specified
-        explicitly as parameter (in mm), otherwise must be defined as
-        `motor_position` member of reference geometry.
-
-        Parameters
-        ----------
-        ref_geom: one of `extra_geom.DetectorGeometryBase` implementation
-            Geometry
-        ref_motor_positions: array or sequence
-            Reference motor positions (in mm)
-        """
-        tracker = cls(ref_geom)
         if ref_motor_positions is None:
-            if hasattr(tracker.ref_geom, "motor_positions"):
-                ref_motor_positions = tracker.ref_geom.motor_positions
-            else:
-                raise ValueError(
-                    "There is no motor positions in reference geometry")
+            ref_motor_positions = getattr(ref_geom, "motor_positions", None)
+        else:
+            ref_motor_positions = np.array(ref_motor_positions, copy=True)
+            if ref_motor_positions.shape != self.motor_position_shape:
+                raise ValueError(f"Expects array{self.motor_position_shape}: "
+                                 f"{self.num_groups} groups moving by "
+                                 f"{self.num_motors} motor each.")
 
-        tracker.set_reference_positions(ref_motor_positions)
-        return tracker
+        self.ref_geom = ref_geom
+        self.ref_motor_positions = ref_motor_positions
 
-    def set_reference_positions(self, ref_motor_positions):
-        """Set reference motor positions.
+    def with_motor_axes(self, new_motor_axes):
+        """Get the motor tracker with new motor axes.
 
-        Parameters
-        ----------
-        ref_motor_positions: array or list
-            New reference motor positions. The positions are expected
-            as array or list of the number of movable groups (quadrants)
-            by the number of motors per group.
-        """
-        ref_motor_positions = np.array(ref_motor_positions, copy=True)
-        if ref_motor_positions.shape != self.motor_position_shape:
-            raise ValueError(f"Expects array{self.motor_position_shape}: "
-                             f"{self.num_groups} groups moving by "
-                             f"{self.num_motors} motor each.")
-
-        self.ref_motor_positions = np.array(ref_motor_positions)
-
-    def set_motor_axes(self, new_motor_axes):
-        """Set the matrices of transformation motor positions in the positions
-        of detector panels.
+        This returns a new motor tracker with given transformation matrices
+        of motor positions in the positions of detector panels.
 
         ::
             (h, v) - local motor coordinates
@@ -143,7 +113,11 @@ class BaseMotorTracker:
             raise ValueError(f"Expects array{self.motor_axes_shape}: "
                              f"{self.num_groups} groups moving by "
                              f"{self.num_motors} motor each.")
-        self.motor_axes = new_motor_axes
+
+        tracker = self.__class__(self.ref_geom)
+        tracker.ref_motor_positions = self.ref_motor_positions
+        tracker.motor_axes = new_motor_axes
+        return tracker
 
     def geom_at(self, motor_positions):
         """Get geometry for absolute motor positions
