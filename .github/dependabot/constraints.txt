@@ -1,5 +1,5 @@
 cfelpyutils==2.0.6
-coverage<7.5
+coverage<7.6
 cycler<=0.12.1
 extra_data==1.17.0
 h5py<3.12.0
