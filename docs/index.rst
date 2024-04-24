@@ -49,6 +49,7 @@ Documentation contents
    convert_coords
    masks
    pyfai
+   motor_based_geometry
 
 .. toctree::
    :caption: Development
