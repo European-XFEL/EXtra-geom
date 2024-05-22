@@ -198,14 +198,14 @@ class AGIPD_1MMotors(BaseMotorTracker):
         np.s_[0:4], np.s_[4:8], np.s_[8:12], np.s_[12:16],
     ]
 
-    # transformation matrix (h,v) -> (x,y), where
-    #    (h, v) - local motor coordinates
+    # transformation matrix (v,h) -> (x,y), where
+    #    (v, h) - local motor coordinates
     #    (x, y) - laboratory cooridnates (looking downstream)
-    #  | hx vx | |h|
-    #  | hy vy | |v|
+    #  | vx hx | |v|
+    #  | vy hy | |h|
     default_motor_axes = np.array([
-        [[-1, 0], [0, -1]],  # Q1
-        [[-1, 0], [0, +1]],  # Q2
-        [[+1, 0], [0, +1]],  # Q3
-        [[+1, 0], [0, -1]],  # Q4
+        [[0, -1], [-1, 0]],  # Q1
+        [[0, -1], [+1, 0]],  # Q2
+        [[0, +1], [+1, 0]],  # Q3
+        [[0, +1], [-1, 0]],  # Q4
     ])
