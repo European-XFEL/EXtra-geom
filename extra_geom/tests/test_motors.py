@@ -19,14 +19,14 @@ class InvalidMotorTracker(BaseMotorTracker):
         np.s_[0:4], np.s_[4:8],
     ]
     default_motor_axes = np.array([
-        [[-1, 0], [0, -1]],  # Q1
+        [[0, -1], [-1, 0]],  # Q1
     ])
 
 
 def test_move_geom_by():
     quad_pos = [(-525, 625), (-550, -10), (520, -160), (542.5, 475)]
     quad_pos_new = [(-530, 635), (-555., -20.), (525., -170.), (547.5, 485.)]
-    motor_pos = [[1, -2], [1, -2], [1, -2], [1, -2]]
+    motor_pos = [[-2, 1], [-2, 1], [-2, 1], [-2, 1]]
 
     geom = AGIPD_1MGeometry.from_quad_positions(quad_pos)
     tracker = AGIPD_1MMotors(geom)
@@ -42,7 +42,7 @@ def test_geom_at():
     quad_pos = [(-525, 625), (-550, -10), (520, -160), (542.5, 475)]
     quad_pos_new = [(-530, 635), (-555., -20.), (525., -170.), (547.5, 485.)]
     motor_ref = [[0, 0], [0, 0], [0, 0], [0, 0]]
-    motor_pos = [[1, -2], [1, -2], [1, -2], [1, -2]]
+    motor_pos = [[-2, 1], [-2, 1], [-2, 1], [-2, 1]]
 
     geom = AGIPD_1MGeometry.from_quad_positions(quad_pos)
 
@@ -66,7 +66,7 @@ def test_geom_at():
 
 
 def test_read_write_motors():
-    motor_pos = [[1, -2], [1, -2], [1, -2], [1, -2]]
+    motor_pos = [[-2, 1], [-2, 1], [-2, 1], [-2, 1]]
     motor_param = {
         f"q{i // 2 + 1}m{i % 2 + 1}": motor_pos[i // 2][i % 2]
         for i in range(8)
@@ -110,7 +110,7 @@ def test_read_write_motors():
 def test_other_methods():
     quad_pos = [(-525, 625), (-550, -10), (520, -160), (542.5, 475)]
     quad_pos_new = [(-520, 615), (-545., 0.), (515., -150.), (537.5, 465.)]
-    motor_pos = [[1, -2], [1, -2], [1, -2], [1, -2]]
+    motor_pos = [[-2, 1], [-2, 1], [-2, 1], [-2, 1]]
 
     geom = AGIPD_1MGeometry.from_quad_positions(quad_pos)
     with pytest.raises(ValueError):
