@@ -1,6 +1,17 @@
 Release Notes
 =============
 
+1.12
+----
+
+2024-05-27
+
+- :ref:`det-AGIPD-1M` detector geometry can now be updated using the positions
+  from the 8 quadrant motors (:ghpull:`269`). A reference geometry is required
+  as a starting point, and a new geometry can be created based on the changes in
+  the motor positions. See :doc:`motor_based_geometry` for an example of how to
+  use this.
+
 1.11
 ----
 
