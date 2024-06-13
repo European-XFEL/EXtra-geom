@@ -1,3 +1,4 @@
+import re
 from functools import lru_cache
 from itertools import chain
 from warnings import warn
@@ -398,6 +399,80 @@ class DetectorGeometryBase:
 
         if self.filename == 'No file':
             self.filename = filename
+
+    def update_crystfel_geom(self, filename, to_filename=None):
+        """Update an existing CrystFEL .geom geometry file for this detector
+
+        This preserves the structure of the existing file, including things
+        like panel names and comments, and updates the geometry information -
+        the position and orientation of each panel. The ``.geom`` file must
+        describe the same type of detector, i.e. the same number and arrangement
+        of panels.
+
+        By default, the file will be overwritten in place. Pass ``to_filename``
+
+        """
+        from .crystfel_fmt import _crystfel_format_vec
+
+        cfel_geom = load_crystfel_geometry(filename)
+        panels_by_data_coord = self._cfel_panels_by_data_coord(
+            cfel_geom.detector['panels']
+        )
+
+        updates = {}
+        for modno, mod in enumerate(self.modules):
+            for tileno, frag in enumerate(mod):
+                ss_slice, fs_slice = self._tile_slice(tileno)
+                d = panels_by_data_coord[modno, ss_slice.start, fs_slice.start]
+                panel = d['panel_name']
+                updates.update({
+                    (panel, 'corner_x'): frag.corner_pos[0] / self.pixel_size,
+                    (panel, 'corner_y'): frag.corner_pos[1] / self.pixel_size,
+                    (panel, 'coffset'): frag.corner_pos[2],
+                    (panel, 'ss'): _crystfel_format_vec(frag.ss_vec / self.pixel_size),
+                    (panel, 'fs'): _crystfel_format_vec(frag.fs_vec / self.pixel_size),
+                })
+
+        with open(filename, 'r') as f:
+            old_lines = f.readlines()
+
+        pat = re.compile(r"^\s*(.*)/(corner_[xy]|coffset|fs|ss)\s+=\s+([^;]+)(;.*)?")
+
+        # Prepare the new file in memory, so if anything goes wrong we don't
+        # write an incomplete file.
+        new_lines = []
+        for line in old_lines:
+            line = line.rstrip('\r\n')
+            m = pat.match(line)
+            if m:
+                panel, field, value, comment = m.groups()
+                new_val = updates.pop((panel, field))
+                new_lines.append(
+                    f"{panel}/{field} = {new_val} {comment or ''}".rstrip()
+                )
+            else:
+                new_lines.append(line)
+
+        # coffset fields may not be in the target file - add them if needed
+        for (panel, field), new_val in updates.items():
+            if field != 'coffset':
+                raise Exception(f"Target .geom file did not contain {panel}/{field}")
+            if new_val == 0.:
+                continue
+
+            # Scanning through all lines each time is inefficient, but the
+            # numbers are probably small enough that it's not worth doing
+            # something more clever.
+            last_ix = -1
+            for ix, line in new_lines:
+                if line.lstrip().startswith(f'{panel}/'):
+                    last_ix = ix
+            new_lines.insert(last_ix + 1, f'{panel}/{field} = {new_val}')
+
+        if to_filename is None:
+            to_filename = filename
+        with open(to_filename, 'w') as f:
+            f.write('\n'.join(new_lines))
 
     def _snapped(self):
         """Snap geometry to a 2D pixel grid
