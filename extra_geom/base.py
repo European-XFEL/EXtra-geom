@@ -873,7 +873,7 @@ class DetectorGeometryBase:
                 tile.offset(all_shifts[m, t])
                 for t, tile in enumerate(module)
             ] for m, module in enumerate(self.modules)
-        ])
+        ], metadata=self.metadata)
 
     def rotate(self, angles, center=None, modules=np.s_[:], tiles=np.s_[:],
                degrees=True):
