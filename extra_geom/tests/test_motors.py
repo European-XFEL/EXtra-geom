@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
-from extra_geom import AGIPD_1MGeometry
+from extra_geom import AGIPD_1MGeometry, JUNGFRAUGeometry
 from extra_geom.crystfel_fmt import motors_to_geom
 from extra_geom.motors import (AGIPD_1MMotors, BaseMotorTracker,
-                               read_motors_from_geom)
+                               JF4MMotors, read_motors_from_geom)
 
 motor_text_template = """\
 ;XGEOM MOTORS={num_groups},{num_motors}
@@ -126,3 +126,32 @@ def test_other_methods():
     tracker2 = tracker.with_motor_axes(AGIPD_1MMotors.default_motor_axes * -1)
     geom2 = tracker2.move_geom_by(motor_pos)
     np.testing.assert_allclose(geom2.quad_positions(), quad_pos_new)
+
+
+def test_jf4m():
+    x_start, y_start = 1125, 1078
+    mod_width = (256 * 4) + (2 * 3)  # inc. 2px gaps between tiles
+    mod_height = (256 * 2) + 2
+
+    module_pos = [
+        (x_start - mod_width, y_start - mod_height - (i * (mod_height + 33)))
+        for i in range(4)
+    ] + [
+        (-x_start, -y_start + (i * (mod_height + 33))) for i in range(4)
+    ]
+    orientations = [(-1, -1) for _ in range(4)] + [(1, 1) for _ in range(4)]
+
+    geom = JUNGFRAUGeometry.from_module_positions(
+        module_pos, orientations=orientations, asic_gap=6)
+
+    tracker = JF4MMotors(geom, [[7], [-22]])
+    geom2 = tracker.geom_at([[10], [-19]])
+
+    pos_ref = [
+        (0.088275, 0.08115), (0.088275, 0.040125),
+        (0.088275, -0.0009), (0.088275, -0.041925),
+        (-0.087375, -0.08085), (-0.087375, -0.039825),
+        (-0.087375, 0.0012), (-0.087375, 0.042225)
+    ]
+    pos_new = [geom2.modules[i][0].corner_pos[:2] for i in range(8)]
+    np.testing.assert_allclose(pos_new, pos_ref)
