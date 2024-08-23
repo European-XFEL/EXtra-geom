@@ -209,3 +209,20 @@ class AGIPD_1MMotors(BaseMotorTracker):
         [[0, +1], [+1, 0]],  # Q3
         [[0, +1], [-1, 0]],  # Q4
     ])
+
+
+class JF4MMotors(BaseMotorTracker):
+    # groups of modules driven by motors together
+    # H1, H2
+    groups = [
+        np.s_[0:4], np.s_[4:8]
+    ]
+
+    # transformation matrix (v,h) -> (x,y), where
+    #    h - local motor coordinates (only horizontal)
+    #    (x, y) - laboratory cooridnates (looking downstream)
+    #  | hx, hy |.T x h
+    default_motor_axes = np.array([
+        [[+1], [0]],  # H1 - light side, motor axis directed outside
+        [[-1], [0]],  # H2 - dark side, motor axis directed outside
+    ])
