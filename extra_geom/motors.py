@@ -212,6 +212,9 @@ class AGIPD_1MMotors(BaseMotorTracker):
 
 
 class JF4MMotors(BaseMotorTracker):
+    # Caution! The assignment of modules to motors and
+    # motors' axes sign are not verified yet.
+
     # groups of modules driven by motors together
     # H1, H2
     groups = [
