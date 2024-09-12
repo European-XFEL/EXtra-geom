@@ -16,4 +16,4 @@ pytest-cov<=5.0.0
 python-dateutil==2.9.0.post0
 six==1.16.0
 testpath==0.6.0
-xarray<2024.8.0
+xarray<2024.10.0
