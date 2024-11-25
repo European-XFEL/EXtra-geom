@@ -6,7 +6,7 @@ h5py<3.13.0
 kiwisolver==1.4.7
 matplotlib<3.10.0
 nbval==0.11.0
-numexpr!=2.8.6, <=2.10.1
+numexpr!=2.8.6, <=2.10.2
 numpy<2.2.0
 Pillow<11.1.0
 pyFAI==2024.9.0
