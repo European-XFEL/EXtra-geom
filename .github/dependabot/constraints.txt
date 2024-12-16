@@ -4,7 +4,7 @@ cycler<=0.12.1
 extra_data==1.18.0
 h5py<3.13.0
 kiwisolver==1.4.7
-matplotlib<3.10.0
+matplotlib<3.11.0
 nbval==0.11.0
 numexpr!=2.8.6, <=2.10.2
 numpy<2.3.0
