@@ -97,8 +97,8 @@ class BaseMotorTracker:
             (hx, hy) - the axis of horizontal motor in laboratory coordinates
             (vx, vy) - the axis of vertical motor in laboratory coordinates
 
-            |x| _ | hx vx | |h|
-            |y| ‾ | hy vy | |v|
+            `|x| _ | hx vx | |h|`
+            `|y| ‾ | hy vy | |v|`
 
         Parameters
         ----------
