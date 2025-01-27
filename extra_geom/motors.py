@@ -193,6 +193,26 @@ class BaseMotorTracker:
 
 
 class AGIPD_1MMotors(BaseMotorTracker):
+    """
+    Motor tracker for AGIPD1M.
+
+    The motor tracker updates reference geometry according to the motor
+    positions.
+
+    AGIPD1M has four quadrant moving by two motors each. Methods expect
+    motor positions or their changes as an array with the shape `(4, 2)`
+    or as a nested sequence: `[[Q1M1, Q2M2], [Q2M1, Q2M2], [Q3M1, Q3M2],
+    [Q4M1, Q4M2]]`.
+
+    Parameters
+    ----------
+    ref_geom: extra_geom.AGIPD_1MGeometry
+    ref_motor_positions: array[4, 2] or nested sequence
+        Reference motor positions (in mm), four groups by two values.
+        If `None`, it be taken from reference geometry.  If reference
+        geometry has no motor positions as well, the tracker instance is
+        created without reference motor positions.
+    """
     # groups of modules driven by motors together
     # Q1, Q2, Q3, Q4
     groups = [
@@ -213,6 +233,25 @@ class AGIPD_1MMotors(BaseMotorTracker):
 
 
 class JF4MMotors(BaseMotorTracker):
+    """
+    Motor tracker for Jungfrau4M.
+
+    The motor tracker updates reference geometry according to the motor
+    positions.
+
+    Jungfrau4M has two halves moving by one motors each. Methods expect
+    motor positions or their changes as an array with the shape `(2, 1)`
+    or as a nested sequence: `[[H1M1], [H2M1]]`.
+
+    Parameters
+    ----------
+    ref_geom: extra_geom.AGIPD_1MGeometry
+    ref_motor_positions: array[2, 1] or nested sequence
+        Reference motor positions (in mm), four groups by two values.
+        If `None`, it be taken from reference geometry.  If reference
+        geometry has no motor positions as well, the tracker instance is
+        created without reference motor positions.
+    """
     # groups of modules driven by motors together
     # H1, H2
     groups = [
