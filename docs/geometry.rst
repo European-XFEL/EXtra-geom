@@ -425,7 +425,7 @@ Motor-based geometry
 The geometry of some motorized multimodule detectors may be updated according to motor positions by corresponding `MotorTracker`.
 
 .. autoclass:: extra_geom.motors::AGIPD_1MMotors
-   :class-doc-from: init
+   :class-doc-from: class
 
    .. automethod:: with_motor_axes
 
@@ -434,7 +434,7 @@ The geometry of some motorized multimodule detectors may be updated according to
    .. automethod:: move_geom_by
 
 .. autoclass:: extra_geom.motors::JF4MMotors
-   :class-doc-from: init
+   :class-doc-from: class
 
    .. automethod:: with_motor_axes
 
