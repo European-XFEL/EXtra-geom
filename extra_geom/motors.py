@@ -239,9 +239,9 @@ class JF4MMotors(BaseMotorTracker):
     The motor tracker updates reference geometry according to the motor
     positions.
 
-    Jungfrau4M has two halfs moving by one motors each. Methods expect
+    Jungfrau4M has two halves moving by one motors each. Methods expect
     motor positions or their changes as an array with the shape `(2, 1)`
-    or as a nested sequence: `[[H1M1, H2M1]]`.
+    or as a nested sequence: `[[H1M1], [H2M1]]`.
 
     Parameters
     ----------
