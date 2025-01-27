@@ -417,3 +417,27 @@ Generic detector may represent an unconstrained detector of your choice.
    .. automethod:: inspect
 
    .. automethod:: compare
+
+
+Motor-based geometry
+--------------------
+
+The geometry of some motorized multimodule detectors may be updated according to motor positions by corresponding `MotorTracker`.
+
+.. autoclass:: extra_geom.motors::AGIPD_1MMotors
+   :class-doc-from: init
+
+   .. automethod:: with_motor_axes
+
+   .. automethod:: geom_at
+
+   .. automethod:: move_geom_by
+
+.. autoclass:: extra_geom.motors::JF4MMotors
+   :class-doc-from: init
+
+   .. automethod:: with_motor_axes
+
+   .. automethod:: geom_at
+
+   .. automethod:: move_geom_by
