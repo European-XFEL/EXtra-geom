@@ -418,6 +418,7 @@ Generic detector may represent an unconstrained detector of your choice.
 
    .. automethod:: compare
 
+.. _motors-ref:
 
 Motor-based geometry
 --------------------
