@@ -1,6 +1,16 @@
 Release Notes
 =============
 
+1.13
+----
+
+2025-01-28
+
+- JUNGFRAU 4M (8 modules) geometry can now be updated based on the positions of
+  the 2 motors moving the hemispheres (:ghpull:`303`), using
+  :class:`~.JF4MMotors`.
+- EXtra-geom now requires Python 3.9 or above (:ghpull:`309`).
+
 1.12
 ----
 
