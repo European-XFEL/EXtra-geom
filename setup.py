@@ -36,7 +36,13 @@ setup(name="EXtra-geom",
       package_data={
           'extra_geom.tests': ['dssc_geo_june19.h5', 'lpd_mar_18.h5'],
       },
+      entry_points={
+          'console_scripts': [
+              'extra-geom-from-karabo = extra_data.geom_from_karabo:main',
+          ]
+      },
       install_requires=[
+          'Karabo-proxy',
           'cfelpyutils>=2.0, <3.0',
           'h5py>=2.7.1',
           'matplotlib',
