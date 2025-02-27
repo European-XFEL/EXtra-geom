@@ -65,7 +65,7 @@ setup(name="EXtra-geom",
               'condat_gridconv',
           ]
       },
-      python_requires='>=3.9',
+      python_requires='>=3.10',
       classifiers=[
           'Intended Audience :: Developers',
           'Intended Audience :: Science/Research',
