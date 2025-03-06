@@ -97,3 +97,92 @@ def test_inspect():
     ax = geom.inspect()
     assert isinstance(ax, Axes)
 
+def test_rotate_z():
+    geom = JUNGFRAUGeometry.example(n_modules=1)
+    px_size = geom.pixel_size
+
+    # Start with the slow-scan axis pointing up (+y), fast-scan pointing beam-left (+x)
+    np.testing.assert_allclose(geom.modules[0][0].ss_vec / px_size, [0, 1, 0])
+    np.testing.assert_allclose(geom.modules[0][0].fs_vec / px_size, [1, 0, 0])
+
+    # Step from ASIC 0 to ASIC 4, vertically above it
+    tile_step = geom.modules[0][4].corner_pos - geom.modules[0][0].corner_pos
+    np.testing.assert_almost_equal(tile_step[0], 0)
+    assert .01 < tile_step[1] < .03  # ASICS are about 2cm
+    np.testing.assert_almost_equal(tile_step[2], 0)
+    tile_step_magnitude = tile_step[1]
+
+    # Rotate clockwise around the z axis (looking along the axis)
+    rotated = geom.rotate((0, 0, 10), degrees=True)
+
+    # Slow scan: [0, 1, 0] -> [-?, 1-?, 0]
+    ss_x, ss_y, ss_z = rotated.modules[0][0].ss_vec / px_size
+    assert -0.2 < ss_x < 0
+    assert 0.8 < ss_y < 1
+    np.testing.assert_almost_equal(ss_z, 0)
+
+    # Fast scan: [1, 0, 0] -> [1-?, ?, 0]
+    fs_x, fs_y, fs_z = rotated.modules[0][0].fs_vec / px_size
+    assert 0.8 < fs_x < 1
+    assert 0 < fs_y < 0.2
+    np.testing.assert_almost_equal(fs_z, 0)
+
+    # Tile step: [0, 1, 0] -> [-?, 1-?, 0]
+    tile_step = rotated.modules[0][4].corner_pos - rotated.modules[0][0].corner_pos
+    assert -0.2 < tile_step[0] / tile_step_magnitude < 0
+    assert 0.8 < tile_step[1] / tile_step_magnitude < 1
+    np.testing.assert_almost_equal(tile_step[2], 0)
+
+    # Rotate anticlockwise (looking along the axis)
+    rotated2 = geom.rotate((0, 0, -5), degrees=True)
+
+    # Slow scan: [0, 1, 0] -> [+?, 1-?, 0]
+    ss_x, ss_y, ss_z = rotated2.modules[0][0].ss_vec / px_size
+    assert 0 < ss_x < 0.2
+    assert 0.8 < ss_y < 1
+    np.testing.assert_almost_equal(ss_z, 0)
+
+    # Fast scan: [1, 0, 0] -> [-?, 1-?, 0]
+    fs_x, fs_y, fs_z = rotated2.modules[0][0].fs_vec / px_size
+    assert 0.8 < fs_x < 1
+    assert -0.2 < fs_y < 0
+    np.testing.assert_almost_equal(fs_z, 0)
+
+    # Tile step: [0, 1, 0] -> [+?, 1-?, 0]
+    tile_step = rotated2.modules[0][4].corner_pos - rotated2.modules[0][0].corner_pos
+    assert 0 < tile_step[0] / tile_step_magnitude < 0.2
+    assert 0.8 < tile_step[1] / tile_step_magnitude < 1
+    np.testing.assert_almost_equal(tile_step[2], 0)
+
+def test_rotate_x():
+    geom = JUNGFRAUGeometry.example(n_modules=1)
+    px_size = geom.pixel_size
+
+    # Start with the slow-scan axis pointing up (+y), fast-scan pointing beam-left (+x)
+    np.testing.assert_allclose(geom.modules[0][0].ss_vec / px_size, [0, 1, 0])
+    np.testing.assert_allclose(geom.modules[0][0].fs_vec / px_size, [1, 0, 0])
+
+    # Step from ASIC 0 to ASIC 4, vertically above it
+    tile_step = geom.modules[0][4].corner_pos - geom.modules[0][0].corner_pos
+    np.testing.assert_almost_equal(tile_step[0], 0)
+    assert .01 < tile_step[1] < .03  # ASICS are about 2cm
+    np.testing.assert_almost_equal(tile_step[2], 0)
+    tile_step_magnitude = tile_step[1]
+
+    # Postive rotation around x tilts the top away from the source (+z)
+    rotated = geom.rotate((5, 0, 0), degrees=True)
+
+    # Slow scan: [0, 1, 0] -> [0, 1-?, +?]
+    ss_x, ss_y, ss_z = rotated.modules[0][0].ss_vec / px_size
+    np.testing.assert_almost_equal(ss_x, 0)
+    assert 0.8 < ss_y < 1  # y decreases
+    assert 0 < ss_z < 0.2  # z increases
+
+    # Fast scan: no change
+    np.testing.assert_allclose(geom.modules[0][0].fs_vec / px_size, [1, 0, 0])
+
+    # Tile step: [0, 1, 0] -> [0, 1-?, +?]
+    tile_step = rotated.modules[0][4].corner_pos - rotated.modules[0][0].corner_pos
+    np.testing.assert_almost_equal(tile_step[0], 0)
+    assert 0.8 < tile_step[1] / tile_step_magnitude < 1
+    assert 0 < tile_step[2] < 0.2
