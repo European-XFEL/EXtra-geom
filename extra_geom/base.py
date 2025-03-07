@@ -58,9 +58,9 @@ class GeometryFragment:
         return type(self)(pos, self.ss_vec, self.fs_vec, self.ss_pixels, self.fs_pixels)
 
     def rotate(self, matrix, center):
-        ss_vec = self.ss_vec @ matrix
-        fs_vec = self.fs_vec @ matrix
-        pos = (self.corner_pos - center) @ matrix + center
+        ss_vec = matrix @ self.ss_vec
+        fs_vec = matrix @ self.fs_vec
+        pos = (matrix @ (self.corner_pos - center)) + center
         return type(self)(pos, ss_vec, fs_vec, self.ss_pixels, self.fs_pixels)
 
     def snap(self, px_shape):
