@@ -1,6 +1,15 @@
 Release Notes
 =============
 
+1.14
+----
+
+2025-03-07
+
+- Fix the direction of rotations in the :meth:`~.rotate` method to match what is
+  described in the docs (right-hand convention). This is a breaking change for
+  code which relied on the previous behaviour (:ghpull:`332`).
+
 1.13
 ----
 
