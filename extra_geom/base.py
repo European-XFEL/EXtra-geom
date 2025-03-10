@@ -297,10 +297,25 @@ class DetectorGeometryBase:
         # It's possible for these to have different values for different panels,
         # but it seems to be common to use them like headers, describing all
         # panels, and we're assuming that's the case here.
-        cfel_md_keys = ('data', 'mask', 'adu_per_eV', 'clen')
+        cfel_md_keys = ('data', 'adu_per_eV', 'clen')
+        cfel_md_new_mask_keys = tuple(
+            f"mask{i}_{suf}" for i in range(8) \
+                for suf in ["file", "data", "goodbits", "badbits"]
+        )
         d1 = panels_by_data_coord[0, 0, 0]
-        metadata = {'crystfel': {k: d1.get(k) for k in cfel_md_keys}}
-        metadata['crystfel']['photon_energy'] = cfel_geom.beam['photon_energy']
+        metadata = {
+            'crystfel': {
+                'photon_energy': cfel_geom.beam['photon_energy'],
+                **{k: d1.get(k) for k in cfel_md_keys},
+                'mask_info': {
+                    'mask_file': d1.get('mask_file'),
+                    'mask': d1.get('mask'),
+                    'mask_good': cfel_geom.detector['mask_good'],
+                    'mask_bad': cfel_geom.detector['mask_bad'],
+                    **{k: d1.get(k) for k in cfel_md_new_mask_keys}
+                }
+            }
+        }
 
         # Normalise description of bad regions, so we can output it correctly.
         # - Change panel names to uniform pNaM (panel N asic M) format
@@ -340,7 +355,7 @@ class DetectorGeometryBase:
 
     def write_crystfel_geom(self, filename, *,
                             data_path=None,
-                            mask_path=None, dims=('frame', 'modno', 'ss', 'fs'),
+                            mask_info=None, dims=('frame', 'modno', 'ss', 'fs'),
                             nquads=None, adu_per_ev=None, clen=None,
                             photon_energy=None):
         """Write this geometry to a CrystFEL format (.geom) geometry file.
@@ -357,8 +372,13 @@ class DetectorGeometryBase:
         data_path : str
             Path to the group that contains the data array in the hdf5 file.
             Default: ``'/entry_1/instrument_1/detector_1/data'``.
-        mask_path : str
-            Path to the group that contains the mask array in the hdf5 file.
+        mask_info : dict
+            Dictionary with information on masks in either old or new style:
+            Old style: {'mask_file': <file>, 'mask': <path>,
+                        'mask_good': 0x0, 'mask_bad': 0xffff}
+            New style: {'mask{i}_file': <file>, 'mask{i}_data': <path>,
+                        'mask{i}_goodbits': 0x0, 'mask{i}_badbits': 0xffff}
+                            with {i} in an inclusive range [0, 7].
         dims : tuple
             Dimensions of the data. Extra dimensions, except for the defaults,
             should be added by their index, e.g.
@@ -380,8 +400,8 @@ class DetectorGeometryBase:
         cfelmeta = self.metadata.get('crystfel', {})
         if data_path is None:
             data_path = cfelmeta.get('data') or '/entry_1/instrument_1/detector_1/data'
-        if mask_path is None:
-            mask_path = cfelmeta.get('mask')
+        if mask_info is None:
+            mask_info = cfelmeta.get('mask_info')
         if adu_per_ev is None:
             adu_per_ev = cfelmeta.get('adu_per_eV')
         if clen is None:
@@ -390,7 +410,7 @@ class DetectorGeometryBase:
             photon_energy = cfelmeta.get('photon_energy')
 
         write_crystfel_geom(
-            self, filename, data_path=data_path, mask_path=mask_path, dims=dims,
+            self, filename, data_path=data_path, mask_info=mask_info, dims=dims,
             bad_regions=cfelmeta.get('bad', {}),
             nquads=nquads, adu_per_ev=adu_per_ev, clen=clen,
             photon_energy=photon_energy,
@@ -873,7 +893,7 @@ class DetectorGeometryBase:
                 tile.offset(all_shifts[m, t])
                 for t, tile in enumerate(module)
             ] for m, module in enumerate(self.modules)
-        ])
+        ], metadata=self.metadata)
 
     def rotate(self, angles, center=None, modules=np.s_[:], tiles=np.s_[:],
                degrees=True):
