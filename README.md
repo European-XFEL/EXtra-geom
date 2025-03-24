@@ -8,7 +8,7 @@ Python tools to work with EuXFEL detector geometry and assemble detector images.
 Installing
 ==========
 
-*EXtra-geom* is available on our Anaconda installation on the Maxwell cluster:
+*EXtra-geom* is available in our Python environment on the Maxwell cluster:
 
     module load exfel exfel-python
 

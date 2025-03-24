@@ -8,7 +8,7 @@ assemble complete detector images.
 Installation
 ------------
 
-EXtra-geom is available on our Anaconda installation on the Maxwell cluster::
+EXtra-geom is available in our Python environment on the Maxwell cluster::
 
     module load exfel exfel-python
 
