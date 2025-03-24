@@ -19,9 +19,6 @@ to use in other environments with Python 3::
 
 If you get a permissions error, add the ``--user`` flag to that command.
 
-There is one optional feature: install ``extra_geom[interpolate]`` to use
-the :meth:`~.position_modules_interpolate` method (slow).
-
 Documentation contents
 ----------------------
 
