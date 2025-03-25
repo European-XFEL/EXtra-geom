@@ -3,6 +3,7 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 import pyFAI.detectors
+import pyFAI.azimuthalIntegrator
 from matplotlib.axes import Axes
 from cfelpyutils.geometry import load_crystfel_geometry
 from extra_data import RunDirectory
@@ -86,7 +87,10 @@ def test_to_pyfai_detector():
     geom = jf4m_geometry()
     jf4m_pyfai = geom.to_pyfai_detector()
     assert isinstance(jf4m_pyfai, pyFAI.detectors.Detector)
-    assert jf4m_pyfai.MAX_SHAPE == (8*512, 1024)
+    assert jf4m_pyfai.shape == (8*512, 1024)
+
+    ai = pyFAI.azimuthalIntegrator.AzimuthalIntegrator(detector=jf4m_pyfai)
+    assert ai.array_from_unit(unit='r_m').shape == (8*512, 1024)
 
 
 def test_inspect():
