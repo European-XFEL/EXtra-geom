@@ -109,14 +109,22 @@ class SnappedGeometry:
                     f"module number labels should be in the range 0-{nmod-1} "
                     f"(found {min_mod}-{max_mod})"
                 )
-            assert data.shape[-2:] == self.geom.expected_data_shape[-2:]
+            if data.shape[-2:] != self.geom.expected_data_shape[-2:]:
+                raise ValueError(
+                    f"Wrong pixel dimensions for detector modules: {data.shape[-2:]} "
+                    f"- expected {self.geom.expected_data_shape[-2:]})"
+                )
 
             mod_dim_ix = data.dims.index('module')
             extra_shape = data.shape[:mod_dim_ix] + data.shape[mod_dim_ix+1:-2]
             get_mod_data = lambda i: data.sel(module=i).values
         else:
             # Input is a numpy array (or similar unlabelled array)
-            assert data.shape[-3:] == self.geom.expected_data_shape
+            if data.shape[-3:] != self.geom.expected_data_shape:
+                raise ValueError(
+                    f"Wrong shape for detector data: {data.shape} does not end "
+                    f"with {self.geom.expected_data_shape}"
+                )
             modnos = range(nmod)
             extra_shape = data.shape[:-3]
             get_mod_data = lambda i: data[..., i, :, :]
@@ -124,7 +132,11 @@ class SnappedGeometry:
         if out is None:
             out = self.make_output_array(extra_shape, data.dtype)
         else:
-            assert out.shape == extra_shape + self.size_yx
+            if out.shape != extra_shape + self.size_yx:
+                raise ValueError(
+                    f"Output array shape is wrong: {out.shape} "
+                    f"- expected {extra_shape + self.size_yx}"
+                )
             if not np.can_cast(data.dtype, out.dtype, casting='safe'):
                 raise TypeError("{} cannot be safely cast to {}".
                                 format(data.dtype, out.dtype))
@@ -155,13 +167,21 @@ class SnappedGeometry:
 
     def position_modules_symmetric(self, data, out=None, threadpool=None):
         """Assemble data so the centre is in the middle of the output array"""
-        assert data.shape[-3:] == self.geom.expected_data_shape
+        if data.shape[-3:] != self.geom.expected_data_shape:
+            raise ValueError(
+                f"Wrong shape for detector data: {data.shape} does not end "
+                f"with {self.geom.expected_data_shape}"
+            )
         min_shape = np.stack([self.centre * 2, self.size_yx]).max(axis=0)
         if out is None:
             img_shape = min_shape
             out = np.full(data.shape[:-3] + tuple(img_shape), np.nan, dtype=data.dtype)
         else:
-            assert out.shape[:-2] == data.shape[:-3]
+            if out.shape[:-2] != data.shape[:-3]:
+                raise ValueError(
+                    f"Output array has wrong shape in leading dimensions: "
+                    f"{out.shape[:-2]} - expected {data.shape[:-3]} from input"
+                )
             img_shape = np.array(out.shape[-2:])
             if (img_shape < np.array(min_shape)).any():
                 raise ValueError(
