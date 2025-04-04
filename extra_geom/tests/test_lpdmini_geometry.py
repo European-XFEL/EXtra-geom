@@ -3,7 +3,7 @@ from os.path import abspath, dirname
 import numpy as np
 import pyFAI.detectors
 import pytest
-from cfelpyutils.geometry import load_crystfel_geometry
+from cfel_fmt.geometry import load_crystfel_geometry
 from matplotlib.axes import Axes
 
 from extra_geom import LPD_MiniGeometry
@@ -17,7 +17,7 @@ def test_write_read_crystfel_file(tmpdir):
     path = str(tmpdir / 'test.geom')
     geom.write_crystfel_geom(filename=path, clen=0.119, adu_per_ev=0.0075)
 
-    # Load the geometry file with cfelpyutils and test the ridget groups
+    # Load the geometry file with cfel_fmt and test the ridget groups
     loaded = LPD_MiniGeometry.from_crystfel_geom(path)
     np.testing.assert_allclose(
         loaded.modules[0][0].corner_pos, geom.modules[0][0].corner_pos

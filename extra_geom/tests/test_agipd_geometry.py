@@ -4,7 +4,7 @@ from itertools import product
 import numpy as np
 import pyFAI.detectors
 import pytest
-from cfelpyutils.geometry import load_crystfel_geometry
+from cfel_fmt.geometry import load_crystfel_geometry
 from matplotlib.axes import Axes
 
 from extra_geom import AGIPD_1MGeometry, agipd_asic_seams
@@ -104,7 +104,7 @@ def test_write_read_crystfel_file(tmpdir):
     assert_bad_region_like(loaded.metadata['crystfel']['bad']['bad_xy'], bad_xy)
     assert_bad_region_like(loaded.metadata['crystfel']['bad']['bad_fsss'], bad_fsss)
 
-    # Load the geometry file with cfelpyutils and test the rigid groups
+    # Load the geometry file with cfel_fmt and test the rigid groups
     geom_dict = load_crystfel_geometry(path).detector
     quad_gr0 = [  # 1st quadrant: p0a0 ... p3a7
         'p{}a{}'.format(p, a) for p, a in product(range(4), range(8))
@@ -141,7 +141,7 @@ def test_write_read_crystfel_file_2d(tmpdir):
     assert_bad_region_like(loaded.metadata['crystfel']['bad']['bad_xy'], bad_xy)
     assert_bad_region_like(loaded.metadata['crystfel']['bad']['bad_fsss'], bad_fsss)
 
-    # Load the geometry file with cfelpyutils and check some values
+    # Load the geometry file with cfel_fmt and check some values
     geom_dict = load_crystfel_geometry(path).detector
 
     p3a7 = geom_dict['panels']['p3a7']

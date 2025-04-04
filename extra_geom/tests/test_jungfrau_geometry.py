@@ -5,7 +5,7 @@ import numpy as np
 import pyFAI.detectors
 import pyFAI.azimuthalIntegrator
 from matplotlib.axes import Axes
-from cfelpyutils.geometry import load_crystfel_geometry
+from cfel_fmt.geometry import load_crystfel_geometry
 from extra_data import RunDirectory
 from extra_data.components import JUNGFRAU
 from extra_data.tests.make_examples import make_jungfrau_run
@@ -42,7 +42,7 @@ def test_write_read_crystfel_file(tmpdir):
     assert loaded.metadata['crystfel']['clen'] == 0.101
     assert loaded.metadata['crystfel']['photon_energy'] == 9000
 
-    # Load the geometry file with cfelpyutils and test the rigid groups
+    # Load the geometry file with cfel_fmt and test the rigid groups
     geom_dict = load_crystfel_geometry(path).detector
     assert geom_dict['panels']['p0a0']['res'] == 1 / 75e-6
     p3a7 = geom_dict['panels']['p3a7']

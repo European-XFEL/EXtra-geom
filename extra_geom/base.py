@@ -3,7 +3,6 @@ from itertools import chain
 from warnings import warn
 
 import numpy as np
-from cfelpyutils.geometry import load_crystfel_geometry
 
 from .crystfel_fmt import write_crystfel_geom
 from .snapped import GridGeometryFragment, SnappedGeometry
@@ -273,6 +272,7 @@ class DetectorGeometryBase:
 
         Returns a new geometry object.
         """
+        from cfel_fmt.geometry import load_crystfel_geometry
         cfel_geom = load_crystfel_geometry(filename)
         panels_by_data_coord = cls._cfel_panels_by_data_coord(
             cfel_geom.detector['panels']
