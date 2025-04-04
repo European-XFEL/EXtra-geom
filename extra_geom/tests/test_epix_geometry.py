@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from cfelpyutils.geometry import load_crystfel_geometry
+from cfel_fmt.geometry import load_crystfel_geometry
 
 import extra_geom
 from extra_geom import Epix10KGeometry, Epix100Geometry
@@ -131,7 +131,7 @@ def test_write_read_crystfel_file(args, tmpdir):
     loaded = cls.from_crystfel_geom(path)
     assert_geom_close(loaded, epix)
 
-    # Load the geometry file with cfelpyutils and test the rigid groups
+    # Load the geometry file with cfel_fmt and test the rigid groups
     geom_dict = load_crystfel_geometry(path).detector
     assert geom_dict['panels']['p0a0']['res'] == 1 / pxsz
     assert len(geom_dict['panels']) == 4

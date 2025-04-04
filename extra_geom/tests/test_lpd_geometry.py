@@ -5,7 +5,7 @@ import h5py
 import numpy as np
 import pyFAI.detectors
 import pytest
-from cfelpyutils.geometry import load_crystfel_geometry
+from cfel_fmt.geometry import load_crystfel_geometry
 from matplotlib.axes import Axes
 from testpath import assert_isfile
 
@@ -31,7 +31,7 @@ def test_write_read_crystfel_file(tmpdir):
         f.write('adu_per_eV = 0.0075\n')
 
         f.write(contents)
-    # Load the geometry file with cfelpyutils and test the ridget groups
+    # Load the geometry file with cfel_fmt and test the ridget groups
     loaded = LPD_1MGeometry.from_crystfel_geom(path)
     np.testing.assert_allclose(
         loaded.modules[0][0].corner_pos, geom.modules[0][0].corner_pos
