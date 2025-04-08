@@ -2026,6 +2026,13 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         fs_slice = slice(tile_fs_offset, tile_fs_offset + cls.frag_fs_pixels)
         return ss_slice, fs_slice
 
+    @classmethod
+    def _module_coords_to_tile(cls, slow_scan, fast_scan):
+        column, tile_fs = np.divmod(fast_scan, cls.frag_fs_pixels)
+        row, tile_ss = np.divmod(slow_scan, cls.frag_ss_pixels)
+        tileno = (row * 4 + column).astype(np.int16)
+        return tileno, tile_ss, tile_fs
+
     def plot_data(
         self, data, *, axis_units='px', frontview=True,
         ax=None, figsize=None, colorbar=True, **kwargs,

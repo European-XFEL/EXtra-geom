@@ -190,3 +190,30 @@ def test_rotate_x():
     np.testing.assert_almost_equal(tile_step[0], 0)
     assert 0.8 < tile_step[1] / tile_step_magnitude < 1
     assert 0 < tile_step[2] < 0.2
+
+
+def test_data_coords_to_positions():
+    geom = JUNGFRAUGeometry.example(n_modules=1)
+
+    module_no = np.zeros(8, dtype=np.int16)
+    # Points near the centre of each tile
+    slow_scan = np.array([128, 384], dtype=np.float32).repeat(4)
+    fast_scan = np.tile(np.linspace(128, 896, num=4, dtype=np.float32), 2)
+
+    tileno, tile_ss, tile_fs = geom._module_coords_to_tile(slow_scan, fast_scan)
+
+    np.testing.assert_allclose(tileno, np.arange(0, 8))
+    np.testing.assert_allclose(tile_ss, 128)
+    np.testing.assert_allclose(tile_fs, 128)
+
+    res = geom.data_coords_to_positions(module_no, slow_scan, fast_scan)
+
+    assert res.shape == (8, 3)
+
+    resx, resy, resz = res.T
+
+    np.testing.assert_allclose(resz, 0)
+
+    assert (np.diff(resx[:4]) > 0).all()  # Tiles A0-A3
+    assert (np.diff(resx[4:]) > 0).all()  # Tiles A4-A7
+    assert 0.0384 > resy.max() > resy.min() > 0.
