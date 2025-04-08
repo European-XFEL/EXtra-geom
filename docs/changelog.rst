@@ -1,6 +1,20 @@
 Release Notes
 =============
 
+1.15
+----
+
+2025-04-08
+
+- Added support for :meth:`~.JUNGFRAUGeometry.data_coords_to_positions` on
+  :class:`~.JUNGFRAUGeometry` (:ghpull:`346`).
+- Fix for creating a PyFAI detector object for JUNGFRAU with
+  :meth:`~.JUNGFRAUGeometry.to_pyfai_detector` (:ghpull:`334`).
+- More informative error messages when input or output arrays for assembling
+  images don't match the expected shape (:ghpull:`343`).
+- The dependency on ``cfelpyutils`` has been replaced by ``cfel_fmt``, a fork
+  to maintain the pieces we need (:ghpull:`344`).
+
 1.14
 ----
 

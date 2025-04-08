@@ -318,6 +318,8 @@ Each module is further subdivided into 8 sensor tiles.
 
    .. automethod:: compare
 
+   .. automethod:: data_coords_to_positions
+
 .. _det-PNCCD:
 
 PNCCD
