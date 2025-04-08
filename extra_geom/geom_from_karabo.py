@@ -5,7 +5,11 @@ import base64
 import gzip
 import pickle
 
-from karabo_proxy import AsyncKaraboProxy
+try:
+    from karabo_proxy import AsyncKaraboProxy
+except ImportError:
+    print("Module `karabo_proxy` is not found. Try `pip install extra_geom[karabo]`")
+    exit(1)
 
 FRM_DIMS = {
     "crystfel": ('frame', 'modno', 'ss', 'fs'),

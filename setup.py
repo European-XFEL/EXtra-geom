@@ -42,7 +42,6 @@ setup(name="EXtra-geom",
           ]
       },
       install_requires=[
-          'Karabo-proxy',
           'cfelpyutils>=2.0, <3.0',
           'h5py>=2.7.1',
           'matplotlib',
@@ -69,7 +68,10 @@ setup(name="EXtra-geom",
               'EXtra-data',
               'pyFAI',
               'condat_gridconv',
-          ]
+          ],
+          'karabo': [
+              'Karabo-proxy',
+          ],
       },
       python_requires='>=3.9',
       classifiers=[
