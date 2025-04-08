@@ -2028,9 +2028,9 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
 
     @classmethod
     def _module_coords_to_tile(cls, slow_scan, fast_scan):
-        row, tile_fs = np.divmod(fast_scan, cls.frag_fs_pixels)
-        column, tile_ss = np.divmod(slow_scan, cls.frag_ss_pixels)
-        tileno = (column * 4 + row).astype(np.int16)
+        column, tile_fs = np.divmod(fast_scan, cls.frag_fs_pixels)
+        row, tile_ss = np.divmod(slow_scan, cls.frag_ss_pixels)
+        tileno = (row * 4 + column).astype(np.int16)
         return tileno, tile_ss, tile_fs
 
     def plot_data(
