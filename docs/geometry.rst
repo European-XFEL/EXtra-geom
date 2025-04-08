@@ -308,6 +308,8 @@ Each module is further subdivided into 8 sensor tiles.
 
    .. automethod:: to_distortion_array
 
+   .. automethod:: to_pyfai_detector
+
    .. automethod:: plot_data
 
    .. automethod:: position_modules
