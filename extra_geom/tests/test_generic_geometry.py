@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
+from testpath import assert_isfile
+
 import extra_geom
 from extra_geom import GenericGeometry
 
@@ -43,7 +45,7 @@ def test__tile_silce(simple):
 def test_write_crystfel_geom(simple, tmp_path):
     simple_geom_file_path = tmp_path / 'test.geom'
     simple.write_crystfel_geom(simple_geom_file_path)
-    return simple_geom_file_path
+    assert_isfile(simple_geom_file_path)
 
 
 def test_compare(simple):
