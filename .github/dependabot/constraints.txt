@@ -1,4 +1,4 @@
-cfelpyutils==2.2.0
+cfel-fmt==2.2.0
 coverage<7.9
 cycler<=0.12.1
 extra_data==1.20.0
