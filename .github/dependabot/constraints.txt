@@ -12,7 +12,7 @@ Pillow<11.4.0
 pyFAI==2025.3.0
 pyparsing==3.2.3
 pytest<8.5.0
-pytest-cov<=6.2.1
+pytest-cov<=6.3.0
 python-dateutil==2.9.0.post0
 six==1.17.0
 testpath==0.6.0
