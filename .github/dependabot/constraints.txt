@@ -10,7 +10,7 @@ numexpr!=2.8.6, <=2.10.2
 numpy<2.3.0
 Pillow<11.4.0
 pyFAI==2025.3.0
-pyparsing==3.2.3
+pyparsing==3.2.4
 pytest<8.5.0
 pytest-cov<=6.2.1
 python-dateutil==2.9.0.post0
