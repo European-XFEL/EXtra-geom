@@ -7,7 +7,7 @@ kiwisolver<1.5
 matplotlib<3.11.0
 nbval==0.11.0
 numexpr!=2.8.6, <=2.10.2
-numpy<2.3.0
+numpy<2.4.0
 Pillow<11.4.0
 pyFAI==2025.3.0
 pyparsing==3.2.5
