@@ -2,6 +2,7 @@
 from tempfile import TemporaryDirectory
 
 import numpy as np
+import xarray as xr
 import pyFAI.detectors
 import pyFAI.azimuthalIntegrator
 from matplotlib.axes import Axes
@@ -217,3 +218,24 @@ def test_data_coords_to_positions():
     assert (np.diff(resx[:4]) > 0).all()  # Tiles A0-A3
     assert (np.diff(resx[4:]) > 0).all()  # Tiles A4-A7
     assert 0.0384 > resy.max() > resy.min() > 0.
+
+
+def test_ensure_shape():
+    geom = JUNGFRAUGeometry.example()
+    data_2d = np.random.rand(512, 1024)
+    data_3d = np.random.rand(1, 512, 1024)
+
+    assert geom._ensure_shape(data_2d).shape == data_3d.shape
+    assert geom._ensure_shape(data_3d).shape == data_3d.shape
+
+    dataarray_2d = xr.DataArray(data_2d, dims=("y", "x"))
+    out = geom._ensure_shape(dataarray_2d)
+    assert out.shape == data_3d.shape
+    assert out.dims == ("module", "y", "x")
+    assert out.module.data.tolist() == [1]
+
+    # Smoke tests
+    geom.position_modules(data_2d)
+    geom.position_modules(dataarray_2d)
+    geom.plot_data(data_2d)
+    geom.plot_data(dataarray_2d)

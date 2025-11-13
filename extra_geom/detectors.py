@@ -2033,10 +2033,22 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         tileno = (row * 4 + column).astype(np.int16)
         return tileno, tile_ss, tile_fs
 
+    def _ensure_shape(self, data):
+        if data.ndim == 2:
+            if isinstance_no_import(data, "xarray", "DataArray"):
+                data = data.expand_dims("module")
+                # Add a module coordinate starting from 1 to match the JF's labelling
+                data = data.assign_coords(dict(module=[1]))
+            else:
+                data = data[None, :, :]
+
+        return data
+
     def plot_data(
         self, data, *, axis_units='px', frontview=True,
         ax=None, figsize=None, colorbar=True, **kwargs,
     ):
+        data = self._ensure_shape(data)
         if isinstance_no_import(data, 'xarray', 'DataArray'):
             # we shift module indices by one as JUNGFRAU labels
             # modules start from 1-..
@@ -2053,6 +2065,7 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         )
 
     def position_modules(self, data, out=None, threadpool=None):
+        data = self._ensure_shape(data)
         if isinstance_no_import(data, 'xarray', 'DataArray'):
             # we shift module indices by one as JUNGFRAU labels modules starting from 1..
             # position_modules returns a numpy array so labels disapear anyway.
