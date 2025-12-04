@@ -1,7 +1,7 @@
 cfel-fmt==2.2.0
 coverage<7.13
 cycler<=0.12.1
-extra_data==1.22.0
+extra_data==1.23.0
 h5py<3.16.0
 kiwisolver<1.5
 matplotlib<3.11.0
