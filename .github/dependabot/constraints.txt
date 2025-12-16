@@ -1,5 +1,5 @@
 cfel-fmt==2.2.0
-coverage<7.13
+coverage<7.14
 cycler<=0.12.1
 extra_data==1.23.2
 h5py<3.16.0
