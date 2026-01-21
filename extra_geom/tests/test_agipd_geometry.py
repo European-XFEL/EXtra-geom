@@ -247,3 +247,22 @@ def test_to_pyfai_detector():
     )
     agipd_pyfai = geom.to_pyfai_detector()
     assert isinstance(agipd_pyfai, pyFAI.detectors.Detector)
+
+
+def test_centre():
+    geom = AGIPD_1MGeometry.from_quad_positions(
+        quad_pos=[(-525, 625), (-550, -10), (520, -160), (542.5, 475)]
+    )
+
+    snapped_centre = geom._snapped().centre
+    np.testing.assert_equal(geom.centre(), snapped_centre)
+    np.testing.assert_equal(geom.centre(snapped=True), snapped_centre)
+
+    dx = 0.5
+    dy = 0.25
+    # A positive upwards shift of the modules means a negative downwards shift
+    # of the detector centre.
+    new_geom = geom.offset((dx * geom.pixel_size, dy * geom.pixel_size))
+    new_centre = snapped_centre - [dy, dx]
+    np.testing.assert_equal(new_geom.centre(), new_centre)
+    np.testing.assert_equal(new_geom.centre(snapped=True), snapped_centre)

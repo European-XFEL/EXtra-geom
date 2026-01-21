@@ -421,6 +421,23 @@ class DetectorGeometryBase:
             self._snapped_cache = SnappedGeometry(modules, self, centre)
         return self._snapped_cache
 
+    def centre(self, snapped=False):
+        """Return the centre of the detector in (y, x) pixel coordinates.
+
+        Parameters
+        ----------
+        snapped: bool, optional
+          By default the center will be returned with sub-pixel accuracy, but if
+          this parameter is True then the approximate rounded coordinates will
+          be returned.
+        """
+        if snapped:
+            return self._snapped().centre
+
+        tile_corners = [t.corner_pos[:2] for t in
+                        chain.from_iterable(self.modules)]
+        return -np.min(tile_corners, axis=0)[::-1] / self.pixel_size
+
     @staticmethod
     def split_tiles(module_data):
         """Split data from a detector module into tiles.
