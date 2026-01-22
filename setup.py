@@ -36,6 +36,11 @@ setup(name="EXtra-geom",
       package_data={
           'extra_geom.tests': ['dssc_geo_june19.h5', 'lpd_mar_18.h5'],
       },
+      entry_points={
+          'console_scripts': [
+              'extra-geom-from-karabo = extra_data.geom_from_karabo:main',
+          ]
+      },
       install_requires=[
           'cfel_fmt>=2.0, <3.0',
           'h5py>=2.7.1',
@@ -63,7 +68,10 @@ setup(name="EXtra-geom",
               'EXtra-data',
               'pyFAI',
               'condat_gridconv',
-          ]
+          ],
+          'karabo': [
+              'Karabo-proxy',
+          ],
       },
       python_requires='>=3.10',
       classifiers=[
