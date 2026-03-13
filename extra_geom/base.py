@@ -5,8 +5,9 @@ from warnings import warn
 import numpy as np
 
 from .crystfel_fmt import write_crystfel_geom
-from .snapped import GridGeometryFragment, SnappedGeometry
 from .motors import read_motors_from_geom
+from .snapped import (GridGeometryFragment, SnappedGeometry,
+                      isinstance_no_import)
 
 
 class GeometryFragment:
@@ -501,6 +502,165 @@ class DetectorGeometryBase:
         """Deprecated alias for :meth:`position_modules`"""
         return self.position_modules(data, out=out)
 
+    def position_modules_interpolate(
+        self,
+        data,
+        *,
+        oversample: int = 1,
+        output_pixel_size=None,
+        resize: bool = True,
+        method: str = "LUT",
+        empty=np.nan,
+        device: str | None = None,
+        dis_kwargs: dict | None = None,
+    ):
+        """Assemble data onto a regular grid using pixel-splitting.
+
+        This uses pyFAI's distortion correction machinery to produce an output
+        image corrected from spatial distortion.
+
+        Parameters
+        ----------
+        data : ndarray or xarray.DataArray
+          Detector data shaped like :attr:`expected_data_shape`, optionally with
+          extra leading dimensions.
+        oversample : int
+          Subdivide output pixels by this factor in each dimension.
+        output_pixel_size : float or (float, float), optional
+          Output pixel size in metres as ``(x, y)``. If omitted, defaults to
+          :attr:`_pixel_shape`.
+        resize : bool
+          If True (default), expand the output array to include all pixels so
+          total signal is preserved.
+        method : str
+          pyFAI distortion backend, e.g. "CSR" or "LUT" (default).
+        empty : float
+          Value for empty output pixels.
+        device : str, optional
+          Name of the device: None for OpenMP, "cpu" or "gpu" or the id of
+          the OpenCL device a 2-tuple of integer.
+        dis_kwargs : dict, optional
+          Extra arguments passed to pyFAI's ``Distortion.correct_ng()``.
+
+        Returns
+        -------
+        out : ndarray
+          Assembled image array (counts), with the module dimension removed.
+        centre : ndarray
+          (y, x) output pixel coordinates of the detector centre.
+        """
+        ncorners = self._pixel_corners.shape[1]
+        if ncorners != 4:
+            raise NotImplementedError(
+                "Interpolated assembly currently supports only quadrilateral "
+                f"pixels; this geometry has {ncorners} corners per pixel."
+            )
+
+        if oversample < 1 or int(oversample) != oversample:
+            raise ValueError(f"oversample must be a positive integer, got {oversample!r}")
+        oversample = int(oversample)
+
+        nmod, mod_ss, mod_fs = self.expected_data_shape
+
+        if output_pixel_size is None:
+            dx, dy = (np.asarray(self._pixel_shape, dtype=np.float64) / oversample)
+        else:
+            if np.isscalar(output_pixel_size):
+                dx = dy = float(output_pixel_size) / oversample
+            else:
+                dx = float(output_pixel_size[0]) / oversample
+                dy = float(output_pixel_size[1]) / oversample
+
+        try:
+            from pyFAI.distortion import Distortion
+        except ImportError as exc:
+            raise ImportError(
+                "pyFAI is required for interpolated assembly. "
+                "Install pyFAI (e.g. `pip install pyFAI`) to use."
+            ) from exc
+
+        # Prepare input data as a numpy array with module axis at -3
+        modules_present = None
+        if isinstance_no_import(data, 'xarray', 'DataArray'):
+            modnos = data.coords.get('module')
+            if modnos is None:
+                raise ValueError("xarray arrays should have a dimension named 'module'")
+            modnos = np.asarray(modnos.values)
+            if (modnos < 0).any() or (modnos >= nmod).any():
+                raise ValueError(
+                    f"module number labels should be in the range 0-{nmod-1} "
+                    f"(found {modnos.min()}-{modnos.max()})"
+                )
+            if data.shape[-2:] != (mod_ss, mod_fs):
+                raise ValueError(
+                    f"Wrong pixel dimensions for detector modules: {data.shape[-2:]} "
+                    f"- expected {(mod_ss, mod_fs)})"
+                )
+
+            mod_dim_ix = data.dims.index('module')
+            arr = np.moveaxis(data.values, mod_dim_ix, -3)
+            extra_shape = arr.shape[:-3]
+            if arr.shape[-2:] != (mod_ss, mod_fs):
+                raise ValueError(
+                    f"Wrong pixel dimensions for detector modules: {arr.shape[-2:]} "
+                    f"- expected {(mod_ss, mod_fs)})"
+                )
+
+            modules_present = np.zeros((nmod,), dtype=bool)
+            modules_present[modnos] = True
+
+            if modules_present.all():
+                data_np = arr
+            else:
+                # Fill missing modules with 0 so they contribute nothing.
+                data_np = np.zeros(extra_shape + (nmod, mod_ss, mod_fs), dtype=arr.dtype)
+                for i, modno in enumerate(modnos):
+                    data_np[..., modno, :, :] = arr[..., i, :, :]
+        else:
+            if data.shape[-3:] != self.expected_data_shape:
+                raise ValueError(
+                    f"Wrong shape for detector data: {data.shape} does not end "
+                    f"with {self.expected_data_shape}"
+                )
+            data_np = data
+            extra_shape = data_np.shape[:-3]
+
+        # Build a pyFAI detector.
+        det = self.to_pyfai_detector(
+            pixel1=dy, pixel2=dx, max_shape=(nmod * mod_ss, mod_fs)
+        )
+        # pyFAI Distortion expects a mask array
+        det.mask = np.zeros((nmod * mod_ss, mod_fs), dtype=np.int8)
+
+        dis = Distortion(
+            det,
+            shape=None if resize else (nmod * mod_ss, mod_fs),
+            resize=resize,
+            empty=empty,
+            method=method,
+            device=device,
+        )
+
+        # Calculate the centre of the detector in pixel coordinates.
+        corners = np.concatenate([t.corners()[:, :2] for mod in self.modules for t in mod], axis=0)
+        min_x, min_y = corners.min(axis=0)
+        centre = np.array([-min_y / dy - 0.5, -min_x / dx - 0.5], dtype=np.float64)
+
+        # run distortion correction.
+        if dis_kwargs is None:
+            dis_kwargs = {}
+        flat = data_np.reshape((-1, nmod, mod_ss, mod_fs))
+        img0 = flat[0].reshape((nmod * mod_ss, mod_fs))
+        out0 = dis.correct(img0, **dis_kwargs)
+        out_flat = np.empty((flat.shape[0],) + out0.shape, dtype=out0.dtype)
+        out_flat[0] = out0
+        for i in range(1, flat.shape[0]):
+            img2d = flat[i].reshape((nmod * mod_ss, mod_fs))
+            out_flat[i] = dis.correct(img2d, **dis_kwargs)
+        out = out_flat.reshape(extra_shape + out0.shape)
+
+        return out, centre
+
     def position_modules_symmetric(self, data, out=None, threadpool=None):
         """Assemble data with the centre in the middle of the output array.
 
@@ -658,7 +818,7 @@ class DetectorGeometryBase:
 
         return distortion
 
-    def to_pyfai_detector(self):
+    def to_pyfai_detector(self, **kwargs):
         """Make a PyFAI detector object for this detector
 
         You can use PyFAI to azimuthally integrate detector images around
@@ -669,7 +829,7 @@ class DetectorGeometryBase:
             raise NotImplementedError
 
         from . import pyfai
-        det = getattr(pyfai, self._pyfai_cls_name)()
+        det = getattr(pyfai, self._pyfai_cls_name)(**kwargs)
         det.set_pixel_corners(self.to_distortion_array(allow_negative_xy=True))
         return det
 
