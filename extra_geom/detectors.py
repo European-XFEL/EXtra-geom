@@ -320,68 +320,6 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
         ax.set_title('AGIPD-1M detector geometry ({})'.format(self.filename))
         return ax
 
-    def position_modules_interpolate(self, data):
-        """Assemble data from this detector according to where the pixels are.
-
-        This performs interpolation, which is very slow.
-        Use :meth:`position_modules` to get a pixel-aligned approximation
-        of the geometry.
-
-        Parameters
-        ----------
-
-        data : ndarray
-          The three dimensions should be channelno, pixel_ss, pixel_fs
-          (lengths 16, 512, 128). ss/fs are slow-scan and fast-scan.
-
-        Returns
-        -------
-        out : ndarray
-          Array with the one dimension fewer than the input.
-          The last two dimensions represent pixel y and x in the detector space.
-        centre : ndarray
-          (y, x) pixel location of the detector centre in this geometry.
-        """
-        from scipy.ndimage import affine_transform
-        assert data.shape == (16, 512, 128)
-        size_yx, centre = self._get_dimensions()
-        tmp = np.empty((16 * 8,) + size_yx, dtype=data.dtype)
-
-        for i, (module, mod_data) in enumerate(zip(self.modules, data)):
-            tiles_data = np.split(mod_data, 8)
-            for j, (tile, tile_data) in enumerate(zip(module, tiles_data)):
-                # We store (x, y, z), but numpy indexing, and hence affine_transform,
-                # work like [y, x]. Rearrange the numbers:
-                fs_vec_yx = tile.fs_vec[:2][::-1]
-                ss_vec_yx = tile.ss_vec[:2][::-1]
-
-                # Offset by centre to make all coordinates positive
-                corner_pos_yx = tile.corner_pos[:2][::-1] + centre
-
-                # Make the rotation matrix
-                rotn = np.stack((ss_vec_yx, fs_vec_yx), axis=-1)
-
-                # affine_transform takes a mapping from *output* to *input*.
-                # So we reverse the forward transformation.
-                transform = np.linalg.inv(rotn)
-                offset = np.dot(rotn, corner_pos_yx)  # this seems to work, but is it right?
-
-                affine_transform(
-                    tile_data,
-                    transform,
-                    offset=offset,
-                    cval=np.nan,
-                    output_shape=size_yx,
-                    output=tmp[i * 8 + j],
-                )
-
-        # Silence warnings about nans - we expect gaps in the result
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=RuntimeWarning)
-            out = np.nanmax(tmp, axis=0)
-
-        return out, centre
-
     def _get_dimensions(self):
         """Calculate appropriate array dimensions for assembling data.
 
