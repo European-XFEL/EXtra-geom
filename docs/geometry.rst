@@ -13,13 +13,15 @@ This should be roughly where the beam passes through the detector.
 They follow the standard European XFEL axis orientations, with x increasing to
 the left (looking along the beam), and y increasing upwards.
 
-.. note::
-
-   This module includes methods to assemble data into a single array.
-   This is sufficient for a quick examination of detector images, but the
-   detector pixels may not line up with the grid imposed by a single array.
-   For accurate analysis, it's best to use a tool that can process
-   geometry internally with sub-pixel precision.
+This module includes
+:meth:`~extra_geom.DetectorGeometryBase.position_modules_interpolate` to
+assemble data into a single 2D array with pixel splitting, conserving total
+signal (using pyFAI's
+[Distorsion](https://pyfai.readthedocs.io/en/stable/usage/tutorial/Detector/Distortion/Distortion.html)
+module). For accurate analysis, it 's still best to use tools that can process
+geometry without relying on assembled images, both for performance and
+correctness. However, this method can be useful for previewing data, or for
+processing with tools that require images of the complete detector.
 
 .. _det-AGIPD-1M:
 
@@ -109,6 +111,8 @@ but this geometry code works with a position for each tile.
 
    .. automethod:: plot_data
 
+   .. automethod:: position_modules_interpolate
+
    .. automethod:: position_modules
 
    .. automethod:: output_array_for_position
@@ -166,6 +170,8 @@ which this geometry code can position independently.
 
    .. automethod:: plot_data
 
+   .. automethod:: position_modules_interpolate
+
    .. automethod:: position_modules
 
    .. automethod:: output_array_for_position
@@ -211,6 +217,8 @@ two 32×128 tiles.
    .. automethod:: plot_data
 
    .. automethod:: output_array_for_position
+
+   .. automethod:: position_modules_interpolate
 
    .. automethod:: position_modules_symmetric
 
@@ -312,6 +320,8 @@ Each module is further subdivided into 8 sensor tiles.
 
    .. automethod:: plot_data
 
+   .. automethod:: position_modules_interpolate
+
    .. automethod:: position_modules
 
    .. automethod:: output_array_for_position
@@ -341,6 +351,8 @@ single tile.
    .. automethod:: example
 
    .. automethod:: plot_data
+
+   .. automethod:: position_modules_interpolate
 
    .. automethod:: position_modules
 
@@ -384,6 +396,8 @@ ePix10K detectors have one module of 352 × 384 pixels. Module built from 4 ASIC
    .. automethod:: get_pixel_positions
 
    .. automethod:: plot_data
+
+   .. automethod:: position_modules_interpolate
 
    .. automethod:: position_modules
 
