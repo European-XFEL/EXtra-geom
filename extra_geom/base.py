@@ -7,7 +7,7 @@ import numpy as np
 from .crystfel_fmt import write_crystfel_geom
 from .motors import read_motors_from_geom
 from .snapped import (GridGeometryFragment, SnappedGeometry,
-                      isinstance_no_import)
+                      _plot_data, isinstance_no_import)
 
 
 class GeometryFragment:
@@ -701,10 +701,12 @@ class DetectorGeometryBase:
                   ax=None,
                   figsize=None,
                   colorbar=True,
+                  interpolate=False,
                   **kwargs):
         """Plot data from the detector using this geometry.
 
-        This approximates the geometry to align all pixels to a 2D grid.
+        This approximates or interpolate (with interpolate=True) the geometry to
+        align all pixels to a 2D grid.
 
         Returns a matplotlib axes object.
 
@@ -731,9 +733,25 @@ class DetectorGeometryBase:
         colorbar : bool, dict
           Draw colobar with default values (if boolean is given). Colorbar
           appearance can be controlled by passing a dictionary of properties.
+        interpolate : bool
+          If True, use interpolation when drawing the image.
         kwargs :
           Additional keyword arguments passed to `~matplotlib.imshow`
         """
+        if interpolate:
+            res, centre = self.position_modules_interpolate(data)
+            return _plot_data(
+                res,
+                centre,
+                self,
+                axis_units=axis_units,
+                frontview=frontview,
+                ax=ax,
+                figsize=figsize,
+                colorbar=colorbar,
+                **kwargs,
+            )
+
         return self._snapped().plot_data(
             data, axis_units=axis_units, frontview=frontview, figsize=figsize,
             ax=ax, colorbar=colorbar, **kwargs

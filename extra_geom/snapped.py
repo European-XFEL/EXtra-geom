@@ -11,6 +11,65 @@ from itertools import chain
 import numpy as np
 
 
+def _plot_data(
+    image,
+    centre,
+    geom,
+    *,
+    axis_units='px',
+    frontview=True,
+    ax=None,
+    figsize=None,
+    colorbar=False,
+    **kwargs,
+):
+    import matplotlib.pyplot as plt
+    from matplotlib.cm import viridis
+
+    if axis_units not in {'px', 'm'}:
+        raise ValueError("axis_units must be 'px' or 'm', not {!r}"
+                         .format(axis_units))
+
+    min_y, min_x = -centre
+    max_y, max_x = np.array(image.shape) - centre
+
+    _extent = np.array((min_x - 0.5, max_x + 0.5, min_y - 0.5, max_y + 0.5))
+    cross_size = 20
+    if axis_units == 'm':
+        _extent[:2] *= geom._pixel_shape[0]  # x
+        _extent[2:] *= geom._pixel_shape[1]  # y
+        cross_size *= geom.pixel_size
+
+    # Use a dark grey for missing data
+    _cmap = copy(viridis)
+    _cmap.set_bad('0.25', 1.0)
+
+    kwargs.setdefault('cmap', _cmap)
+    kwargs.setdefault('extent', _extent)
+    kwargs.setdefault('origin', 'lower')
+
+    if ax is None:
+        fig = plt.figure(figsize=figsize or (10, 10))
+        ax = fig.add_subplot(1, 1, 1)
+
+    im = ax.imshow(image, **kwargs)
+    if isinstance(colorbar, dict) or colorbar is True:
+        if isinstance(colorbar, bool):
+            colorbar = {}
+        plt.colorbar(im, ax=ax, **colorbar)
+
+    ax.set_xlabel('metres' if axis_units == 'm' else 'pixels')
+    ax.set_ylabel('metres' if axis_units == 'm' else 'pixels')
+
+    if frontview:
+        ax.invert_xaxis()
+
+    # Draw a cross at the centre
+    ax.hlines(0, -cross_size, +cross_size, colors='w', linewidths=1)
+    ax.vlines(0, -cross_size, +cross_size, colors='w', linewidths=1)
+    return ax
+
+
 class GridGeometryFragment:
     """Holds the 2D axis-aligned position and orientation of one detector tile.
 
@@ -205,52 +264,18 @@ class SnappedGeometry:
                   **kwargs):
         """Implementation for plot_data_fast
         """
-        import matplotlib.pyplot as plt
-        from matplotlib.cm import viridis
-
-        if axis_units not in {'px', 'm'}:
-            raise ValueError("axis_units must be 'px' or 'm', not {!r}"
-                             .format(axis_units))
-
         res, centre = self.position_modules(modules_data)
-        min_y, min_x = -centre
-        max_y, max_x = np.array(res.shape) - centre
-
-        _extent = np.array((min_x - 0.5, max_x + 0.5, min_y - 0.5, max_y + 0.5))
-        cross_size = 20
-        if axis_units == 'm':
-            _extent[:2] *= self.geom._pixel_shape[0]  # x
-            _extent[2:] *= self.geom._pixel_shape[1]  # y
-            cross_size *= self.geom.pixel_size
-
-        # Use a dark grey for missing data
-        _cmap = copy(viridis)
-        _cmap.set_bad('0.25', 1.0)
-
-        kwargs.setdefault('cmap', _cmap)
-        kwargs.setdefault('extent', _extent)
-        kwargs.setdefault('origin', 'lower')
-
-        if ax is None:
-            fig = plt.figure(figsize=figsize or (10, 10))
-            ax = fig.add_subplot(1, 1, 1)
-
-        im = ax.imshow(res, **kwargs)
-        if isinstance(colorbar, dict) or colorbar is True:
-            if isinstance(colorbar, bool):
-                colorbar = {}
-            plt.colorbar(im, ax=ax, **colorbar)
-
-        ax.set_xlabel('metres' if axis_units == 'm' else 'pixels')
-        ax.set_ylabel('metres' if axis_units == 'm' else 'pixels')
-
-        if frontview:
-            ax.invert_xaxis()
-
-        # Draw a cross at the centre
-        ax.hlines(0, -cross_size, +cross_size, colors='w', linewidths=1)
-        ax.vlines(0, -cross_size, +cross_size, colors='w', linewidths=1)
-        return ax
+        return _plot_data(
+            res,
+            centre,
+            self.geom,
+            axis_units=axis_units,
+            frontview=frontview,
+            ax=ax,
+            figsize=figsize,
+            colorbar=colorbar,
+            **kwargs,
+        )
 
 
 def isinstance_no_import(obj, mod: str, cls: str):
