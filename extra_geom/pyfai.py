@@ -60,3 +60,30 @@ class JUNGFRAU_EuXFEL(Detector):
     def __init__(self, pixel1=7.5e-5, pixel2=7.5e-5, n_modules=1, **kwargs):
         self.MAX_SHAPE = max_shape = (n_modules*512, 1024)
         super().__init__(pixel1, pixel2, max_shape=max_shape, **kwargs)
+
+
+class PNCCD1MP(Detector):
+    IS_CONTIGUOUS = False
+    MAX_SHAPE = (2*512, 1024)
+    aliases = ["PNCCD 1MP"]
+
+    def __init__(self, pixel1=75e-6, pixel2=75e-6, **kwargs):
+        super().__init__(pixel1, pixel2, **kwargs)
+
+
+class Epix100(Detector):
+    IS_CONTIGUOUS = False
+    MAX_SHAPE = (2*352, 2*384)
+    aliases = ["ePix 100"]
+
+    def __init__(self, pixel1=50e-6, pixel2=50e-6, **kwargs):
+        super().__init__(pixel1, pixel2, **kwargs)
+
+
+class Epix10K(Detector):
+    IS_CONTIGUOUS = False
+    MAX_SHAPE = (2*176, 2*192)
+    aliases = ["ePix 10K"]
+
+    def __init__(self, pixel1=100e-6, pixel2=100e-6, **kwargs):
+        super().__init__(pixel1, pixel2, **kwargs)

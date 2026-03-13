@@ -2011,6 +2011,14 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
             data['module'] = data['module'] - 1
         return super().position_modules(data, out=out, threadpool=threadpool)
 
+    def position_modules_interpolate(self, data, **kwargs):
+        data = self._ensure_shape(data)
+        if isinstance_no_import(data, 'xarray', 'DataArray'):
+            # JUNGFRAU labels modules starting from 1; EXtra-geom uses 0-based.
+            data = data.copy(deep=False)
+            data['module'] = data['module'] - 1
+        return super().position_modules_interpolate(data, **kwargs)
+
     def to_pyfai_detector(self):
         """Make a PyFAI detector object for JUNGFRAU detector.
 
@@ -2044,6 +2052,7 @@ class PNCCDGeometry(DetectorGeometryBase):
     n_modules = 2
     n_tiles_per_module = 1
     expected_data_shape = (2, 512, 1024)
+    _pyfai_cls_name = 'PNCCD1MP'
 
     # Each module has a rectangular cutout around the intended beam
     # position, i.e. at the bottom center of the top module (towards
@@ -2169,6 +2178,11 @@ class PNCCDGeometry(DetectorGeometryBase):
     def position_modules(self, data, *args, **kwargs):
         return super().position_modules(self._ensure_shape(data),
                                         *args, **kwargs)
+
+    def position_modules_interpolate(self, data, *args, **kwargs):
+        return super().position_modules_interpolate(
+            self._ensure_shape(data), *args, **kwargs
+        )
 
     def plot_data(self, data, *args, **kwargs):
         return super().plot_data(self._ensure_shape(data),
@@ -2425,6 +2439,11 @@ class EpixGeometryBase(DetectorGeometryBase):
         return super().position_modules(self._ensure_shape(data),
                                         *args, **kwargs)
 
+    def position_modules_interpolate(self, data, *args, **kwargs):
+        return super().position_modules_interpolate(
+            self._ensure_shape(data), *args, **kwargs
+        )
+
     def plot_data(self, data, *args, **kwargs):
         return super().plot_data(self._ensure_shape(data),
                                  *args, **kwargs)
@@ -2469,6 +2488,7 @@ class Epix100Geometry(EpixGeometryBase):
         2 * frag_ss_pixels,
         2 * frag_fs_pixels
     )
+    _pyfai_cls_name = 'Epix100'
 
     @classmethod
     def from_relative_positions(cls, asic_gap=None, unit=None, top=(0., 0., 0.),
@@ -2546,6 +2566,7 @@ class Epix10KGeometry(EpixGeometryBase):
         2 * frag_ss_pixels,
         2 * frag_fs_pixels
     )
+    _pyfai_cls_name = 'Epix10K'
 
     @classmethod
     def example(cls):
