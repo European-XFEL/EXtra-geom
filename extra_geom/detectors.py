@@ -1115,7 +1115,7 @@ class LPD_MiniGeometry(LPDGeometryBase):
         tileno, tile_fs = np.divmod(fast_scan, cls.frag_fs_pixels)
         return tileno.astype(np.int16), slow_scan, tile_fs
 
-    def to_pyfai_detector(self):
+    def to_pyfai_detector(self, **kwargs):
         """Make a PyFAI detector object for JUNGFRAU detector.
 
         You can use PyFAI to azimuthally integrate detector images around
@@ -1123,7 +1123,7 @@ class LPD_MiniGeometry(LPDGeometryBase):
         positions of all the pixels. See the examples for how to use this.
         """
         from . import pyfai
-        det = getattr(pyfai, self._pyfai_cls_name)(n_modules=self.n_modules)
+        det = getattr(pyfai, self._pyfai_cls_name)(n_modules=self.n_modules, **kwargs)
         det.set_pixel_corners(self.to_distortion_array(allow_negative_xy=True))
         return det
 
@@ -2019,7 +2019,7 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
             data['module'] = data['module'] - 1
         return super().position_modules_interpolate(data, **kwargs)
 
-    def to_pyfai_detector(self):
+    def to_pyfai_detector(self, **kwargs):
         """Make a PyFAI detector object for JUNGFRAU detector.
 
         You can use PyFAI to azimuthally integrate detector images around
@@ -2027,7 +2027,7 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         positions of all the pixels. See the examples for how to use this.
         """
         from . import pyfai
-        det = getattr(pyfai, self._pyfai_cls_name)(n_modules=self.n_modules)
+        det = getattr(pyfai, self._pyfai_cls_name)(n_modules=self.n_modules, **kwargs)
         det.set_pixel_corners(self.to_distortion_array(allow_negative_xy=True))
         return det
 
