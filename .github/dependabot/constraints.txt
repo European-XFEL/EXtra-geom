@@ -3,7 +3,7 @@ coverage<7.14
 cycler<=0.12.1
 extra_data==1.23.2
 h5py<3.17.0
-kiwisolver<1.5
+kiwisolver<1.6
 matplotlib<3.11.0
 nbval==0.11.0
 numexpr!=2.8.6, <=2.14.1
