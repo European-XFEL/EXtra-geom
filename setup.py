@@ -43,7 +43,7 @@ setup(name="EXtra-geom",
           'numpy',
       ],
       extras_require={
-          'interpolate': ['scipy'],
+          'interpolate': ['pyFAI'],
           'docs': [
               'sphinx >=4.3',  # Minimum version for Python 3.10
               'nbsphinx',

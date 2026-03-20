@@ -320,68 +320,6 @@ class AGIPD_1MGeometry(DetectorGeometryBase):
         ax.set_title('AGIPD-1M detector geometry ({})'.format(self.filename))
         return ax
 
-    def position_modules_interpolate(self, data):
-        """Assemble data from this detector according to where the pixels are.
-
-        This performs interpolation, which is very slow.
-        Use :meth:`position_modules` to get a pixel-aligned approximation
-        of the geometry.
-
-        Parameters
-        ----------
-
-        data : ndarray
-          The three dimensions should be channelno, pixel_ss, pixel_fs
-          (lengths 16, 512, 128). ss/fs are slow-scan and fast-scan.
-
-        Returns
-        -------
-        out : ndarray
-          Array with the one dimension fewer than the input.
-          The last two dimensions represent pixel y and x in the detector space.
-        centre : ndarray
-          (y, x) pixel location of the detector centre in this geometry.
-        """
-        from scipy.ndimage import affine_transform
-        assert data.shape == (16, 512, 128)
-        size_yx, centre = self._get_dimensions()
-        tmp = np.empty((16 * 8,) + size_yx, dtype=data.dtype)
-
-        for i, (module, mod_data) in enumerate(zip(self.modules, data)):
-            tiles_data = np.split(mod_data, 8)
-            for j, (tile, tile_data) in enumerate(zip(module, tiles_data)):
-                # We store (x, y, z), but numpy indexing, and hence affine_transform,
-                # work like [y, x]. Rearrange the numbers:
-                fs_vec_yx = tile.fs_vec[:2][::-1]
-                ss_vec_yx = tile.ss_vec[:2][::-1]
-
-                # Offset by centre to make all coordinates positive
-                corner_pos_yx = tile.corner_pos[:2][::-1] + centre
-
-                # Make the rotation matrix
-                rotn = np.stack((ss_vec_yx, fs_vec_yx), axis=-1)
-
-                # affine_transform takes a mapping from *output* to *input*.
-                # So we reverse the forward transformation.
-                transform = np.linalg.inv(rotn)
-                offset = np.dot(rotn, corner_pos_yx)  # this seems to work, but is it right?
-
-                affine_transform(
-                    tile_data,
-                    transform,
-                    offset=offset,
-                    cval=np.nan,
-                    output_shape=size_yx,
-                    output=tmp[i * 8 + j],
-                )
-
-        # Silence warnings about nans - we expect gaps in the result
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=RuntimeWarning)
-            out = np.nanmax(tmp, axis=0)
-
-        return out, centre
-
     def _get_dimensions(self):
         """Calculate appropriate array dimensions for assembling data.
 
@@ -1177,7 +1115,7 @@ class LPD_MiniGeometry(LPDGeometryBase):
         tileno, tile_fs = np.divmod(fast_scan, cls.frag_fs_pixels)
         return tileno.astype(np.int16), slow_scan, tile_fs
 
-    def to_pyfai_detector(self):
+    def to_pyfai_detector(self, **kwargs):
         """Make a PyFAI detector object for JUNGFRAU detector.
 
         You can use PyFAI to azimuthally integrate detector images around
@@ -1185,7 +1123,7 @@ class LPD_MiniGeometry(LPDGeometryBase):
         positions of all the pixels. See the examples for how to use this.
         """
         from . import pyfai
-        det = getattr(pyfai, self._pyfai_cls_name)(n_modules=self.n_modules)
+        det = getattr(pyfai, self._pyfai_cls_name)(n_modules=self.n_modules, **kwargs)
         det.set_pixel_corners(self.to_distortion_array(allow_negative_xy=True))
         return det
 
@@ -2073,7 +2011,15 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
             data['module'] = data['module'] - 1
         return super().position_modules(data, out=out, threadpool=threadpool)
 
-    def to_pyfai_detector(self):
+    def position_modules_interpolate(self, data, **kwargs):
+        data = self._ensure_shape(data)
+        if isinstance_no_import(data, 'xarray', 'DataArray'):
+            # JUNGFRAU labels modules starting from 1; EXtra-geom uses 0-based.
+            data = data.copy(deep=False)
+            data['module'] = data['module'] - 1
+        return super().position_modules_interpolate(data, **kwargs)
+
+    def to_pyfai_detector(self, **kwargs):
         """Make a PyFAI detector object for JUNGFRAU detector.
 
         You can use PyFAI to azimuthally integrate detector images around
@@ -2081,7 +2027,7 @@ class JUNGFRAUGeometry(DetectorGeometryBase):
         positions of all the pixels. See the examples for how to use this.
         """
         from . import pyfai
-        det = getattr(pyfai, self._pyfai_cls_name)(n_modules=self.n_modules)
+        det = getattr(pyfai, self._pyfai_cls_name)(n_modules=self.n_modules, **kwargs)
         det.set_pixel_corners(self.to_distortion_array(allow_negative_xy=True))
         return det
 
@@ -2106,6 +2052,7 @@ class PNCCDGeometry(DetectorGeometryBase):
     n_modules = 2
     n_tiles_per_module = 1
     expected_data_shape = (2, 512, 1024)
+    _pyfai_cls_name = 'PNCCD1MP'
 
     # Each module has a rectangular cutout around the intended beam
     # position, i.e. at the bottom center of the top module (towards
@@ -2231,6 +2178,11 @@ class PNCCDGeometry(DetectorGeometryBase):
     def position_modules(self, data, *args, **kwargs):
         return super().position_modules(self._ensure_shape(data),
                                         *args, **kwargs)
+
+    def position_modules_interpolate(self, data, *args, **kwargs):
+        return super().position_modules_interpolate(
+            self._ensure_shape(data), *args, **kwargs
+        )
 
     def plot_data(self, data, *args, **kwargs):
         return super().plot_data(self._ensure_shape(data),
@@ -2487,6 +2439,11 @@ class EpixGeometryBase(DetectorGeometryBase):
         return super().position_modules(self._ensure_shape(data),
                                         *args, **kwargs)
 
+    def position_modules_interpolate(self, data, *args, **kwargs):
+        return super().position_modules_interpolate(
+            self._ensure_shape(data), *args, **kwargs
+        )
+
     def plot_data(self, data, *args, **kwargs):
         return super().plot_data(self._ensure_shape(data),
                                  *args, **kwargs)
@@ -2531,6 +2488,7 @@ class Epix100Geometry(EpixGeometryBase):
         2 * frag_ss_pixels,
         2 * frag_fs_pixels
     )
+    _pyfai_cls_name = 'Epix100'
 
     @classmethod
     def from_relative_positions(cls, asic_gap=None, unit=None, top=(0., 0., 0.),
@@ -2608,6 +2566,7 @@ class Epix10KGeometry(EpixGeometryBase):
         2 * frag_ss_pixels,
         2 * frag_fs_pixels
     )
+    _pyfai_cls_name = 'Epix10K'
 
     @classmethod
     def example(cls):
