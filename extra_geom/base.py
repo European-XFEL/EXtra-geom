@@ -528,7 +528,7 @@ class DetectorGeometryBase:
           Subdivide output pixels by this factor in each dimension.
         output_pixel_size : float or (float, float), optional
           Output pixel size in metres as ``(x, y)``. If omitted, defaults to
-          :attr:`_pixel_shape`.
+          the detector pixel size.
         resize : bool
           If True (default), expand the output array to include all pixels so
           total signal is preserved.
@@ -580,7 +580,6 @@ class DetectorGeometryBase:
             ) from exc
 
         # Prepare input data as a numpy array with module axis at -3
-        modules_present = None
         if isinstance_no_import(data, 'xarray', 'DataArray'):
             modnos = data.coords.get('module')
             if modnos is None:
