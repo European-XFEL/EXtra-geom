@@ -17,11 +17,13 @@ This module includes
 :meth:`~extra_geom.DetectorGeometryBase.position_modules_interpolate` to
 assemble data into a single 2D array with pixel splitting, conserving total
 signal (using pyFAI's
-[Distorsion](https://pyfai.readthedocs.io/en/stable/usage/tutorial/Detector/Distortion/Distortion.html)
-module). For accurate analysis, it 's still best to use tools that can process
+[Distortion](https://pyfai.readthedocs.io/en/stable/usage/tutorial/Detector/Distortion/Distortion.html)
+module). For accurate analysis, it's still best to use tools that can process
 geometry without relying on assembled images, both for performance and
 correctness. However, this method can be useful for previewing data, or for
 processing with tools that require images of the complete detector.
+:meth:`~extra_geom.DetectorGeometryBase.position_modules` gives a faster but
+less accurate geometry assembly snapping detector pixels to a regular grid.
 
 .. _det-AGIPD-1M:
 
