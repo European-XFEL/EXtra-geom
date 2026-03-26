@@ -1,6 +1,19 @@
 Release Notes
 =============
 
+1.16
+----
+
+2026-03-26
+
+- New :meth:`~.AGIPD_1MGeometry.position_modules_interpolate` method to assemble
+  data with more spatial accuracy, splitting pixel values to fit on a regular
+  grid, using PyFAI (:ghpull:`395`). This is available for most detectors, but
+  not DSSC. The :meth:`~.AGIPD_1MGeometry.plot_data` method also gains an
+  ``interpolate=`` parameter to assemble data this way for plotting.
+- :class:`~.JUNGFRAUGeometry` now accepts input data for a single module as
+  a 2D array, as well as 3D (:ghpull:`373`).
+
 1.15
 ----
 
