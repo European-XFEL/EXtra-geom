@@ -247,3 +247,29 @@ def test_to_pyfai_detector():
     )
     agipd_pyfai = geom.to_pyfai_detector()
     assert isinstance(agipd_pyfai, pyFAI.detectors.Detector)
+
+
+def test_positions_to_data_coords():
+    geom = AGIPD_1MGeometry.from_quad_positions(
+        quad_pos=[(-525, 625), (-550, -10), (520, -160), (542.5, 475)]
+    )
+    points = np.array([[0, 0], [-525, 624]])
+    mod, ss, fs, valid = geom.positions_to_data_coords(points)
+    assert valid.shape == (1, 2)  # point (0, 0) is not on a tile
+    # point [-525, 624] is the first pixel of the first module
+    assert mod[0] == 0
+    assert ss[0] == 0
+    assert fs[0] == 0
+
+    mod, ss, fs, valid = geom.positions_to_data_coords(points, origin=(0, 0), unit=1)
+    # point [-525, 624] is out of the detector surface
+    # point [0, 0] is not on a tile
+    assert valid.shape == (0, 2)
+
+    mod, ss, fs, valid = geom.positions_to_data_coords(points, origin=np.array([-525, 624]) + geom._snapped().centre[::-1])
+    # point [-525, 624] is out of the detector surface
+    assert valid.shape == (1, 2)
+    # point [0, 0] is the first pixel of the first module
+    assert mod[0] == 0
+    assert ss[0] == 0
+    assert fs[0] == 0
