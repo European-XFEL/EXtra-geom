@@ -48,6 +48,11 @@ def _plot_data(
     kwargs.setdefault('extent', _extent)
     kwargs.setdefault('origin', 'lower')
 
+    if not ('vmin' in kwargs and 'vmax' in kwargs):
+        _low, _high = np.nanpercentile(image, [2., 98.])
+        kwargs.setdefault('vmin', _low)
+        kwargs.setdefault('vmax', _high)
+
     if ax is None:
         fig = plt.figure(figsize=figsize or (10, 10))
         ax = fig.add_subplot(1, 1, 1)
