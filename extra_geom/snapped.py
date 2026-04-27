@@ -48,6 +48,11 @@ def _plot_data(
     kwargs.setdefault('extent', _extent)
     kwargs.setdefault('origin', 'lower')
 
+    if ('norm' not in kwargs) and ('vmin' not in kwargs or 'vmax' not in kwargs):
+        _low, _high = np.nanpercentile(image, [2., 98.])
+        kwargs.setdefault('vmin', _low)
+        kwargs.setdefault('vmax', _high)
+
     if ax is None:
         fig = plt.figure(figsize=figsize or (10, 10))
         ax = fig.add_subplot(1, 1, 1)
@@ -56,6 +61,7 @@ def _plot_data(
     if isinstance(colorbar, dict) or colorbar is True:
         if isinstance(colorbar, bool):
             colorbar = {}
+        colorbar.setdefault('fraction', 0.07)
         plt.colorbar(im, ax=ax, **colorbar)
 
     ax.set_xlabel('metres' if axis_units == 'm' else 'pixels')
