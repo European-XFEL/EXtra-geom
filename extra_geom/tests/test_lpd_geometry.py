@@ -263,6 +263,17 @@ def test_snap_assemble_data():
     assert np.isnan(img[0, 0])
     assert img[50, 50] == 0
 
+
+def test_take_modules():
+    geom = LPD_1MGeometry.example()
+    data = np.ones((16, 256, 256))
+    img, centre = geom.position_modules(data)
+    print("img", img)
+    disassembled = geom.take_modules(img)
+    print(disassembled)
+    np.testing.assert_array_equal(disassembled, data)
+
+
 def test_to_distortion_array():
     geom = LPD_1MGeometry.from_quad_positions(
         [(11.4, 299), (-11.5, 8), (254.5, -16), (278.5, 275)]
