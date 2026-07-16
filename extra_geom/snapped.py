@@ -283,6 +283,32 @@ class SnappedGeometry:
             **kwargs,
         )
 
+    def take_modules(self, data: np.ndarray) -> np.ndarray:
+        """Convert an assembled image (e.g. mask) back to per-module data"""
+        # Input is a numpy array (or similar unlabelled array)
+        if data.shape != self.size_yx:
+            raise ValueError(f"Image shape {data.shape} is not expected {self.size_yx}")
+        modnos = range(self.geom.expected_data_shape[0])
+
+        out = np.zeros(self.geom.expected_data_shape, data.dtype)
+
+        copy_pairs = []
+        for modno in modnos:
+            module = self.modules[modno]
+            tiles_out = self.geom.split_tiles(out[modno])
+            for tile, tile_out in zip(module, tiles_out):
+                y, x = tile.corner_idx
+                h, w = tile.pixel_dims
+
+                copy_pairs.append((
+                    data[y: y + h, x: x + w], tile.transform(tile_out)
+                ))
+
+        for src, dst in copy_pairs:
+            dst[:] = src
+
+        return out
+
 
 def isinstance_no_import(obj, mod: str, cls: str):
     """Check if isinstance(obj, mod.cls) without loading mod"""

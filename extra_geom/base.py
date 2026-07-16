@@ -760,6 +760,24 @@ class DetectorGeometryBase:
         """Deprecated alias for :meth:`plot_data`"""
         return self.plot_data(data, **kwargs)
 
+    def take_modules(self, image):
+        """Take module data from an assembled image, e.g. a mask
+
+        Parameters
+        ----------
+
+        image: ndarray
+          A 2D image array based on data assembled by this geometry, with the
+          :meth:`position_modules` method. E.g. this might be a mask drawn
+          manually on an assembled image.
+
+        Returns
+        -------
+        out: ndarray
+          3D array of disassembled data, (n_modules, pixel1, pixel2).
+        """
+        return self._snapped().take_modules(image)
+
     @classmethod
     def _distortion_array_slice(cls, m, t):
         """Which part of distortion array each tile is.
