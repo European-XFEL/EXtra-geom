@@ -71,6 +71,8 @@ but this geometry code works with a position for each tile.
 
    .. automethod:: position_modules_interpolate
 
+   .. automethod:: take_modules
+
    .. automethod:: inspect
 
    .. automethod:: compare
@@ -120,6 +122,8 @@ but this geometry code works with a position for each tile.
    .. automethod:: output_array_for_position
 
    .. automethod:: position_modules_symmetric
+
+   .. automethod:: take_modules
 
    .. automethod:: inspect
 
@@ -180,6 +184,8 @@ which this geometry code can position independently.
 
    .. automethod:: position_modules_symmetric
 
+   .. automethod:: take_modules
+
    .. automethod:: inspect
 
    .. automethod:: compare
@@ -223,6 +229,8 @@ two 32×128 tiles.
    .. automethod:: position_modules_interpolate
 
    .. automethod:: position_modules_symmetric
+
+   .. automethod:: take_modules
 
    .. automethod:: inspect
 
@@ -290,6 +298,8 @@ approximately half a pixel width from their true position.
 
    .. automethod:: output_array_for_position
 
+   .. automethod:: take_modules
+
    .. automethod:: inspect
 
    .. automethod:: compare
@@ -328,6 +338,8 @@ Each module is further subdivided into 8 sensor tiles.
 
    .. automethod:: output_array_for_position
 
+   .. automethod:: take_modules
+
    .. automethod:: inspect
 
    .. automethod:: compare
@@ -357,6 +369,8 @@ single tile.
    .. automethod:: position_modules_interpolate
 
    .. automethod:: position_modules
+
+   .. automethod:: take_modules
 
    .. automethod:: output_array_for_position
 
@@ -407,6 +421,8 @@ ePix10K detectors have one module of 352 × 384 pixels. Module built from 4 ASIC
 
    .. automethod:: output_array_for_position
 
+   .. automethod:: take_modules
+
    .. automethod:: inspect
 
    .. automethod:: compare
@@ -433,6 +449,8 @@ Generic detector may represent an unconstrained detector of your choice.
    .. automethod:: position_modules
 
    .. automethod:: output_array_for_position
+
+   .. automethod:: take_modules
 
    .. automethod:: inspect
 
