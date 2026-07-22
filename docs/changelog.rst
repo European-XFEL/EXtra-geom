@@ -1,6 +1,21 @@
 Release Notes
 =============
 
+1.17
+----
+
+2026-07-16
+
+- New :meth:`~.AGIPD_1MGeometry.take_modules` method to disassemble a detector
+  image, the inverse of :meth:`~.AGIPD_1MGeometry.position_modules` (:ghpull:`418`).
+  This is available for all detectors. This supports e.g. drawing a mask on an
+  assembled image and then converting the mask back to use with un-assembled data.
+  The geometry must match that originally used to assemble the data.
+- The colour scale for plotting detector images (e.g. in
+  :meth:`~.LPD_1MGeometry.plot_data`) now goes from the 2nd to the 98th
+  percentile of the data by default (:ghpull:`407`). This tends to produce more
+  useful images than using the minimum & maximum, which are often erroneous outliers.
+
 1.16
 ----
 
