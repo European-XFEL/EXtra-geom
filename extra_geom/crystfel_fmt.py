@@ -97,7 +97,7 @@ def motors_to_geom(positions):
 def write_crystfel_geom(
         self, filename, *,
         data_path='/entry_1/instrument_1/detector_1/data',
-        mask_path=None, dims=('frame', 'modno', 'ss', 'fs'), bad_regions={},
+        mask_info=None, dims=('frame', 'modno', 'ss', 'fs'), bad_regions={},
         nquads=4, adu_per_ev=None, clen=None, photon_energy=None,
 ):
     """Write this geometry to a CrystFEL format (.geom) geometry file.
@@ -159,8 +159,22 @@ def write_crystfel_geom(
     resolution = 1.0 / self.pixel_size  # Pixels per metre
 
     paths = dict(data=data_path)
-    if mask_path:
-        paths['mask'] = mask_path
+    if mask_info is not None:
+        # Old-style mask data:
+        if mask_info['mask']:
+            if mask_info['mask_file']:
+                paths['mask_file'] = mask_info['mask_file']
+            paths['mask'] = mask_info['mask']
+            paths['mask_good'] = mask_info['mask_good']
+            paths['mask_bad'] = mask_info['mask_bad']
+        # New-style (CrystFEL v0.10+) mask data:
+        for i in range(8):
+            if mask_info[f"mask{i}_data"]:
+                if mask_info[f"mask{i}_file"]:
+                    paths[f"mask{i}_file"] = mask_info[f"mask{i}_file"]
+                paths[f"mask{i}_data"] = mask_info[f"mask{i}_data"]
+                paths[f"mask{i}_goodbits"] = mask_info[f"mask{i}_goodbits"]
+                paths[f"mask{i}_badbits"] = mask_info[f"mask{i}_badbits"]
     path_str = '\n'.join('{} = {} ;'.format(i, j) for i, j in paths.items())
 
     with open(filename, 'w') as f:
